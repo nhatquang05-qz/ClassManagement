@@ -15,53 +15,50 @@ const createBulkReports = async (req, res) => {
   try {
     const { reports, reporter_id, week_number, year } = req.body;
     
-    // Kiểm tra quyền hạn: 
-    // Nếu không phải là admin (teacher), kiểm tra xem có đang sửa tuần quá khứ không
+    // Kiểm tra quyền hạn
     const userQuery = 'SELECT role_id FROM users WHERE id = ?';
     const [users] = await connection.query(userQuery, [reporter_id]);
     const userRole = users[0]?.role_id; // 1 là admin/GVCN
 
     const currentWeek = getWeekNumber(new Date());
     
-    // Nếu không phải GVCN (role_id = 1) và tuần gửi lên khác tuần hiện tại -> Chặn
+    // Nếu không phải admin (role 1) thì chỉ được sửa tuần hiện tại
     if (userRole !== 1 && parseInt(week_number) !== currentWeek) {
         return res.status(403).json({ message: 'Bạn chỉ có thể chỉnh sửa sổ của tuần hiện tại!' });
     }
 
     await connection.beginTransaction();
 
-    // Xóa dữ liệu cũ của tuần đó (để ghi đè bản mới nhất)
-    // Lưu ý: Chỉ xóa các record của học sinh trong danh sách gửi lên
+    // Xóa dữ liệu cũ của tuần đó để ghi đè (chỉ xóa của những học sinh được gửi lên)
     if (reports.length > 0) {
-        const studentIds = reports.map(r => r.student_id);
+        const studentIds = [...new Set(reports.map(r => r.student_id))]; // Lấy danh sách unique student_id
         if (studentIds.length > 0) {
             const deleteQuery = `
                 DELETE FROM daily_logs 
                 WHERE week_number = ? AND student_id IN (?)
             `;
+            // Đã sửa lỗi chính tả: WHEREyb -> WHERE
             await connection.query(deleteQuery, [week_number, studentIds]);
         }
-    }
+    } 
 
     // Insert dữ liệu mới
-    const insertQuery = `
-      INSERT INTO daily_logs (student_id, reporter_id, violation_type_id, log_date, week_number, quantity)
-      VALUES ?
-    `;
+    if (reports.length > 0) {
+      const insertQuery = `
+        INSERT INTO daily_logs (student_id, reporter_id, violation_type_id, log_date, week_number, quantity, note)
+        VALUES ?
+      `;
 
-    // Chọn ngày lưu là ngày hiện tại
-    const logDate = new Date().toISOString().split('T')[0];
+      const values = reports.map(report => [
+        report.student_id,
+        reporter_id,
+        report.violation_type_id,
+        report.log_date, // Sử dụng ngày từ frontend gửi lên
+        week_number,
+        report.quantity || 1,
+        report.note || null
+      ]);
 
-    const values = reports.map(report => [
-      report.student_id,
-      reporter_id,
-      report.violation_type_id,
-      logDate,
-      week_number,
-      report.quantity || 1
-    ]);
-
-    if (values.length > 0) {
       await connection.query(insertQuery, [values]);
     }
 
@@ -69,23 +66,35 @@ const createBulkReports = async (req, res) => {
     res.status(201).json({ message: 'Lưu sổ thành công' });
   } catch (error) {
     await connection.rollback();
-    console.error(error);
+    console.error("Lỗi khi lưu sổ:", error);
     res.status(500).json({ message: 'Lỗi server', error });
   } finally {
     connection.release();
   }
 };
 
-// 2. Lấy dữ liệu báo cáo của một tuần cụ thể (để hiển thị lên bảng)
+// 2. Lấy dữ liệu báo cáo của một tuần cụ thể
 const getWeeklyReport = async (req, res) => {
     try {
         const { week, group_number } = req.query;
         
+        // Query join để lấy đầy đủ thông tin chi tiết (cho cả hiển thị bảng và lịch sử)
         let query = `
-            SELECT student_id, violation_type_id, quantity
-            FROM daily_logs l
-            JOIN users u ON l.student_id = u.id
-            WHERE l.week_number = ?
+            SELECT 
+                dl.id,
+                dl.student_id, 
+                dl.violation_type_id, 
+                dl.quantity, 
+                dl.log_date, 
+                dl.note,
+                dl.created_at, 
+                u.full_name as student_name,
+                vt.name as violation_name,
+                vt.points
+            FROM daily_logs dl
+            JOIN users u ON dl.student_id = u.id
+            JOIN violation_types vt ON dl.violation_type_id = vt.id
+            WHERE dl.week_number = ?
         `;
         
         const params = [week];
@@ -95,15 +104,25 @@ const getWeeklyReport = async (req, res) => {
             params.push(group_number);
         }
 
+        // Sắp xếp: Ngày vi phạm giảm dần, sau đó đến thời gian tạo giảm dần (mới nhất lên đầu)
+        query += ` ORDER BY dl.log_date DESC, dl.created_at DESC`;
+
         const [rows] = await db.query(query, params);
-        res.json(rows);
+        
+        // Format date thành YYYY-MM-DD string
+        const formattedRows = rows.map(row => ({
+            ...row,
+            log_date: row.log_date instanceof Date ? row.log_date.toISOString().split('T')[0] : row.log_date
+        }));
+
+        res.json(formattedRows);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Lỗi lấy dữ liệu tuần' });
     }
 };
 
-// 3. Lấy dữ liệu theo ngày (API cũ, giữ lại để tương thích nếu cần)
+// 3. Lấy dữ liệu theo ngày (API cũ, giữ nguyên nếu còn dùng)
 const getViolationsByDate = async (req, res) => {
   try {
     const { date, group_number } = req.query;
@@ -140,6 +159,7 @@ const getMyLogs = async (req, res) => {
         dl.log_date,
         dl.week_number,
         dl.quantity,
+        dl.note,
         vt.name as violation_name,
         vt.category,
         vt.points,
@@ -159,9 +179,43 @@ const getMyLogs = async (req, res) => {
   }
 };
 
+const deleteReport = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { id } = req.params;
+        const reporter_id = req.user.id;
+        
+        // Kiểm tra quyền: Chỉ người tạo ra log đó hoặc Admin mới được xóa
+        // (Logic đơn giản hóa, có thể check thêm week_number nếu cần chặt chẽ)
+        const [log] = await connection.query('SELECT reporter_id FROM daily_logs WHERE id = ?', [id]);
+        
+        if (log.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy bản ghi' });
+        }
+
+        // Lấy role của user đang request
+        const [user] = await connection.query('SELECT role_id FROM users WHERE id = ?', [reporter_id]);
+        const isAdmin = user[0]?.role_id === 1;
+
+        if (!isAdmin && log[0].reporter_id !== reporter_id) {
+            return res.status(403).json({ message: 'Bạn không có quyền xóa dòng này' });
+        }
+
+        await connection.query('DELETE FROM daily_logs WHERE id = ?', [id]);
+        
+        res.json({ message: 'Xóa thành công' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi khi xóa', error });
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
   createBulkReports,
   getWeeklyReport,
   getViolationsByDate,
-  getMyLogs
+  getMyLogs,
+  deleteReport
 };

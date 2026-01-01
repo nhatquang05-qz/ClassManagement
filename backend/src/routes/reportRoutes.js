@@ -1,16 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
-const verifyToken = require('../middleware/authMiddleware'); // Import middleware
+const authMiddleware = require('../middleware/authMiddleware');
 
-// Route ghi lỗi (Tổ trưởng dùng)
-router.post('/bulk', verifyToken, reportController.createBulkReports);
+router.use(authMiddleware);
 
-// Route xem lỗi cá nhân (Học sinh dùng) - MỚI
-router.get('/my-logs', verifyToken, reportController.getMyLogs);
-
-// Route admin xem (đã có)
-router.get('/', reportController.getViolationsByDate);
+router.post('/bulk', reportController.createBulkReports);
 router.get('/weekly', reportController.getWeeklyReport);
+router.get('/date', reportController.getViolationsByDate);
+router.get('/my-logs', reportController.getMyLogs);
+router.delete('/:id', reportController.deleteReport); // <-- Route mới
 
 module.exports = router;
