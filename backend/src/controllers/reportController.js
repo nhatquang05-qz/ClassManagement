@@ -59,7 +59,36 @@ const getViolationsByDate = async (req, res) => {
   }
 };
 
+const getMyLogs = async (req, res) => {
+  try {
+    const studentId = req.user.id; // Lấy ID từ token (middleware xác thực)
+    
+    const query = `
+      SELECT 
+        dl.id,
+        dl.log_date,
+        dl.quantity,
+        vt.name as violation_name,
+        vt.category,
+        vt.points,
+        u.full_name as reporter_name
+      FROM daily_logs dl
+      JOIN violation_types vt ON dl.violation_type_id = vt.id
+      JOIN users u ON dl.reporter_id = u.id
+      WHERE dl.student_id = ?
+      ORDER BY dl.log_date DESC, dl.created_at DESC
+    `;
+
+    const [rows] = await db.query(query, [studentId]);
+    res.json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Lỗi lấy lịch sử cá nhân' });
+  }
+};
+
 module.exports = {
   createBulkReports,
-  getViolationsByDate
+  getViolationsByDate,
+  getMyLogs
 };

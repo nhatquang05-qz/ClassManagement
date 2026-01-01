@@ -2,10 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-// Import trang Tracking đã tạo ở phần trước, bạn cần tạo wrapper page cho nó
-// import TrackingPage from './pages/TrackingPage'; 
+import TrackingPage from './pages/TrackingPage.tsx'; // <-- Đã tạo ở bước trước
+import MyRecordPage from './pages/MyRecordPage'; // <-- Mới tạo
 
-// Component bảo vệ route (chỉ cho phép user đã login)
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" />;
@@ -18,13 +17,11 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           
-          <Route path="/" element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
+          {/* Các trang cần đăng nhập mới xem được */}
+          <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/tracking" element={<ProtectedRoute><TrackingPage /></ProtectedRoute>} />
+          <Route path="/my-record" element={<ProtectedRoute><MyRecordPage /></ProtectedRoute>} />
 
-          {/* Sẽ thêm route /tracking ở bước sau */}
         </Routes>
       </AuthProvider>
     </Router>
