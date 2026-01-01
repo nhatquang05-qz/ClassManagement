@@ -50,7 +50,7 @@ const DashboardPage: React.FC = () => {
                             className="logout-btn"
                             style={{ marginRight: 10, backgroundColor: '#2196f3' }}
                         >
-                            ↻ Đổi Lớp
+                            ↻ Đổi lớp
                         </button>
                     )}
                     <button onClick={handleLogout} className="logout-btn">
@@ -88,7 +88,7 @@ const DashboardPage: React.FC = () => {
                     >
                         <div style={{ fontSize: '2rem', marginRight: '15px' }}>🏆</div>
                         <div>
-                            <h3 style={{ margin: 0, color: '#b45309' }}>Bảng Xếp Hạng</h3>
+                            <h3 style={{ margin: 0, color: '#b45309' }}>Bảng xếp hạng</h3>
                         </div>
                     </Link>
 
@@ -98,7 +98,7 @@ const DashboardPage: React.FC = () => {
                         className="action-card"
                         style={{ borderLeft: '5px solid #4caf50' }}
                     >
-                        👤 Xem Hạnh Kiểm Cá Nhân
+                        👤 Xem thông tin cá nhân
                     </Link>
 
                     {(user?.role === 'group_leader' ||
@@ -112,7 +112,7 @@ const DashboardPage: React.FC = () => {
                             className="action-card"
                             style={{ borderLeft: '5px solid #2196f3' }}
                         >
-                            📝 Sổ Theo Dõi (Ghi Lỗi)
+                            📝 Sổ theo dõi
                         </Link>
                     )}
 
@@ -124,7 +124,7 @@ const DashboardPage: React.FC = () => {
                             className="action-card"
                             style={{ borderLeft: '5px solid #ff9800' }}
                         >
-                            📊 Báo Cáo Tổng Hợp
+                            📊 Báo cáo tổng hợp
                         </Link>
                     )}
 
@@ -134,7 +134,7 @@ const DashboardPage: React.FC = () => {
                             className="action-card"
                             style={{ borderLeft: '5px solid #9c27b0' }}
                         >
-                            👥 Danh Sách Học Sinh
+                            👥 Danh sách học sinh
                         </Link>
                     )}
                 </section>

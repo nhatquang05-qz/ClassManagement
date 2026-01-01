@@ -80,17 +80,25 @@ const RankingPage: React.FC = () => {
     }, [user, selectedWeek]);
 
     const { rankings, top3Students, detailedGroups } = useMemo(() => {
-        const groupPoints: Record<string, number> = { '1': 0, '2': 0, '3': 0, '4': 0 };
+        const groupPoints: Record<string, number> = {};
         const studentStats: Record<string, StudentSummary> = {};
         const groupsDetailTemp: Record<string, GroupDetail> = {};
 
-        ['1', '2', '3', '4'].forEach((g) => {
-            groupsDetailTemp[g] = { group_number: parseInt(g), members: {}, total_group_points: 0 };
-        });
+        const initGroup = (groupNum: number) => {
+            const gKey = groupNum.toString();
+            if (!groupsDetailTemp[gKey]) {
+                groupsDetailTemp[gKey] = { group_number: groupNum, members: {}, total_group_points: 0 };
+            }
+            if (groupPoints[gKey] === undefined) {
+                groupPoints[gKey] = 0;
+            }
+        };
 
         allStudents.forEach((stu) => {
             const gNum = stu.group_number;
             const sName = stu.full_name;
+
+            if (gNum) initGroup(gNum);
 
             const gKey = gNum?.toString();
 
@@ -107,6 +115,8 @@ const RankingPage: React.FC = () => {
         });
 
         reportData.forEach((item) => {
+            if (item.group_number) initGroup(item.group_number);
+
             const totalPoints = (item.points || 0) * (item.quantity || 0);
             const gKey = item.group_number?.toString();
             const sName = item.student_name;
