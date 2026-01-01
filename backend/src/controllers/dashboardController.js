@@ -1,10 +1,10 @@
 const db = require('../config/dbConfig');
 
 const getGroupRankings = async (req, res) => {
-  try {
-    const { class_id } = req.query;
+    try {
+        const { class_id } = req.query;
 
-    let query = `
+        let query = `
       SELECT 
         u.group_number,
         COALESCE(SUM(vt.points * dl.quantity), 0) as total_points
@@ -14,23 +14,23 @@ const getGroupRankings = async (req, res) => {
       WHERE u.group_number IS NOT NULL
     `;
 
-    const params = [];
-    if (class_id) {
-      query += ` AND u.class_id = ?`;
-      params.push(class_id);
-    }
+        const params = [];
+        if (class_id) {
+            query += ` AND u.class_id = ?`;
+            params.push(class_id);
+        }
 
-    query += `
+        query += `
       GROUP BY u.group_number
       ORDER BY total_points DESC
     `;
 
-    const [rows] = await db.query(query, params);
-    res.json(rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Lỗi lấy bảng xếp hạng' });
-  }
+        const [rows] = await db.query(query, params);
+        res.json(rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi lấy bảng xếp hạng' });
+    }
 };
 
 module.exports = { getGroupRankings };

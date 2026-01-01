@@ -1,144 +1,146 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/Dashboard.css';
 
-interface Ranking {
-  group_number: number;
-  total_points: number;
-}
-
 const DashboardPage: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [rankings, setRankings] = useState<Ranking[]>([]);
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
-  const [currentClassName, setCurrentClassName] = useState(
-    localStorage.getItem('selectedClassName') || 'Lớp Học'
-  );
+    const [currentClassName] = useState(localStorage.getItem('selectedClassName') || 'Lớp Học');
 
-  useEffect(() => {
-    if (user?.role === 'teacher' || user?.role === 'admin') {
-      const classId = localStorage.getItem('selectedClassId');
-      if (!classId) {
-        navigate('/classes');
-        return;
-      }
-    }
+    useEffect(() => {
+        if (user?.role === 'teacher' || user?.role === 'admin') {
+            const classId = localStorage.getItem('selectedClassId');
+            if (!classId) {
+                navigate('/classes');
+            }
+        }
+    }, [user, navigate]);
 
-    const fetchRankings = async () => {
-      try {
-        const classId = localStorage.getItem('selectedClassId') || (user as any)?.class_id;
-
-        const params = classId ? { class_id: classId } : {};
-        const res = await api.get('/dashboard/rankings', { params });
-        setRankings(res.data);
-      } catch (error) {
-        console.error('Failed to fetch rankings', error);
-      }
+    const handleLogout = () => {
+        localStorage.removeItem('selectedClassId');
+        localStorage.removeItem('selectedClassName');
+        logout();
     };
-    fetchRankings();
-  }, [user, navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('selectedClassId');
-    localStorage.removeItem('selectedClassName');
-    logout();
-  };
+    const handleChangeClass = () => {
+        localStorage.removeItem('selectedClassId');
+        localStorage.removeItem('selectedClassName');
+        navigate('/classes');
+    };
 
-  const handleChangeClass = () => {
-    localStorage.removeItem('selectedClassId');
-    localStorage.removeItem('selectedClassName');
-    navigate('/classes');
-  };
-
-  return (
-    <div className="dashboard-container">
-      <header className="dashboard-header">
-        <h1>{currentClassName} - Quản Lý Thi Đua</h1>
-        <div className="user-info">
-          <span>
-            Xin chào, <b>{user?.full_name}</b> ({user?.role_display})
-          </span>
-
-          {(user?.role === 'teacher' || user?.role === 'admin') && (
-            <button
-              onClick={handleChangeClass}
-              className="logout-btn"
-              style={{ marginRight: 10, backgroundColor: '#2196f3' }}
+    return (
+        <div
+            className="dashboard-container"
+            style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}
+        >
+            <header
+                className="dashboard-header"
+                style={{ marginBottom: '40px', textAlign: 'center' }}
             >
-              ↻ Đổi Lớp
-            </button>
-          )}
-
-          <button onClick={handleLogout} className="logout-btn">
-            Đăng xuất
-          </button>
-        </div>
-      </header>
-
-      <main className="dashboard-content">
-        <section className="ranking-section">
-          <h2>🏆 Bảng Xếp Hạng Các Tổ</h2>
-          {rankings.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#666' }}>Chưa có dữ liệu thi đua tuần này.</p>
-          ) : (
-            <div className="ranking-cards">
-              {rankings.map((rank, index) => (
-                <div key={rank.group_number} className={`rank-card rank-${index + 1}`}>
-                  <div className="rank-badge">#{index + 1}</div>
-                  <h3>Tổ {rank.group_number}</h3>
-                  <p className="points">{rank.total_points} điểm</p>
+                <h1 style={{ color: '#1e293b', marginBottom: '10px' }}>{currentClassName}</h1>
+                <div className="user-info">
+                    <span>
+                        Xin chào, <b>{user?.full_name}</b> ({user?.role_display})
+                    </span>
+                    {(user?.role === 'teacher' || user?.role === 'admin') && (
+                        <button
+                            onClick={handleChangeClass}
+                            className="logout-btn"
+                            style={{ marginRight: 10, backgroundColor: '#2196f3' }}
+                        >
+                            ↻ Đổi Lớp
+                        </button>
+                    )}
+                    <button onClick={handleLogout} className="logout-btn">
+                        Đăng xuất
+                    </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
+            </header>
 
-        <section className="actions-section">
-          {}
-          <Link to="/my-record" className="action-card" style={{ borderLeft: '5px solid #4caf50' }}>
-            👤 Xem Hạnh Kiểm Cá Nhân
-          </Link>
+            <main className="dashboard-content">
+                <section
+                    className="actions-section"
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                        gap: '20px',
+                    }}
+                >
+                    {}
+                    <Link
+                        to="/ranking"
+                        className="action-card"
+                        style={{
+                            borderLeft: '5px solid #eab308',
+                            backgroundColor: '#fffbeb',
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '20px',
+                            textDecoration: 'none',
+                            color: '#333',
+                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                            borderRadius: '8px',
+                            transition: 'transform 0.2s',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <div style={{ fontSize: '2rem', marginRight: '15px' }}>🏆</div>
+                        <div>
+                            <h3 style={{ margin: 0, color: '#b45309' }}>Bảng Xếp Hạng</h3>
+                        </div>
+                    </Link>
 
-          {}
-          {(user?.role === 'group_leader' ||
-            user?.role === 'vice_group_leader' ||
-            user?.role === 'monitor' ||
-            user?.role === 'admin' ||
-            user?.role === 'teacher' ||
-            user?.role === 'student') && (
-            <Link
-              to="/tracking"
-              className="action-card"
-              style={{ borderLeft: '5px solid #2196f3' }}
-            >
-              📝 Sổ Theo Dõi (Ghi Lỗi)
-            </Link>
-          )}
+                    {}
+                    <Link
+                        to="/my-record"
+                        className="action-card"
+                        style={{ borderLeft: '5px solid #4caf50' }}
+                    >
+                        👤 Xem Hạnh Kiểm Cá Nhân
+                    </Link>
 
-          {}
-          {(user?.role === 'admin' || user?.role === 'monitor' || user?.role === 'teacher') && (
-            <Link to="/report" className="action-card" style={{ borderLeft: '5px solid #ff9800' }}>
-              📊 Báo Cáo Tổng Hợp
-            </Link>
-          )}
+                    {(user?.role === 'group_leader' ||
+                        user?.role === 'vice_group_leader' ||
+                        user?.role === 'monitor' ||
+                        user?.role === 'admin' ||
+                        user?.role === 'teacher' ||
+                        user?.role === 'student') && (
+                        <Link
+                            to="/tracking"
+                            className="action-card"
+                            style={{ borderLeft: '5px solid #2196f3' }}
+                        >
+                            📝 Sổ Theo Dõi (Ghi Lỗi)
+                        </Link>
+                    )}
 
-          {}
-          {(user?.role === 'teacher' || user?.role === 'admin') && (
-            <Link
-              to="/students"
-              className="action-card"
-              style={{ borderLeft: '5px solid #9c27b0' }}
-            >
-              👥 Danh Sách Học Sinh
-            </Link>
-          )}
-        </section>
-      </main>
-    </div>
-  );
+                    {(user?.role === 'admin' ||
+                        user?.role === 'monitor' ||
+                        user?.role === 'teacher') && (
+                        <Link
+                            to="/report"
+                            className="action-card"
+                            style={{ borderLeft: '5px solid #ff9800' }}
+                        >
+                            📊 Báo Cáo Tổng Hợp
+                        </Link>
+                    )}
+
+                    {(user?.role === 'teacher' || user?.role === 'admin') && (
+                        <Link
+                            to="/students"
+                            className="action-card"
+                            style={{ borderLeft: '5px solid #9c27b0' }}
+                        >
+                            👥 Danh Sách Học Sinh
+                        </Link>
+                    )}
+                </section>
+            </main>
+        </div>
+    );
 };
 
 export default DashboardPage;

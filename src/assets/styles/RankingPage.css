@@ -1,0 +1,166 @@
+.ranking-page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.ranking-header-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.btn-back {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s;
+}
+
+.btn-back:hover {
+    background: #f3f4f6;
+}
+
+.week-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #1e293b;
+}
+
+.section-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.section-title {
+    text-align: center;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+.ranking-section {
+    border: 2px solid #2563eb;
+}
+
+.ranking-list {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.rank-card {
+    padding: 15px 25px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 150px;
+    border: 1px solid #2563eb;
+    background: #eff6ff;
+    color: #1e293b;
+}
+
+.rank-card.top-1 {
+    background: #fef9c3;
+    border: 2px solid #eab308;
+    transform: scale(1.1);
+    font-weight: bold;
+}
+
+.rank-score {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2563eb;
+}
+
+.rank-card.top-1 .rank-score {
+    color: #ca8a04;
+}
+
+.top-students-list {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.student-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 15px;
+    width: 200px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.student-card.top-1 {
+    background: #fffbeb;
+    border: 2px solid #fbbf24;
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+.student-score {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+.score-positive {
+    color: #059669;
+}
+.score-negative {
+    color: #dc2626;
+}
+
+.group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.group-detail-card {
+    border: 1px solid #e2e8f0;
+}
+
+.group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f8fafc;
+}
+
+.group-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.group-table th {
+    background: #f1f5f9;
+    padding: 8px;
+    text-align: center;
+}
+.group-table td {
+    padding: 8px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.text-left {
+    text-align: left !important;
+}
