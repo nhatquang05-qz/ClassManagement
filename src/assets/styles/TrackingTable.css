@@ -211,9 +211,9 @@
 }
 .btn-submit:hover { background-color: #1976d2; }
 
-/* ... CSS cũ giữ nguyên ... */
 
-/* History Table Styles */
+
+
 .history-container {
     margin-top: 30px;
     background: #fff;
@@ -275,4 +275,17 @@
 .btn-delete-icon:hover {
     opacity: 1;
     transform: scale(1.1);
+}
+
+/* ... CSS cũ ... */
+.weekly-tab {
+    background-color: #673ab7 !important; /* Màu tím cho khác biệt */
+    color: white !important;
+}
+.readonly-cell {
+    cursor: default !important;
+    opacity: 0.9;
+}
+.readonly-cell:hover:not(.disabled) {
+    background-color: #fff; /* Không highlight khi hover ở chế độ xem tuần */
 }

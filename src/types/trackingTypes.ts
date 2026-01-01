@@ -12,14 +12,14 @@ export interface ViolationType {
 }
 
 export interface DailyLogPayload {
-  id?: number; // Thêm id
+  id?: number; 
   student_id: number;
   violation_type_id: number;
   quantity: number;
   log_date: string;
   note?: string;
   
-  // Các trường bổ sung từ backend khi hiển thị lịch sử
+  
   student_name?: string;
   violation_name?: string;
   points?: number;

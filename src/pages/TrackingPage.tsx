@@ -52,6 +52,9 @@ const TrackingPage: React.FC = () => {
   const [currentRealWeek] = useState(getWeekNumber(new Date()));
   const [selectedWeek, setSelectedWeek] = useState(getWeekNumber(new Date()));
   
+  // State quản lý tab ngày đang chọn (0-5: T2-T7, 6: Cả tuần)
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
+
   const [loading, setLoading] = useState(true);
 
   const weekDates = useMemo(() => getWeekDates(selectedWeek, currentYear), [selectedWeek, currentYear]);
@@ -108,23 +111,30 @@ const TrackingPage: React.FC = () => {
     return total;
   }, [existingLogs, students, violationTypes]);
 
-  const handleSubmit = async (logs: DailyLogPayload[]) => {
+  // LOGIC LƯU MỚI: Nhận danh sách logs và ngày cụ thể cần lưu từ DailyTrackingTable
+  const handleSubmit = async (logsToSave: DailyLogPayload[], dateToSave: string) => {
     if (!canEdit) {
         alert("Bạn không có quyền chỉnh sửa tuần này!");
         return;
     }
     
-    if (!window.confirm(`Xác nhận lưu sổ cho Tuần ${selectedWeek}?`)) return;
+    // Format lại ngày hiển thị cho đẹp để confirm (YYYY-MM-DD -> DD/MM/YYYY)
+    const [y, m, d] = dateToSave.split('-');
+    const displayDate = `${d}/${m}/${y}`;
+
+    if (!window.confirm(`Xác nhận lưu dữ liệu cho ngày ${displayDate}?`)) return;
 
     try {
       await api.post('/reports/bulk', {
-        reports: logs,
+        reports: logsToSave,
         reporter_id: user?.id,
         week_number: selectedWeek,
+        log_date: dateToSave, // QUAN TRỌNG: Gửi ngày cụ thể lên server
         year: currentYear
       });
       alert("Lưu thành công!");
       
+      // Reload lại dữ liệu
       const res = await api.get(`/reports/weekly?week=${selectedWeek}&group_number=${user?.group_number || ''}`);
       setExistingLogs(res.data);
       
@@ -218,12 +228,17 @@ const TrackingPage: React.FC = () => {
             </div>
         ) : (
             <>
+                {/* Truyền activeDayIndex và setActiveDayIndex xuống để Table quản lý UI Tabs 
+                   nhưng State vẫn nằm ở Page cha 
+                */}
                 <DailyTrackingTable 
                     students={students} 
                     violationTypes={violationTypes} 
                     initialData={existingLogs}
                     isReadOnly={!canEdit}
                     weekDates={weekDates}
+                    activeDayIndex={activeDayIndex}
+                    setActiveDayIndex={setActiveDayIndex}
                     onSubmit={handleSubmit} 
                 />
                 
