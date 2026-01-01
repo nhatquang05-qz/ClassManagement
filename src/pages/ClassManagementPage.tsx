@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { useNavigate } from 'react-router-dom';
-import '../assets/styles/Dashboard.css'; 
+import '../assets/styles/Dashboard.css';
 
 interface ClassItem {
   id: number;
@@ -14,11 +14,9 @@ const ClassManagementPage: React.FC = () => {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [showModal, setShowModal] = useState(false);
   
-  
   const [newClassName, setNewClassName] = useState('');
   const [newSchoolYear, setNewSchoolYear] = useState('2024-2025');
 
-  
   useEffect(() => {
     fetchClasses();
   }, []);
@@ -54,13 +52,11 @@ const ClassManagementPage: React.FC = () => {
     }
   };
 
-  
   const handleSelectClass = (cls: ClassItem) => {
-    
-    
     localStorage.setItem('selectedClassId', cls.id.toString());
     localStorage.setItem('selectedClassName', cls.name);
-    navigate('/dashboard'); 
+    // SỬA LỖI Ở ĐÂY: Chuyển hướng về trang chủ '/' thay vì '/dashboard'
+    navigate('/'); 
   };
 
   return (
@@ -86,7 +82,6 @@ const ClassManagementPage: React.FC = () => {
         ))}
       </div>
 
-      {}
       {showModal && (
         <div className="modal-overlay" style={{position: 'fixed', top:0, left:0, right:0, bottom:0, background: 'rgba(0,0,0,0.5)', display:'flex', justifyContent:'center', alignItems:'center'}}>
           <div className="modal-content" style={{background: 'white', padding: 30, borderRadius: 8, width: 400}}>
