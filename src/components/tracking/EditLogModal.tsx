@@ -31,43 +31,43 @@ const EditLogModal: React.FC<Props> = ({ data, onClose, onSave }) => {
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
+        <div className="trk-modal-overlay" onClick={onClose}>
+            <div className="trk-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="trk-modal-header">
                     <h3>Ghi nhận: {data.violationName}</h3>
-                    <button className="btn-close" onClick={onClose}>
+                    <button className="trk-btn-close" onClick={onClose}>
                         &times;
                     </button>
                 </div>
 
-                <div className="modal-body">
-                    <p className="student-name">
+                <div className="trk-modal-body">
+                    <p className="trk-student-name">
                         Học sinh: <strong>{data.studentName}</strong>
                     </p>
 
-                    <div className="current-stat">
+                    <div className="trk-current-stat">
                         Số lượng hiện tại:{' '}
-                        <span className="badge-count">{data.currentQuantity}</span>
+                        <span className="trk-badge-count">{data.currentQuantity}</span>
                     </div>
 
-                    <div className="form-group">
+                    <div className="trk-form-group">
                         <label>Thêm số lượng (+):</label>
                         <input
                             ref={inputRef}
                             type="number"
                             min="1"
-                            className="form-control"
+                            className="trk-form-control"
                             value={addQuantity}
                             onChange={(e) => setAddQuantity(parseInt(e.target.value) || 0)}
                             onKeyDown={handleKeyDown}
                         />
                     </div>
 
-                    <div className="form-group">
+                    <div className="trk-form-group">
                         <label>Ghi chú (nếu có):</label>
                         <input
                             type="text"
-                            className="form-control"
+                            className="trk-form-control"
                             placeholder="Ví dụ: Tiết 2, Bài số 3..."
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
@@ -76,11 +76,11 @@ const EditLogModal: React.FC<Props> = ({ data, onClose, onSave }) => {
                     </div>
                 </div>
 
-                <div className="modal-footer">
-                    <button className="btn-cancel" onClick={onClose}>
+                <div className="trk-modal-footer">
+                    <button className="trk-btn-cancel" onClick={onClose}>
                         Hủy
                     </button>
-                    <button className="btn-save" onClick={handleSave}>
+                    <button className="trk-btn-save" onClick={handleSave}>
                         Thêm Mới
                     </button>
                 </div>

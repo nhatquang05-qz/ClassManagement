@@ -5,12 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/StudentManager.css';
 
 const ROLES = [
-    { id: 2, name: 'Lớp trưởng' },
-    { id: 3, name: 'Lớp phó học tập' },
-    { id: 4, name: 'Lớp phó lao động' },
-    { id: 5, name: 'Tổ trưởng' },
-    { id: 7, name: 'Tổ phó' },
-    { id: 6, name: 'Học sinh' },
+    { id: 2, name: 'Lớp trưởng' },        
+    { id: 3, name: 'Lớp phó học tập' },   
+    { id: 4, name: 'Lớp phó lao động' },  
+    { id: 5, name: 'Tổ trưởng' },         
+    { id: 7, name: 'Tổ phó' },            
+    { id: 6, name: 'Học sinh' },          
 ];
 
 const StudentManagerPage = () => {
@@ -46,6 +46,58 @@ const StudentManagerPage = () => {
             setLoading(false);
         }
     };
+
+    
+    const availableRoles = useMemo(() => {
+        const currentStudentId = editingStudent?.id;
+        const targetGroup = formData.group_number;
+
+        
+        const usedClassRoles = new Set<number>(); 
+        const usedGroupRoles = new Set<number>(); 
+
+        students.forEach(s => {
+            
+            if (s.id === currentStudentId) return;
+
+            
+            if ([2, 3, 4].includes(s.role_id)) {
+                usedClassRoles.add(s.role_id);
+            }
+
+            
+            if (s.group_number === targetGroup && [5, 7].includes(s.role_id)) {
+                usedGroupRoles.add(s.role_id);
+            }
+        });
+
+        return ROLES.filter(role => {
+            
+            if (role.id === 6) return true;
+
+            
+            if ([2, 3, 4].includes(role.id)) {
+                return !usedClassRoles.has(role.id);
+            }
+
+            
+            if ([5, 7].includes(role.id)) {
+                return !usedGroupRoles.has(role.id);
+            }
+
+            return true;
+        });
+    }, [students, formData.group_number, editingStudent]);
+
+    
+    
+    useEffect(() => {
+        const isCurrentRoleValid = availableRoles.some(r => r.id === formData.role_id);
+        if (!isCurrentRoleValid) {
+            setFormData(prev => ({ ...prev, role_id: 6 }));
+        }
+    }, [availableRoles, formData.role_id]);
+    
 
     const groupStats = useMemo(() => {
         const stats: { [key: string]: number } = {};
@@ -120,7 +172,7 @@ const StudentManagerPage = () => {
     };
 
     return (
-        <div className="student-manager-container">
+        <div className="sm-container">
             {canEdit && (
                 <input
                     type="file"
@@ -131,61 +183,43 @@ const StudentManagerPage = () => {
                 />
             )}
 
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+            <div className="sm-header">
+                <div className="sm-header-left">
                     <button
-                        className="btn"
+                        className="sm-btn sm-btn-back"
                         onClick={() => navigate('/')}
-                        style={{
-                            background: '#6c757d',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5,
-                        }}
                     >
-                        ⬅️ Quay lại
+                        <span style={{ fontSize: '18px' }}>‹</span> Quay lại
                     </button>
-                    <h2 style={{ margin: 0 }}>Quản lý Lớp {className}</h2>
+                    <h2 className="sm-title">Quản lý Lớp {className}</h2>
                 </div>
 
-                {}
                 {canEdit && (
-                    <div style={{ display: 'flex', gap: 10 }}>
+                    <div className="sm-header-actions">
                         <button
-                            className="btn"
+                            className="sm-btn sm-btn-info"
                             onClick={handleImportClick}
-                            style={{
-                                background: '#17a2b8',
-                                color: 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                            }}
                         >
                             📥 Nhập Excel
                         </button>
 
-                        <button className="btn btn-success" onClick={handleAddNew}>
+                        <button className="sm-btn sm-btn-success" onClick={handleAddNew}>
                             + Thêm Học Sinh
                         </button>
                     </div>
                 )}
             </div>
 
-            <div className="stats-bar">
-                <strong style={{ marginRight: 10 }}>Quân số:</strong>
+            <div className="sm-stats-bar">
+                <strong className="sm-stat-label">Quân số:</strong>
                 {Object.keys(groupStats)
                     .sort()
                     .map((g) => (
-                        <span key={g} className="stat-item">
+                        <span key={g} className="sm-stat-item">
                             {g == '0' ? 'Chưa xếp tổ' : `Tổ ${g}`}: <b>{groupStats[g]}</b>
                         </span>
                     ))}
-                <span
-                    className="stat-item"
-                    style={{ background: '#fff3cd', color: '#856404', marginLeft: 'auto' }}
-                >
+                <span className="sm-stat-item sm-stat-total">
                     Tổng: <b>{students.length}</b> HS
                 </span>
             </div>
@@ -193,120 +227,118 @@ const StudentManagerPage = () => {
             {loading ? (
                 <p>Đang tải dữ liệu...</p>
             ) : (
-                <table className="student-table">
-                    <thead>
-                        <tr>
-                            <th style={{ width: 50, textAlign: 'center' }}>STT</th>
-                            <th>Họ và Tên</th>
-                            <th style={{ width: 80, textAlign: 'center' }}>Tổ</th>
-                            <th style={{ width: 150 }}>Vai Trò</th>
-                            <th style={{ width: 120 }}>Trạng Thái</th>
-                            {}
-                            {canEdit && <th style={{ textAlign: 'right' }}>Hành động</th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {students.length === 0 ? (
+                <div className="sm-table-container">
+                    <table className="sm-table">
+                        <thead>
                             <tr>
-                                <td
-                                    colSpan={canEdit ? 6 : 5}
-                                    style={{ textAlign: 'center', padding: 20 }}
-                                >
-                                    Chưa có học sinh nào.
-                                </td>
+                                <th style={{ width: 60, textAlign: 'center' }}>STT</th>
+                                <th>Họ và Tên</th>
+                                <th style={{ width: 80, textAlign: 'center' }}>Tổ</th>
+                                <th style={{ width: 180 }}>Vai Trò</th>
+                                <th style={{ width: 140 }}>Trạng Thái</th>
+                                {canEdit && <th style={{ textAlign: 'right', paddingRight: 24 }}>Hành động</th>}
                             </tr>
-                        ) : (
-                            students.map((s, index) => (
-                                <tr key={s.id}>
-                                    <td style={{ textAlign: 'center' }}>{index + 1}</td>
-                                    <td style={{ fontWeight: 500 }}>{s.full_name}</td>
+                        </thead>
+                        <tbody>
+                            {students.length === 0 ? (
+                                <tr>
                                     <td
-                                        style={{
-                                            textAlign: 'center',
-                                            fontWeight: 'bold',
-                                            color: '#007bff',
-                                        }}
+                                        colSpan={canEdit ? 6 : 5}
+                                        style={{ textAlign: 'center', padding: 40, color: '#6c757d' }}
                                     >
-                                        {s.group_number || '-'}
+                                        Chưa có học sinh nào.
                                     </td>
-                                    <td>
-                                        <span className={`role-badge ${getRoleClass(s.role_id)}`}>
-                                            {s.role_name || 'Học sinh'}
-                                        </span>
-                                    </td>
-                                    <td
-                                        style={{
-                                            color: s.is_locked ? 'red' : 'green',
-                                            fontSize: 13,
-                                            fontWeight: 500,
-                                        }}
-                                    >
-                                        {s.is_locked ? '🚫 Đã khóa' : '✅ Hoạt động'}
-                                    </td>
-
-                                    {}
-                                    {canEdit && (
-                                        <td style={{ textAlign: 'right' }}>
-                                            <button
-                                                className="btn btn-primary"
-                                                style={{ marginRight: 5 }}
-                                                onClick={() => handleEdit(s)}
-                                            >
-                                                Sửa
-                                            </button>
-                                            <button
-                                                className={`btn ${s.is_locked ? 'btn-success' : 'btn-warning'}`}
-                                                style={{ minWidth: 60 }}
-                                                onClick={async () => {
-                                                    if (
-                                                        window.confirm(
-                                                            `Bạn có chắc muốn ${s.is_locked ? 'mở' : 'khóa'} tài khoản này?`
-                                                        )
-                                                    ) {
-                                                        await api.put(`/users/${s.id}`, {
-                                                            is_locked: !s.is_locked,
-                                                        });
-                                                        fetchStudents();
-                                                    }
-                                                }}
-                                            >
-                                                {s.is_locked ? 'Mở' : 'Khóa'}
-                                            </button>
-                                        </td>
-                                    )}
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                students.map((s, index) => (
+                                    <tr key={s.id}>
+                                        <td style={{ textAlign: 'center', color: '#868e96' }}>{index + 1}</td>
+                                        <td style={{ fontWeight: 500, color: '#212529' }}>{s.full_name}</td>
+                                        <td style={{ textAlign: 'center' }}>
+                                            <span className="sm-group-number">
+                                                {s.group_number || '-'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`sm-role-badge ${getRoleClass(s.role_id)}`}>
+                                                {s.role_name || 'Học sinh'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {s.is_locked ? (
+                                                <span className="sm-status-locked">
+                                                    🚫 Đã khóa
+                                                </span>
+                                            ) : (
+                                                <span className="sm-status-active">
+                                                    ✅ Hoạt động
+                                                </span>
+                                            )}
+                                        </td>
+
+                                        {canEdit && (
+                                            <td style={{ textAlign: 'right', paddingRight: 24 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                                    <button
+                                                        className="sm-btn sm-btn-edit"
+                                                        onClick={() => handleEdit(s)}
+                                                    >
+                                                        Sửa
+                                                    </button>
+                                                    <button
+                                                        className={`sm-btn sm-btn-action-lock ${s.is_locked ? 'sm-btn-success' : 'sm-btn-warning'}`}
+                                                        onClick={async () => {
+                                                            if (
+                                                                window.confirm(
+                                                                    `Bạn có chắc muốn ${s.is_locked ? 'mở' : 'khóa'} tài khoản này?`
+                                                                )
+                                                            ) {
+                                                                await api.put(`/users/${s.id}`, {
+                                                                    is_locked: !s.is_locked,
+                                                                });
+                                                                fetchStudents();
+                                                            }
+                                                        }}
+                                                    >
+                                                        {s.is_locked ? 'Mở' : 'Khóa'}
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             )}
 
-            {}
             {showModal && canEdit && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h3 style={{ marginTop: 0, marginBottom: 20, color: '#343a40' }}>
+                <div className="sm-modal-overlay">
+                    <div className="sm-modal-content">
+                        <h3 className="sm-modal-title">
                             {editingStudent ? 'Cập Nhật Thông Tin' : 'Thêm Học Sinh Mới'}
                         </h3>
 
-                        <div className="form-group">
+                        <div className="sm-form-group">
                             <label>
                                 Họ và Tên <span style={{ color: 'red' }}>*</span>
                             </label>
                             <input
-                                className="form-control"
+                                className="sm-form-control"
                                 value={formData.full_name}
                                 onChange={(e) =>
                                     setFormData({ ...formData, full_name: e.target.value })
                                 }
+                                placeholder="Nhập họ và tên..."
                             />
                         </div>
 
-                        <div className="form-group">
+                        <div className="sm-form-group">
                             <label>Thuộc Tổ (Nhập số)</label>
                             <input
                                 type="number"
-                                className="form-control"
+                                className="sm-form-control"
                                 value={formData.group_number}
                                 onChange={(e) =>
                                     setFormData({
@@ -317,16 +349,17 @@ const StudentManagerPage = () => {
                             />
                         </div>
 
-                        <div className="form-group">
+                        <div className="sm-form-group">
                             <label>Vai Trò</label>
                             <select
-                                className="form-control"
+                                className="sm-form-control"
                                 value={formData.role_id}
                                 onChange={(e) =>
                                     setFormData({ ...formData, role_id: parseInt(e.target.value) })
                                 }
                             >
-                                {ROLES.map((r) => (
+                                {}
+                                {availableRoles.map((r) => (
                                     <option key={r.id} value={r.id}>
                                         {r.name}
                                     </option>
@@ -334,15 +367,14 @@ const StudentManagerPage = () => {
                             </select>
                         </div>
 
-                        <div style={{ textAlign: 'right', marginTop: 25 }}>
+                        <div className="sm-modal-actions">
                             <button
-                                className="btn"
-                                style={{ marginRight: 10, background: '#e9ecef', color: '#333' }}
+                                className="sm-btn sm-btn-secondary"
                                 onClick={() => setShowModal(false)}
                             >
                                 Hủy bỏ
                             </button>
-                            <button className="btn btn-primary" onClick={handleSave}>
+                            <button className="sm-btn sm-btn-primary" onClick={handleSave}>
                                 {editingStudent ? 'Lưu Thay Đổi' : 'Thêm Mới'}
                             </button>
                         </div>

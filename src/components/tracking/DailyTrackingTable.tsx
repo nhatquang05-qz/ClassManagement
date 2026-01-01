@@ -99,7 +99,13 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const calculateStudentScore = (studentId: number) => {
         let total = 0;
-        logs.filter((l) => l.student_id === studentId).forEach((log) => {
+        const studentLogs = logs.filter((l) => {
+            if (l.student_id !== studentId) return false;
+            if (!isWeeklyTab && l.log_date !== activeDate) return false;
+            return true;
+        });
+
+        studentLogs.forEach((log) => {
             const v = violationTypes.find((type) => type.id === log.violation_type_id);
             const points = log.points !== undefined ? log.points : v?.points || 0;
             total += points * (log.quantity || 1);
@@ -217,158 +223,163 @@ const DailyTrackingTable: React.FC<Props> = ({
     };
 
     return (
-        <div className="tracking-container">
-            <div className="day-tabs">
+        <div className="trk-container">
+            <div className="trk-day-tabs">
                 {DAYS_LABEL.map((day, index) => (
                     <button
                         key={day}
-                        className={`day-tab ${activeDayIndex === index ? 'active' : ''} ${index === 6 ? 'weekly-tab' : ''}`}
+                        className={`trk-day-tab ${activeDayIndex === index ? 'trk-active' : ''} ${index === 6 ? 'trk-weekly-tab' : ''}`}
                         onClick={() => setActiveDayIndex(index)}
                     >
-                        {day} <span className="date-small">({getDisplayDate(index)})</span>
+                        {day} <span className="trk-date-small">({getDisplayDate(index)})</span>
                     </button>
                 ))}
             </div>
 
-            <div className="table-wrapper">
-                <table className="tracking-table">
+            <div className="trk-table-wrapper">
+                <table className="trk-table">
                     <thead>
-                        {}
                         <tr>
                             <th
                                 rowSpan={4}
-                                className="sticky-col stt-col"
+                                className="trk-sticky-col trk-stt-col"
                                 style={{ left: 0, zIndex: 21 }}
                             >
                                 STT
                             </th>
                             <th
                                 rowSpan={4}
-                                className="sticky-col name-col"
+                                className="trk-sticky-col trk-name-col"
                                 style={{ left: '40px', zIndex: 21 }}
                             >
                                 Họ và tên
                             </th>
-                            <th rowSpan={4} className="sticky-col total-col" style={{ zIndex: 20 }}>
+                            <th rowSpan={4} className="trk-sticky-col trk-total-col" style={{ zIndex: 20 }}>
                                 Tổng
                             </th>
-                            <th colSpan={4} className="group-header">
+                            <th colSpan={4} className="trk-group-header">
                                 GIỜ GIẤC
                             </th>
-                            <th colSpan={3} className="group-header">
+                            <th colSpan={3} className="trk-group-header">
                                 HỌC TẬP
                             </th>
-                            <th colSpan={4} className="group-header">
+                            <th colSpan={4} className="trk-group-header">
                                 NỀ NẾP
                             </th>
-                            <th colSpan={3} className="group-header">
+                            <th colSpan={3} className="trk-group-header">
                                 MẮC THÁI ĐỘ SAI
                             </th>
-                            <th colSpan={3} className="group-header">
+                            <th colSpan={3} className="trk-group-header">
                                 ĐIỂM TRẢ BÀI
                             </th>
-                            <th colSpan={1} className="group-header">
+                            <th colSpan={1} className="trk-group-header">
                                 PHÁT BIỂU
                             </th>
                         </tr>
                         <tr>
-                            <th colSpan={2} className="sub-group-header">
+                            <th colSpan={2} className="trk-sub-group-header">
                                 Vắng
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Trễ</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Bỏ tiết</span>
                                 </div>
                             </th>
-                            <th colSpan={3} className="sub-group-header">
+                            <th colSpan={3} className="trk-sub-group-header">
                                 KHÔNG
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Trực nhật</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Giữ vệ sinh</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Đồng phục</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Giữ trật tự</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Đánh nhau</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Nói tục</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Vô lễ</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>1-4</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>5-7</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>8-10</span>
                                 </div>
                             </th>
-                            <th rowSpan={2} className="th-rotate">
+                            <th rowSpan={2} className="trk-th-rotate">
                                 <div>
                                     <span>Tham gia</span>
                                 </div>
                             </th>
                         </tr>
                         <tr>
-                            <th>P</th>
-                            <th>K</th>
-                            <th className="th-rotate">
+                            <th className="trk-th-rotate">
+                                <div>
+                                    <span>P</span>
+                                </div>
+                            </th>
+                            <th className="trk-th-rotate">
+                                <div>
+                                    <span>K</span>
+                                </div>
+                            </th>
+                            <th className="trk-th-rotate">
                                 <div>
                                     <span>Làm BT</span>
                                 </div>
                             </th>
-                            <th className="th-rotate">
+                            <th className="trk-th-rotate">
                                 <div>
                                     <span>Soạn bài</span>
                                 </div>
                             </th>
-                            <th className="th-rotate">
+                            <th className="trk-th-rotate">
                                 <div>
                                     <span>Thuộc bài</span>
                                 </div>
                             </th>
                         </tr>
-                        <tr className="points-row">
+                        <tr className="trk-points-row">
                             {COLUMNS_CONFIG.map((col, index) => (
                                 <th
                                     key={`point-${index}`}
-                                    className="text-center text-xs"
-                                    style={{ color: '#555' }}
                                 >
                                     {getPointDisplay(col.key)}
                                 </th>
@@ -381,10 +392,10 @@ const DailyTrackingTable: React.FC<Props> = ({
                             const totalScore = calculateStudentScore(student.id);
                             return (
                                 <tr key={student.id}>
-                                    <td className="sticky-col stt-col" style={{ left: 0 }}>
+                                    <td className="trk-sticky-col trk-stt-col" style={{ left: 0 }}>
                                         {index + 1}
                                     </td>
-                                    <td className="sticky-col name-col" style={{ left: '40px' }}>
+                                    <td className="trk-sticky-col trk-name-col" style={{ left: '40px' }}>
                                         <span className="name">{student.full_name}</span>
                                     </td>
                                     <td
@@ -400,7 +411,7 @@ const DailyTrackingTable: React.FC<Props> = ({
                                             return (
                                                 <td
                                                     key={colIndex}
-                                                    className="checkbox-cell disabled"
+                                                    className="trk-checkbox-cell trk-disabled"
                                                 ></td>
                                             );
 
@@ -415,13 +426,13 @@ const DailyTrackingTable: React.FC<Props> = ({
                                         return (
                                             <td
                                                 key={`${student.id}-${colIndex}`}
-                                                className={`checkbox-cell ${isBonus ? 'bonus-cell' : ''} ${quantity > 0 ? 'has-data' : ''} ${isWeeklyTab ? 'readonly-cell' : ''}`}
+                                                className={`trk-checkbox-cell ${isBonus ? 'trk-bonus-cell' : ''} ${quantity > 0 ? 'trk-has-data' : ''} ${isWeeklyTab ? 'trk-readonly-cell' : ''}`}
                                                 onClick={() =>
                                                     handleCellClick(student, col.key, col.subGroup)
                                                 }
                                             >
                                                 {col.subGroup === 'Vắng' && !isWeeklyTab ? (
-                                                    <div className="cell-content">
+                                                    <div className="trk-cell-content">
                                                         <input
                                                             type="checkbox"
                                                             checked={quantity > 0}
@@ -429,20 +440,20 @@ const DailyTrackingTable: React.FC<Props> = ({
                                                             style={{ pointerEvents: 'none' }}
                                                         />
                                                         {hasNote && (
-                                                            <span className="note-indicator">
+                                                            <span className="trk-note-indicator">
                                                                 📝
                                                             </span>
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    <div className="cell-content">
+                                                    <div className="trk-cell-content">
                                                         {quantity > 0 && (
-                                                            <span className="quantity-badge">
+                                                            <span className="trk-quantity-badge">
                                                                 {quantity}
                                                             </span>
                                                         )}
                                                         {hasNote && !isWeeklyTab && (
-                                                            <span className="note-indicator">
+                                                            <span className="trk-note-indicator">
                                                                 📝
                                                             </span>
                                                         )}
@@ -459,8 +470,8 @@ const DailyTrackingTable: React.FC<Props> = ({
             </div>
 
             {!isReadOnly && !isWeeklyTab && (
-                <div className="action-bar">
-                    <button className="btn-submit" onClick={handleSaveCurrentDay}>
+                <div className="trk-action-bar">
+                    <button className="trk-btn-submit" onClick={handleSaveCurrentDay}>
                         Lưu Sổ {DAYS_LABEL[activeDayIndex]} ({getDisplayDate(activeDayIndex)})
                     </button>
                 </div>

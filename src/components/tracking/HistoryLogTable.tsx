@@ -64,13 +64,13 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
     };
 
     return (
-        <div className="history-container">
-            <div className="history-header">
+        <div className="trk-history-container">
+            <div className="trk-history-header">
                 <h3 className="history-title">📋 Nhật Ký Hoạt Động</h3>
 
-                <div className="history-tabs">
+                <div className="trk-history-tabs">
                     <button
-                        className={`history-tab-btn ${activeTab === 'day' ? 'active' : ''}`}
+                        className={`trk-history-tab-btn ${activeTab === 'day' ? 'active' : ''}`}
                         onClick={() => setActiveTab('day')}
                         disabled={!activeDate}
                         title={
@@ -80,7 +80,7 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                         Theo Ngày {activeDate ? `(${formatDateOnly(activeDate)})` : ''}
                     </button>
                     <button
-                        className={`history-tab-btn ${activeTab === 'week' ? 'active' : ''}`}
+                        className={`trk-history-tab-btn ${activeTab === 'week' ? 'active' : ''}`}
                         onClick={() => setActiveTab('week')}
                     >
                         Cả Tuần
@@ -88,7 +88,7 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                 </div>
             </div>
 
-            <div className="history-filters">
+            <div className="trk-history-filters">
                 <input
                     type="text"
                     placeholder="🔍 Tìm tên học sinh hoặc lỗi..."
@@ -97,7 +97,7 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <select
-                    className="filter-select"
+                    className="trk-filter-select"
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
                 >
@@ -110,7 +110,7 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                 </select>
             </div>
 
-            <div className="table-wrapper">
+            <div className="trk-table-wrapper">
                 <table className="history-table">
                     <thead>
                         <tr>
@@ -128,7 +128,7 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                     <tbody>
                         {filteredLogs.length === 0 ? (
                             <tr>
-                                <td colSpan={9} className="history-empty">
+                                <td colSpan={9} className="trk-history-empty">
                                     Không tìm thấy dữ liệu phù hợp.
                                 </td>
                             </tr>
@@ -173,7 +173,7 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                                         <td>
                                             {canDelete && (
                                                 <button
-                                                    className="btn-delete-icon"
+                                                    className="trk-btn-delete-icon"
                                                     onClick={() => log.id && onDelete(log.id)}
                                                     title="Xóa"
                                                 >
