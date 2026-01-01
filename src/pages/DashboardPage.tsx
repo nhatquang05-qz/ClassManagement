@@ -52,12 +52,12 @@ const DashboardPage: React.FC = () => {
         <section className="actions-section">
           {(user?.role === 'group_leader' || user?.role === 'vice_group_leader') && (
             <a href="/tracking" className="action-card">
-              📝 Sổ Theo Dõi Tổ
+              Sổ Theo Dõi Tổ
             </a>
           )}
           {(user?.role === 'admin' || user?.role === 'monitor') && (
             <a href="/report" className="action-card">
-              📊 Báo Cáo Tổng Hợp
+              Báo Cáo Tổng Hợp
             </a>
           )}
         </section>
