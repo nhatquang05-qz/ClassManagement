@@ -61,7 +61,7 @@ const getViolationsByDate = async (req, res) => {
 
 const getMyLogs = async (req, res) => {
   try {
-    const studentId = req.user.id; // Lấy ID từ token (middleware xác thực)
+    const studentId = req.user.id; 
     
     const query = `
       SELECT 

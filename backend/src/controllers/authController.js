@@ -23,12 +23,12 @@ const login = async (req, res) => {
 
     const user = users[0];
 
-    // Lưu ý: Đang so sánh plain text. Nếu database đã hash pass thì dùng bcrypt.compare
+    
     if (password !== user.password) {
       return res.status(401).json({ message: 'Mật khẩu không đúng' });
     }
 
-    // Tạo Token (JWT)
+    
     const token = jwt.sign(
       { id: user.id, role: user.role_name, group: user.group_number },
       process.env.JWT_SECRET || 'secret_key_123',

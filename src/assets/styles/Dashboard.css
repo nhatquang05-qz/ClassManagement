@@ -71,7 +71,7 @@
   margin: 0;
 }
 
-/* Màu sắc cho Top 1, 2, 3 */
+
 .rank-1 { border-top: 5px solid #ffd700; background: #fffbe6; }
 .rank-2 { border-top: 5px solid #c0c0c0; }
 .rank-3 { border-top: 5px solid #cd7f32; }

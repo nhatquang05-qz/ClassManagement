@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom'; 
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/Dashboard.css';
@@ -48,17 +49,26 @@ const DashboardPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Nơi chứa nút dẫn đến các chức năng khác */}
+        {}
         <section className="actions-section">
-          {(user?.role === 'group_leader' || user?.role === 'vice_group_leader') && (
-            <a href="/tracking" className="action-card">
-              Sổ Theo Dõi Tổ
-            </a>
+          
+          {}
+          <Link to="/my-record" className="action-card" style={{borderLeft: '5px solid #4caf50'}}>
+             👤 Xem Hạnh Kiểm Cá Nhân
+          </Link>
+
+          {}
+          {(user?.role === 'group_leader' || user?.role === 'vice_group_leader' || user?.role === 'monitor' || user?.role === 'admin') && (
+            <Link to="/tracking" className="action-card" style={{borderLeft: '5px solid #2196f3'}}>
+              📝 Sổ Theo Dõi (Ghi Lỗi)
+            </Link>
           )}
+
+          {}
           {(user?.role === 'admin' || user?.role === 'monitor') && (
-            <a href="/report" className="action-card">
-              Báo Cáo Tổng Hợp
-            </a>
+            <Link to="/report" className="action-card" style={{borderLeft: '5px solid #ff9800'}}>
+              📊 Báo Cáo Tổng Hợp
+            </Link>
           )}
         </section>
       </main>

@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       await login(username, password);
-      navigate('/'); // Chuyển về Dashboard sau khi login
+      navigate('/'); 
     } catch (err) {
       setError('Đăng nhập thất bại. Kiểm tra lại tài khoản/mật khẩu.');
     }

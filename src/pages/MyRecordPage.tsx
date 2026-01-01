@@ -24,7 +24,7 @@ const MyRecordPage: React.FC = () => {
         const res = await api.get('/reports/my-logs');
         setLogs(res.data);
         
-        // Tính tổng điểm bị trừ/cộng
+        
         const total = res.data.reduce((sum: number, item: LogRecord) => {
           return sum + (item.points * item.quantity);
         }, 0);
