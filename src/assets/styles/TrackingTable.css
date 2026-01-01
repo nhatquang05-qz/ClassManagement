@@ -1,4 +1,3 @@
-
 .trk-container {
     padding: 20px;
     background: #fff;
@@ -45,7 +44,6 @@
     opacity: 0.9;
 }
 
-
 .trk-table-wrapper {
     overflow-x: auto;
     max-width: 100%;
@@ -59,7 +57,7 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 13px;
-    min-width: max-content; 
+    min-width: max-content;
 }
 
 .trk-table th,
@@ -70,7 +68,6 @@
     vertical-align: middle;
 }
 
-
 .trk-sticky-col {
     position: sticky;
     left: 0;
@@ -78,7 +75,6 @@
     z-index: 10;
     border-right: 2px solid #ccc !important;
 }
-
 
 .trk-name-col {
     min-width: 180px;
@@ -97,7 +93,6 @@
     background: #fff;
 }
 
-
 .trk-group-header {
     white-space: nowrap;
     font-weight: 800;
@@ -113,14 +108,14 @@
 }
 
 .trk-th-rotate {
-    min-width: 80px; 
+    min-width: 80px;
     background-color: #fff;
 }
 
 .trk-th-rotate > div {
     transform: none;
     writing-mode: horizontal-tb;
-    white-space: nowrap; 
+    white-space: nowrap;
     word-wrap: normal;
     line-height: 1.2;
     font-weight: 600;
@@ -134,10 +129,9 @@
 
 .trk-points-row th {
     color: #555;
-    font-size: 0.75rem; 
+    font-size: 0.75rem;
     text-align: center;
 }
-
 
 .trk-cell-content {
     display: flex;
@@ -179,7 +173,6 @@
     font-size: 10px;
 }
 
-
 .trk-action-bar {
     display: flex;
     justify-content: flex-end;
@@ -200,7 +193,6 @@
 .trk-btn-submit:hover {
     background-color: #1976d2;
 }
-
 
 .trk-modal-overlay {
     position: fixed;
@@ -313,7 +305,6 @@
     cursor: pointer;
     font-weight: 500;
 }
-
 
 .trk-history-container {
     margin-top: 30px;

@@ -1,12 +1,13 @@
-
-
 .sm-container {
     padding: 24px;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family:
+        'Inter',
+        system-ui,
+        -apple-system,
+        sans-serif;
     background-color: #f8f9fa;
     min-height: 100vh;
 }
-
 
 .sm-header {
     display: flex;
@@ -37,7 +38,6 @@
     gap: 12px;
 }
 
-
 .sm-btn-back {
     background: transparent;
     color: #6c757d;
@@ -55,9 +55,8 @@
     background: #f1f3f5;
     color: #495057;
     border-color: #ced4da;
-    transform: translateX(-3px); 
+    transform: translateX(-3px);
 }
-
 
 .sm-stats-bar {
     background: white;
@@ -95,12 +94,11 @@
     border: 1px solid rgba(133, 100, 4, 0.1);
 }
 
-
 .sm-table-container {
     background: white;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    overflow: hidden; 
+    overflow: hidden;
     border: 1px solid #e9ecef;
 }
 
@@ -152,7 +150,6 @@
     display: inline-block;
 }
 
-
 .sm-role-badge {
     padding: 6px 10px;
     border-radius: 6px;
@@ -177,7 +174,6 @@
     border: 1px solid #dee2e6;
 }
 
-
 .sm-status-active {
     color: #28a745;
     font-weight: 600;
@@ -192,7 +188,6 @@
     align-items: center;
     gap: 6px;
 }
-
 
 .sm-btn {
     padding: 8px 16px;
@@ -211,7 +206,7 @@
 .sm-btn:hover {
     opacity: 0.9;
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .sm-btn:active {
@@ -250,7 +245,6 @@
     font-size: 13px;
 }
 
-
 .sm-modal-overlay {
     position: fixed;
     top: 0;
@@ -278,12 +272,18 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes scaleUp {
-    to { transform: scale(1); }
+    to {
+        transform: scale(1);
+    }
 }
 
 .sm-modal-title {
@@ -314,7 +314,7 @@
     border-radius: 8px;
     font-size: 14px;
     transition: border-color 0.2s;
-    box-sizing: border-box; 
+    box-sizing: border-box;
 }
 
 .sm-form-control:focus {

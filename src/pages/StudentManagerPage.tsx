@@ -5,12 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/StudentManager.css';
 
 const ROLES = [
-    { id: 2, name: 'Lớp trưởng' },        
-    { id: 3, name: 'Lớp phó học tập' },   
-    { id: 4, name: 'Lớp phó lao động' },  
-    { id: 5, name: 'Tổ trưởng' },         
-    { id: 7, name: 'Tổ phó' },            
-    { id: 6, name: 'Học sinh' },          
+    { id: 2, name: 'Lớp trưởng' },
+    { id: 3, name: 'Lớp phó học tập' },
+    { id: 4, name: 'Lớp phó lao động' },
+    { id: 5, name: 'Tổ trưởng' },
+    { id: 7, name: 'Tổ phó' },
+    { id: 6, name: 'Học sinh' },
 ];
 
 const StudentManagerPage = () => {
@@ -47,40 +47,32 @@ const StudentManagerPage = () => {
         }
     };
 
-    
     const availableRoles = useMemo(() => {
         const currentStudentId = editingStudent?.id;
         const targetGroup = formData.group_number;
 
-        
-        const usedClassRoles = new Set<number>(); 
-        const usedGroupRoles = new Set<number>(); 
+        const usedClassRoles = new Set<number>();
+        const usedGroupRoles = new Set<number>();
 
-        students.forEach(s => {
-            
+        students.forEach((s) => {
             if (s.id === currentStudentId) return;
 
-            
             if ([2, 3, 4].includes(s.role_id)) {
                 usedClassRoles.add(s.role_id);
             }
 
-            
             if (s.group_number === targetGroup && [5, 7].includes(s.role_id)) {
                 usedGroupRoles.add(s.role_id);
             }
         });
 
-        return ROLES.filter(role => {
-            
+        return ROLES.filter((role) => {
             if (role.id === 6) return true;
 
-            
             if ([2, 3, 4].includes(role.id)) {
                 return !usedClassRoles.has(role.id);
             }
 
-            
             if ([5, 7].includes(role.id)) {
                 return !usedGroupRoles.has(role.id);
             }
@@ -89,15 +81,12 @@ const StudentManagerPage = () => {
         });
     }, [students, formData.group_number, editingStudent]);
 
-    
-    
     useEffect(() => {
-        const isCurrentRoleValid = availableRoles.some(r => r.id === formData.role_id);
+        const isCurrentRoleValid = availableRoles.some((r) => r.id === formData.role_id);
         if (!isCurrentRoleValid) {
-            setFormData(prev => ({ ...prev, role_id: 6 }));
+            setFormData((prev) => ({ ...prev, role_id: 6 }));
         }
     }, [availableRoles, formData.role_id]);
-    
 
     const groupStats = useMemo(() => {
         const stats: { [key: string]: number } = {};
@@ -185,10 +174,7 @@ const StudentManagerPage = () => {
 
             <div className="sm-header">
                 <div className="sm-header-left">
-                    <button
-                        className="sm-btn sm-btn-back"
-                        onClick={() => navigate('/')}
-                    >
+                    <button className="sm-btn sm-btn-back" onClick={() => navigate('/')}>
                         <span style={{ fontSize: '18px' }}>‹</span> Quay lại
                     </button>
                     <h2 className="sm-title">Quản lý Lớp {className}</h2>
@@ -196,10 +182,7 @@ const StudentManagerPage = () => {
 
                 {canEdit && (
                     <div className="sm-header-actions">
-                        <button
-                            className="sm-btn sm-btn-info"
-                            onClick={handleImportClick}
-                        >
+                        <button className="sm-btn sm-btn-info" onClick={handleImportClick}>
                             📥 Nhập Excel
                         </button>
 
@@ -236,7 +219,11 @@ const StudentManagerPage = () => {
                                 <th style={{ width: 80, textAlign: 'center' }}>Tổ</th>
                                 <th style={{ width: 180 }}>Vai Trò</th>
                                 <th style={{ width: 140 }}>Trạng Thái</th>
-                                {canEdit && <th style={{ textAlign: 'right', paddingRight: 24 }}>Hành động</th>}
+                                {canEdit && (
+                                    <th style={{ textAlign: 'right', paddingRight: 24 }}>
+                                        Hành động
+                                    </th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
@@ -244,7 +231,11 @@ const StudentManagerPage = () => {
                                 <tr>
                                     <td
                                         colSpan={canEdit ? 6 : 5}
-                                        style={{ textAlign: 'center', padding: 40, color: '#6c757d' }}
+                                        style={{
+                                            textAlign: 'center',
+                                            padding: 40,
+                                            color: '#6c757d',
+                                        }}
                                     >
                                         Chưa có học sinh nào.
                                     </td>
@@ -252,23 +243,27 @@ const StudentManagerPage = () => {
                             ) : (
                                 students.map((s, index) => (
                                     <tr key={s.id}>
-                                        <td style={{ textAlign: 'center', color: '#868e96' }}>{index + 1}</td>
-                                        <td style={{ fontWeight: 500, color: '#212529' }}>{s.full_name}</td>
+                                        <td style={{ textAlign: 'center', color: '#868e96' }}>
+                                            {index + 1}
+                                        </td>
+                                        <td style={{ fontWeight: 500, color: '#212529' }}>
+                                            {s.full_name}
+                                        </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <span className="sm-group-number">
                                                 {s.group_number || '-'}
                                             </span>
                                         </td>
                                         <td>
-                                            <span className={`sm-role-badge ${getRoleClass(s.role_id)}`}>
+                                            <span
+                                                className={`sm-role-badge ${getRoleClass(s.role_id)}`}
+                                            >
                                                 {s.role_name || 'Học sinh'}
                                             </span>
                                         </td>
                                         <td>
                                             {s.is_locked ? (
-                                                <span className="sm-status-locked">
-                                                    🚫 Đã khóa
-                                                </span>
+                                                <span className="sm-status-locked">🚫 Đã khóa</span>
                                             ) : (
                                                 <span className="sm-status-active">
                                                     ✅ Hoạt động
@@ -278,7 +273,13 @@ const StudentManagerPage = () => {
 
                                         {canEdit && (
                                             <td style={{ textAlign: 'right', paddingRight: 24 }}>
-                                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                                <div
+                                                    style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'flex-end',
+                                                        gap: 8,
+                                                    }}
+                                                >
                                                     <button
                                                         className="sm-btn sm-btn-edit"
                                                         onClick={() => handleEdit(s)}

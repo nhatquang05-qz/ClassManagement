@@ -38,6 +38,9 @@ const COLUMNS_CONFIG = [
     { key: 'Điểm kiểm tra 5-7', label: '5-7', group: 'ĐIỂM TRẢ BÀI', subGroup: null },
     { key: 'Điểm kiểm tra 8-10', label: '8-10', group: 'ĐIỂM TRẢ BÀI', subGroup: null },
     { key: 'Phát biểu', label: 'Tham gia', group: 'PHÁT BIỂU', subGroup: null },
+
+    { key: 'Tham gia phong trào', label: 'Tham gia PT', group: 'PHONG TRÀO', subGroup: null },
+    { key: 'Không tham gia phong trào', label: 'Không TG PT', group: 'PHONG TRÀO', subGroup: null },
 ];
 
 const DAYS_LABEL = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Cả tuần'];
@@ -239,6 +242,7 @@ const DailyTrackingTable: React.FC<Props> = ({
             <div className="trk-table-wrapper">
                 <table className="trk-table">
                     <thead>
+                        {}
                         <tr>
                             <th
                                 rowSpan={4}
@@ -254,7 +258,11 @@ const DailyTrackingTable: React.FC<Props> = ({
                             >
                                 Họ và tên
                             </th>
-                            <th rowSpan={4} className="trk-sticky-col trk-total-col" style={{ zIndex: 20 }}>
+                            <th
+                                rowSpan={4}
+                                className="trk-sticky-col trk-total-col"
+                                style={{ zIndex: 20 }}
+                            >
                                 Tổng
                             </th>
                             <th colSpan={4} className="trk-group-header">
@@ -275,7 +283,13 @@ const DailyTrackingTable: React.FC<Props> = ({
                             <th colSpan={1} className="trk-group-header">
                                 PHÁT BIỂU
                             </th>
+                            {}
+                            <th colSpan={2} className="trk-group-header">
+                                PHONG TRÀO
+                            </th>
                         </tr>
+
+                        {}
                         <tr>
                             <th colSpan={2} className="trk-sub-group-header">
                                 Vắng
@@ -348,7 +362,19 @@ const DailyTrackingTable: React.FC<Props> = ({
                                     <span>Tham gia</span>
                                 </div>
                             </th>
+                            {}
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Tham gia</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Không tham gia</span>
+                                </div>
+                            </th>
                         </tr>
+
                         <tr>
                             <th className="trk-th-rotate">
                                 <div>
@@ -376,13 +402,11 @@ const DailyTrackingTable: React.FC<Props> = ({
                                 </div>
                             </th>
                         </tr>
+
+                        {}
                         <tr className="trk-points-row">
                             {COLUMNS_CONFIG.map((col, index) => (
-                                <th
-                                    key={`point-${index}`}
-                                >
-                                    {getPointDisplay(col.key)}
-                                </th>
+                                <th key={`point-${index}`}>{getPointDisplay(col.key)}</th>
                             ))}
                         </tr>
                     </thead>
@@ -395,7 +419,10 @@ const DailyTrackingTable: React.FC<Props> = ({
                                     <td className="trk-sticky-col trk-stt-col" style={{ left: 0 }}>
                                         {index + 1}
                                     </td>
-                                    <td className="trk-sticky-col trk-name-col" style={{ left: '40px' }}>
+                                    <td
+                                        className="trk-sticky-col trk-name-col"
+                                        style={{ left: '40px' }}
+                                    >
                                         <span className="name">{student.full_name}</span>
                                     </td>
                                     <td

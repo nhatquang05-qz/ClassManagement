@@ -8,20 +8,16 @@ interface Props {
 const TopStudentsSection: React.FC<Props> = ({ students }) => {
     if (students.length === 0) return null;
 
-    
     const orderedStudents = useMemo(() => {
-        
         const withRank = students.map((stu, index) => ({ ...stu, rankIndex: index }));
 
         if (withRank.length === 3) {
-            
             return [withRank[1], withRank[0], withRank[2]];
         }
         if (withRank.length === 2) {
-            
             return [withRank[1], withRank[0]];
         }
-        
+
         return withRank;
     }, [students]);
 
@@ -42,9 +38,7 @@ const TopStudentsSection: React.FC<Props> = ({ students }) => {
                                 {stu.rankIndex === 0 ? '🥇' : stu.rankIndex === 1 ? '🥈' : '🥉'}
                             </div>
                             <div style={{ fontWeight: 'bold', margin: '5px 0' }}>{stu.name}</div>
-                            <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                                Tổ {stu.group}
-                            </div>
+                            <div style={{ fontSize: '0.9rem', color: '#666' }}>Tổ {stu.group}</div>
                             <div
                                 className={`student-score ${stu.total > 0 ? 'score-positive' : 'score-negative'}`}
                             >

@@ -87,7 +87,11 @@ const RankingPage: React.FC = () => {
         const initGroup = (groupNum: number) => {
             const gKey = groupNum.toString();
             if (!groupsDetailTemp[gKey]) {
-                groupsDetailTemp[gKey] = { group_number: groupNum, members: {}, total_group_points: 0 };
+                groupsDetailTemp[gKey] = {
+                    group_number: groupNum,
+                    members: {},
+                    total_group_points: 0,
+                };
             }
             if (groupPoints[gKey] === undefined) {
                 groupPoints[gKey] = 0;
