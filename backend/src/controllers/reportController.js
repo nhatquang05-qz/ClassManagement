@@ -34,11 +34,6 @@ const createBulkReports = async (req, res) => {
     );
 
     if (affectedStudentIds.length > 0) {
-      constWZ = `
-            DELETE FROM daily_logs 
-            WHEREWB = ? AND student_id IN (?)
-         `;
-
       await connection.query('DELETE FROM daily_logs WHERE log_date = ? AND student_id IN (?)', [
         log_date,
         affectedStudentIds,
@@ -90,7 +85,7 @@ const getWeeklyReport = async (req, res) => {
                 dl.created_at, 
                 u.full_name as student_name,
                 vt.name as violation_name,
-                vt.category,  -- <--- MỚI THÊM
+                vt.category,
                 vt.points
             FROM daily_logs dl
             JOIN users u ON dl.student_id = u.id
@@ -211,10 +206,66 @@ const getMyLogs = async (req, res) => {
   }
 };
 
+const getDetailedReport = async (req, res) => {
+  try {
+    const { startDate, endDate, studentName, violationTypeId, groupId } = req.query;
+
+    let query = `
+      SELECT 
+        dl.id,
+        dl.student_id,
+        DATE_FORMAT(dl.log_date, '%Y-%m-%d') as log_date,
+        dl.week_number,
+        dl.quantity,
+        dl.note,
+        u.full_name as student_name,
+        u.group_number,
+        vt.name as violation_name,
+        vt.category,
+        vt.points
+      FROM daily_logs dl
+      JOIN users u ON dl.student_id = u.id
+      JOIN violation_types vt ON dl.violation_type_id = vt.id
+      WHERE 1=1
+    `;
+
+    const params = [];
+
+    if (startDate && endDate) {
+      query += ` AND dl.log_date BETWEEN ? AND ?`;
+      params.push(startDate, endDate);
+    }
+
+    if (studentName) {
+      query += ` AND u.full_name LIKE ?`;
+      params.push(`%${studentName}%`);
+    }
+
+    if (violationTypeId) {
+      query += ` AND dl.violation_type_id = ?`;
+      params.push(violationTypeId);
+    }
+
+    if (groupId) {
+      query += ` AND u.group_number = ?`;
+      params.push(groupId);
+    }
+
+    query += ` ORDER BY dl.log_date DESC, u.group_number ASC, u.full_name ASC`;
+
+    const [rows] = await db.query(query, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('Lỗi lấy báo cáo chi tiết:', error);
+    res.status(500).json({ message: 'Lỗi lấy báo cáo chi tiết', error });
+  }
+};
+
 module.exports = {
   createBulkReports,
   getWeeklyReport,
   getViolationsByDate,
   getMyLogs,
   deleteReport,
+  getDetailedReport,
 };

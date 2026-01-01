@@ -55,8 +55,7 @@ const TrackingPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
-  
-  // Lấy ID và tên lớp từ localStorage (Session làm việc hiện tại)
+
   const selectedClassId = localStorage.getItem('selectedClassId');
   const selectedClassName = localStorage.getItem('selectedClassName');
 
@@ -81,13 +80,12 @@ const TrackingPage: React.FC = () => {
     return students.filter((s) => s.group_number === parseInt(activeGroupTab));
   }, [students, activeGroupTab]);
 
-  // Kiểm tra quyền truy cập lớp học
   useEffect(() => {
     if (user?.role === 'teacher' || user?.role === 'admin') {
-        if (!selectedClassId) {
-            alert("Bạn chưa chọn lớp học!");
-            navigate('/classes');
-        }
+      if (!selectedClassId) {
+        alert('Bạn chưa chọn lớp học!');
+        navigate('/classes');
+      }
     }
   }, [user, navigate, selectedClassId]);
 
@@ -98,11 +96,9 @@ const TrackingPage: React.FC = () => {
           api.get('/violations'),
           api.get('/users', {
             params: {
-                // Nếu là GV/Admin -> Lấy danh sách HS của lớp đang chọn
-                // Nếu là HS/Tổ trưởng -> Backend tự lấy theo user, nhưng ta cứ truyền class_id nếu có
-                class_id: selectedClassId || undefined,
-                group_number: user?.role === 'group_leader' ? user.group_number : undefined
-            }
+              class_id: selectedClassId || undefined,
+              group_number: user?.role === 'group_leader' ? user.group_number : undefined,
+            },
           }),
         ]);
         setViolationTypes(vRes.data);
@@ -119,12 +115,12 @@ const TrackingPage: React.FC = () => {
       setLoading(true);
       try {
         const params: any = {
-            week: selectedWeek,
-            class_id: selectedClassId || undefined
+          week: selectedWeek,
+          class_id: selectedClassId || undefined,
         };
-        
+
         if (user?.role === 'group_leader' && user.group_number) {
-            params.group_number = user.group_number;
+          params.group_number = user.group_number;
         }
 
         const res = await api.get('/reports/weekly', { params });
@@ -171,21 +167,19 @@ const TrackingPage: React.FC = () => {
         week_number: selectedWeek,
         log_date: dateToSave,
         year: currentYear,
-        // Dù backend có thể tự suy ra từ student_id, nhưng truyền class_id để tường minh
-        class_id: selectedClassId 
+
+        class_id: selectedClassId,
       });
       alert('Lưu thành công!');
 
-      // Reload data
-      const params: any = { 
-          week: selectedWeek,
-          class_id: selectedClassId || undefined
+      const params: any = {
+        week: selectedWeek,
+        class_id: selectedClassId || undefined,
       };
       if (user?.role === 'group_leader') params.group_number = user.group_number;
-      
+
       const res = await api.get('/reports/weekly', { params });
       setExistingLogs(res.data);
-
     } catch (error: any) {
       console.error(error);
       alert(error.response?.data?.message || 'Lỗi khi lưu sổ.');
@@ -201,11 +195,10 @@ const TrackingPage: React.FC = () => {
 
     try {
       await api.delete(`/reports/${logId}`);
-      
-      // Reload data
-      const params: any = { 
-          week: selectedWeek,
-          class_id: selectedClassId || undefined
+
+      const params: any = {
+        week: selectedWeek,
+        class_id: selectedClassId || undefined,
       };
       if (user?.role === 'group_leader') params.group_number = user.group_number;
 
@@ -225,7 +218,8 @@ const TrackingPage: React.FC = () => {
             <span>←</span> Quay lại
           </button>
           <h1 className="page-title">
-            SỔ THEO DÕI {selectedClassName ? `- ${selectedClassName}` : ''} {user?.group_number ? `(TỔ ${user.group_number})` : ''}
+            SỔ THEO DÕI {selectedClassName ? `- ${selectedClassName}` : ''}{' '}
+            {user?.group_number ? `(TỔ ${user.group_number})` : ''}
           </h1>
         </div>
 
@@ -240,7 +234,6 @@ const TrackingPage: React.FC = () => {
           </button>
 
           <div className="week-display">
-            <span className="week-label">ĐANG XEM</span>
             <span className="week-number">TUẦN {selectedWeek}</span>
             {selectedWeek === currentRealWeek && (
               <span className="badge-current">Tuần hiện tại</span>
@@ -282,7 +275,7 @@ const TrackingPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs lọc tổ dành cho GV/Admin */}
+      {}
       {(user?.role === 'teacher' || user?.role === 'admin') && (
         <div className="group-filter-tabs">
           <button
@@ -324,8 +317,13 @@ const TrackingPage: React.FC = () => {
               onSubmit={handleSubmit}
             />
 
+            {}
             <HistoryLogTable
-              logs={existingLogs}
+              logs={
+                user?.role === 'student'
+                  ? existingLogs.filter((l) => l.student_id === user.id)
+                  : existingLogs
+              }
               onDelete={handleDeleteLog}
               activeDate={currentSelectedDate}
             />

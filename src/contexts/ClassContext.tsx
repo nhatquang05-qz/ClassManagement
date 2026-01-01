@@ -13,9 +13,8 @@ interface ClassContextType {
 
 const ClassContext = createContext<ClassContextType>({} as any);
 
-export const ClassProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const ClassProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedClass, setClassState] = useState<ClassInfo | null>(() => {
-    
     const saved = localStorage.getItem('currentClass');
     return saved ? JSON.parse(saved) : null;
   });

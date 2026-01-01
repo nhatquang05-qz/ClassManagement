@@ -11,6 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -21,19 +22,23 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    const storedToken = localStorage.getItem('token');
 
-    if (storedUser && token) {
+    if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
+        setToken(storedToken);
       } catch (error) {
         console.error('Lỗi khôi phục user:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
+        setToken(null);
       }
     }
     setIsLoading(false);
@@ -41,22 +46,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string) => {
     const res = await api.post('/auth/login', { username, password });
-    const { token, user } = res.data;
+    const { token: newToken, user } = res.data;
 
-    localStorage.setItem('token', token);
+    localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(user));
+
     setUser(user);
+    setToken(newToken);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+
     setUser(null);
+    setToken(null);
     window.location.href = '/login';
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
+    <AuthContext.Provider
+      value={{ user, token, login, logout, isAuthenticated: !!user, isLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );

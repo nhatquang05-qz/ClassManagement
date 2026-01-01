@@ -1,15 +1,16 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-// 1. Import ClassProvider
-import { ClassProvider } from './contexts/ClassContext'; 
+import { ClassProvider } from './contexts/ClassContext';
 
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import TrackingPage from './pages/TrackingPage';
 import MyRecordPage from './pages/MyRecordPage';
-import ClassSelectionPage from './pages/ClassSelectionPage'; 
+import ClassSelectionPage from './pages/ClassSelectionPage';
 import ClassManagementPage from './pages/ClassManagementPage';
 import StudentManagerPage from './pages/StudentManagerPage';
+
+import ReportPage from './pages/ReportPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -29,7 +30,6 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        {/* 2. BỌC ClassProvider Ở ĐÂY */}
         <ClassProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -70,7 +70,6 @@ function App() {
               }
             />
 
-            {/* Nếu bạn vẫn muốn giữ trang quản lý lớp riêng biệt */}
             <Route
               path="/manage-classes"
               element={
@@ -89,6 +88,15 @@ function App() {
               }
             />
 
+            {}
+            <Route
+              path="/report"
+              element={
+                <ProtectedRoute>
+                  <ReportPage />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </ClassProvider>
       </AuthProvider>

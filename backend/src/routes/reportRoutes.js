@@ -9,6 +9,7 @@ router.post('/bulk', reportController.createBulkReports);
 router.get('/weekly', reportController.getWeeklyReport);
 router.get('/date', reportController.getViolationsByDate);
 router.get('/my-logs', reportController.getMyLogs);
-router.delete('/:id', reportController.deleteReport); // <-- Route mới
+router.get('/detailed', reportController.getDetailedReport);
+router.delete('/:id', reportController.deleteReport);
 
 module.exports = router;
