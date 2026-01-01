@@ -11,5 +11,6 @@ router.get('/my-logs', verifyToken, reportController.getMyLogs);
 
 // Route admin xem (đã có)
 router.get('/', reportController.getViolationsByDate);
+router.get('/weekly', reportController.getWeeklyReport);
 
 module.exports = router;
