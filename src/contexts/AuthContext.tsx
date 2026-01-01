@@ -14,17 +14,16 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  isLoading: boolean; 
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true); 
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
 
@@ -32,18 +31,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         setUser(JSON.parse(storedUser));
       } catch (error) {
-        console.error("Lỗi khôi phục user:", error);
+        console.error('Lỗi khôi phục user:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
     }
-    setIsLoading(false); 
+    setIsLoading(false);
   }, []);
 
   const login = async (username: string, password: string) => {
     const res = await api.post('/auth/login', { username, password });
     const { token, user } = res.data;
-    
+
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
@@ -57,7 +56,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
@@ -68,4 +66,4 @@ export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
-};  
+};

@@ -9,7 +9,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .dashboard-header h1 {
@@ -50,7 +50,7 @@
   border-radius: 12px;
   text-align: center;
   position: relative;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s;
 }
 
@@ -71,10 +71,16 @@
   margin: 0;
 }
 
-
-.rank-1 { border-top: 5px solid #ffd700; background: #fffbe6; }
-.rank-2 { border-top: 5px solid #c0c0c0; }
-.rank-3 { border-top: 5px solid #cd7f32; }
+.rank-1 {
+  border-top: 5px solid #ffd700;
+  background: #fffbe6;
+}
+.rank-2 {
+  border-top: 5px solid #c0c0c0;
+}
+.rank-3 {
+  border-top: 5px solid #cd7f32;
+}
 
 .rank-badge {
   position: absolute;
@@ -92,7 +98,10 @@
   font-weight: bold;
 }
 
-.rank-1 .rank-badge { background: #ffd700; color: #333; }
+.rank-1 .rank-badge {
+  background: #ffd700;
+  color: #333;
+}
 
 .actions-section {
   margin-top: 40px;
@@ -109,7 +118,7 @@
   border-radius: 8px;
   font-size: 18px;
   font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   border: 1px solid #eee;
 }
 

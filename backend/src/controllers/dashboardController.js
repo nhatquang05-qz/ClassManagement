@@ -2,7 +2,6 @@ const db = require('../config/dbConfig');
 
 const getGroupRankings = async (req, res) => {
   try {
-
     const query = `
       SELECT 
         u.group_number,

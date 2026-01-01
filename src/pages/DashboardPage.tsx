@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom'; 
+import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/Dashboard.css';
@@ -30,8 +30,12 @@ const DashboardPage: React.FC = () => {
       <header className="dashboard-header">
         <h1>Lớp Học 10A3 - Quản Lý Thi Đua</h1>
         <div className="user-info">
-          <span>Xin chào, <b>{user?.full_name}</b> ({user?.role_display})</span>
-          <button onClick={logout} className="logout-btn">Đăng xuất</button>
+          <span>
+            Xin chào, <b>{user?.full_name}</b> ({user?.role_display})
+          </span>
+          <button onClick={logout} className="logout-btn">
+            Đăng xuất
+          </button>
         </div>
       </header>
 
@@ -51,22 +55,28 @@ const DashboardPage: React.FC = () => {
 
         {}
         <section className="actions-section">
-          
           {}
-          <Link to="/my-record" className="action-card" style={{borderLeft: '5px solid #4caf50'}}>
-             👤 Xem Hạnh Kiểm Cá Nhân
+          <Link to="/my-record" className="action-card" style={{ borderLeft: '5px solid #4caf50' }}>
+            👤 Xem Hạnh Kiểm Cá Nhân
           </Link>
 
           {}
-          {(user?.role === 'group_leader' || user?.role === 'vice_group_leader' || user?.role === 'monitor' || user?.role === 'admin') && (
-            <Link to="/tracking" className="action-card" style={{borderLeft: '5px solid #2196f3'}}>
+          {(user?.role === 'group_leader' ||
+            user?.role === 'vice_group_leader' ||
+            user?.role === 'monitor' ||
+            user?.role === 'admin') && (
+            <Link
+              to="/tracking"
+              className="action-card"
+              style={{ borderLeft: '5px solid #2196f3' }}
+            >
               📝 Sổ Theo Dõi (Ghi Lỗi)
             </Link>
           )}
 
           {}
           {(user?.role === 'admin' || user?.role === 'monitor') && (
-            <Link to="/report" className="action-card" style={{borderLeft: '5px solid #ff9800'}}>
+            <Link to="/report" className="action-card" style={{ borderLeft: '5px solid #ff9800' }}>
               📊 Báo Cáo Tổng Hợp
             </Link>
           )}

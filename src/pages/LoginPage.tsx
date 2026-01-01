@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       await login(username, password);
-      navigate('/'); 
+      navigate('/');
     } catch (err) {
       setError('Đăng nhập thất bại. Kiểm tra lại tài khoản/mật khẩu.');
     }
@@ -28,23 +28,25 @@ const LoginPage: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Tài khoản</label>
-            <input 
-              type="text" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               placeholder="Nhập username..."
             />
           </div>
           <div className="form-group">
             <label>Mật khẩu</label>
-            <input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="Nhập mật khẩu..."
             />
           </div>
-          <button type="submit" className="login-btn">Đăng Nhập</button>
+          <button type="submit" className="login-btn">
+            Đăng Nhập
+          </button>
         </form>
       </div>
     </div>

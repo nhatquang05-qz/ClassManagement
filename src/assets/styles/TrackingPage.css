@@ -4,7 +4,6 @@
   min-height: 100vh;
 }
 
-
 .tracking-header-modern {
   background: white;
   border-radius: 12px;
@@ -53,7 +52,6 @@
   border-color: #bbb;
 }
 
-
 .week-control-area {
   display: flex;
   align-items: center;
@@ -71,7 +69,7 @@
   border-radius: 50%;
   border: none;
   background: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   color: #555;
   font-size: 1.2rem;
   cursor: pointer;
@@ -125,7 +123,6 @@
   margin-top: 4px;
 }
 
-
 .info-bar {
   display: flex;
   gap: 20px;
@@ -153,8 +150,14 @@
   font-size: 1.2rem;
 }
 
-.info-icon.user-icon { background: #e3f2fd; color: #1976d2; }
-.info-icon.score-icon { background: #fff3e0; color: #f57c00; }
+.info-icon.user-icon {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+.info-icon.score-icon {
+  background: #fff3e0;
+  color: #f57c00;
+}
 
 .info-content {
   display: flex;
@@ -172,9 +175,12 @@
   font-size: 1rem;
 }
 
-.score-value.positive { color: #27ae60; }
-.score-value.negative { color: #e74c3c; }
-
+.score-value.positive {
+  color: #27ae60;
+}
+.score-value.negative {
+  color: #e74c3c;
+}
 
 @media (max-width: 768px) {
   .info-bar {

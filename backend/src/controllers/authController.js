@@ -13,7 +13,7 @@ const login = async (req, res) => {
       `SELECT u.*, r.name as role_name, r.display_name as role_display 
        FROM users u 
        JOIN roles r ON u.role_id = r.id 
-       WHERE u.username = ?`, 
+       WHERE u.username = ?`,
       [username]
     );
 
@@ -23,12 +23,10 @@ const login = async (req, res) => {
 
     const user = users[0];
 
-    
     if (password !== user.password) {
       return res.status(401).json({ message: 'Mật khẩu không đúng' });
     }
 
-    
     const token = jwt.sign(
       { id: user.id, role: user.role_name, group: user.group_number },
       process.env.JWT_SECRET || 'secret_key_123',
@@ -43,10 +41,9 @@ const login = async (req, res) => {
         full_name: user.full_name,
         role: user.role_name,
         role_display: user.role_display,
-        group_number: user.group_number
-      }
+        group_number: user.group_number,
+      },
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Lỗi server' });
