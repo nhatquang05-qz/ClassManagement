@@ -78,6 +78,9 @@ const ReportPage = () => {
 
     const [reportData, setReportData] = useState<ReportItem[]>([]);
     const [violationsList, setViolationsList] = useState<ViolationType[]>([]);
+    // --- SỬA ĐỔI: State lưu các tổ có sẵn ---
+    const [availableGroups, setAvailableGroups] = useState<number[]>([]);
+    // ----------------------------------------
     const [loading, setLoading] = useState(false);
 
     const START_POINTS = 0;
@@ -107,6 +110,31 @@ const ReportPage = () => {
         fetchViolations();
     }, [token]);
 
+    // --- SỬA ĐỔI: Fetch danh sách Users để lấy groups ---
+    useEffect(() => {
+        const fetchGroups = async () => {
+            try {
+                const selectedClassId = localStorage.getItem('selectedClassId');
+                const query = selectedClassId ? `?class_id=${selectedClassId}` : '';
+                const res = await fetch(`http://localhost:3000/api/users${query}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    // Lọc ra các group_number duy nhất và sắp xếp
+                    const groups = Array.from(new Set(data.map((u: any) => u.group_number)))
+                        .filter((g: any) => g != null)
+                        .sort((a: any, b: any) => a - b);
+                    setAvailableGroups(groups as number[]);
+                }
+            } catch (err) {
+                console.error('Lỗi tải danh sách tổ:', err);
+            }
+        };
+        fetchGroups();
+    }, [token]);
+    // -----------------------------------------------------
+
     const fetchReport = async () => {
         setLoading(true);
         try {
@@ -117,6 +145,9 @@ const ReportPage = () => {
                 violationTypeId,
                 groupId,
             });
+            // Thêm class_id nếu có để report chính xác hơn
+            const selectedClassId = localStorage.getItem('selectedClassId');
+            if (selectedClassId) queryParams.append('class_id', selectedClassId);
 
             const res = await fetch(`http://localhost:3000/api/reports/detailed?${queryParams}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -142,15 +173,26 @@ const ReportPage = () => {
         const stats: Record<
             string,
             { name: string; penaltyRaw: number; bonus: number; violationCount: number }
-        > = {
-            '1': { name: 'Tổ 1', penaltyRaw: 0, bonus: 0, violationCount: 0 },
-            '2': { name: 'Tổ 2', penaltyRaw: 0, bonus: 0, violationCount: 0 },
-            '3': { name: 'Tổ 3', penaltyRaw: 0, bonus: 0, violationCount: 0 },
-            '4': { name: 'Tổ 4', penaltyRaw: 0, bonus: 0, violationCount: 0 },
-        };
+        > = {};
+
+        // --- SỬA ĐỔI: Khởi tạo stats dựa trên availableGroups ---
+        availableGroups.forEach((g) => {
+            stats[g.toString()] = { name: `Tổ ${g}`, penaltyRaw: 0, bonus: 0, violationCount: 0 };
+        });
+        // --------------------------------------------------------
 
         reportData.forEach((item) => {
             const groupKey = item.group_number.toString();
+            // Nếu group chưa có trong list (ví dụ user đã bị xoá nhưng còn log), ta tạo mới
+            if (!stats[groupKey]) {
+                stats[groupKey] = {
+                    name: `Tổ ${item.group_number}`,
+                    penaltyRaw: 0,
+                    bonus: 0,
+                    violationCount: 0,
+                };
+            }
+
             if (stats[groupKey]) {
                 const totalPoints = item.points * item.quantity;
 
@@ -164,12 +206,18 @@ const ReportPage = () => {
             }
         });
 
-        return Object.values(stats).map((item) => ({
-            ...item,
-
-            penalty: Math.abs(item.penaltyRaw),
-        }));
-    }, [reportData]);
+        // Chuyển về mảng và sắp xếp theo tên tổ
+        return Object.values(stats)
+            .sort((a, b) => {
+                const numA = parseInt(a.name.replace('Tổ ', '')) || 0;
+                const numB = parseInt(b.name.replace('Tổ ', '')) || 0;
+                return numA - numB;
+            })
+            .map((item) => ({
+                ...item,
+                penalty: Math.abs(item.penaltyRaw),
+            }));
+    }, [reportData, availableGroups]);
 
     const chartDataByCategory = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -243,11 +291,13 @@ const ReportPage = () => {
                     <label>Nhóm/Tổ:</label>
                     <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
                         <option value="">-- Tất cả --</option>
-                        {[1, 2, 3, 4].map((g) => (
+                        {/* --- SỬA ĐỔI: Dùng availableGroups thay vì [1,2,3,4] --- */}
+                        {availableGroups.map((g) => (
                             <option key={g} value={g}>
                                 Tổ {g}
                             </option>
                         ))}
+                        {/* -------------------------------------------------------- */}
                     </select>
                 </div>
                 <button className="btn-search" onClick={fetchReport}>

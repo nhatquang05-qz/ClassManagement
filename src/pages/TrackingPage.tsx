@@ -80,6 +80,14 @@ const TrackingPage: React.FC = () => {
         return students.filter((s) => s.group_number === parseInt(activeGroupTab));
     }, [students, activeGroupTab]);
 
+    const uniqueGroups = useMemo(() => {
+        const groups = new Set(students.map((s) => s.group_number));
+
+        return Array.from(groups)
+            .filter((g) => g != null)
+            .sort((a, b) => a - b);
+    }, [students]);
+
     useEffect(() => {
         if (user?.role === 'teacher' || user?.role === 'admin') {
             if (!selectedClassId) {
@@ -287,7 +295,8 @@ const TrackingPage: React.FC = () => {
                     >
                         Toàn bộ lớp ({students.length})
                     </button>
-                    {[1, 2, 3, 4].map((gNum) => (
+                    {}
+                    {uniqueGroups.map((gNum) => (
                         <button
                             key={gNum}
                             className={`group-tab ${activeGroupTab === String(gNum) ? 'active' : ''}`}
@@ -296,6 +305,7 @@ const TrackingPage: React.FC = () => {
                             Tổ {gNum}
                         </button>
                     ))}
+                    {}
                 </div>
             )}
 
