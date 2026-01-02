@@ -78,9 +78,9 @@ const ReportPage = () => {
 
     const [reportData, setReportData] = useState<ReportItem[]>([]);
     const [violationsList, setViolationsList] = useState<ViolationType[]>([]);
-    // --- SỬA ĐỔI: State lưu các tổ có sẵn ---
+    
     const [availableGroups, setAvailableGroups] = useState<number[]>([]);
-    // ----------------------------------------
+    
     const [loading, setLoading] = useState(false);
 
     const START_POINTS = 0;
@@ -110,7 +110,7 @@ const ReportPage = () => {
         fetchViolations();
     }, [token]);
 
-    // --- SỬA ĐỔI: Fetch danh sách Users để lấy groups ---
+    
     useEffect(() => {
         const fetchGroups = async () => {
             try {
@@ -121,7 +121,7 @@ const ReportPage = () => {
                 });
                 const data = await res.json();
                 if (Array.isArray(data)) {
-                    // Lọc ra các group_number duy nhất và sắp xếp
+                    
                     const groups = Array.from(new Set(data.map((u: any) => u.group_number)))
                         .filter((g: any) => g != null)
                         .sort((a: any, b: any) => a - b);
@@ -133,7 +133,7 @@ const ReportPage = () => {
         };
         fetchGroups();
     }, [token]);
-    // -----------------------------------------------------
+    
 
     const fetchReport = async () => {
         setLoading(true);
@@ -145,7 +145,7 @@ const ReportPage = () => {
                 violationTypeId,
                 groupId,
             });
-            // Thêm class_id nếu có để report chính xác hơn
+            
             const selectedClassId = localStorage.getItem('selectedClassId');
             if (selectedClassId) queryParams.append('class_id', selectedClassId);
 
@@ -175,15 +175,15 @@ const ReportPage = () => {
             { name: string; penaltyRaw: number; bonus: number; violationCount: number }
         > = {};
 
-        // --- SỬA ĐỔI: Khởi tạo stats dựa trên availableGroups ---
+        
         availableGroups.forEach((g) => {
             stats[g.toString()] = { name: `Tổ ${g}`, penaltyRaw: 0, bonus: 0, violationCount: 0 };
         });
-        // --------------------------------------------------------
+        
 
         reportData.forEach((item) => {
             const groupKey = item.group_number.toString();
-            // Nếu group chưa có trong list (ví dụ user đã bị xoá nhưng còn log), ta tạo mới
+            
             if (!stats[groupKey]) {
                 stats[groupKey] = {
                     name: `Tổ ${item.group_number}`,
@@ -206,7 +206,7 @@ const ReportPage = () => {
             }
         });
 
-        // Chuyển về mảng và sắp xếp theo tên tổ
+        
         return Object.values(stats)
             .sort((a, b) => {
                 const numA = parseInt(a.name.replace('Tổ ', '')) || 0;
@@ -291,13 +291,13 @@ const ReportPage = () => {
                     <label>Nhóm/Tổ:</label>
                     <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
                         <option value="">-- Tất cả --</option>
-                        {/* --- SỬA ĐỔI: Dùng availableGroups thay vì [1,2,3,4] --- */}
+                        {}
                         {availableGroups.map((g) => (
                             <option key={g} value={g}>
                                 Tổ {g}
                             </option>
                         ))}
-                        {/* -------------------------------------------------------- */}
+                        {}
                     </select>
                 </div>
                 <button className="btn-search" onClick={fetchReport}>
