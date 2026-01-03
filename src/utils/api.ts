@@ -14,7 +14,7 @@ if (!baseUrl.endsWith('/api')) {
     baseUrl += '/api';
 }
 
-console.log('API Base URL:', baseUrl); 
+console.log('API Base URL:', baseUrl);
 
 const api = axios.create({
     baseURL: baseUrl,
