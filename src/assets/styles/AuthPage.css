@@ -1,4 +1,7 @@
-.login-container {
+
+
+
+.auth-container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -6,7 +9,8 @@
     background-color: #f0f2f5;
 }
 
-.login-box {
+
+.auth-card {
     background: white;
     padding: 40px;
     border-radius: 8px;
@@ -15,10 +19,22 @@
     max-width: 400px;
 }
 
-.login-box h2 {
+
+.auth-header {
     text-align: center;
     margin-bottom: 24px;
     color: #333;
+}
+
+.auth-header h2 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.auth-header p {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
 }
 
 .form-group {
@@ -31,15 +47,23 @@
     font-weight: 500;
 }
 
-.form-group input {
+
+.form-control {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
     box-sizing: border-box;
+    font-size: 14px;
 }
 
-.login-btn {
+.form-control:focus {
+    border-color: #2196f3;
+    outline: none;
+}
+
+
+.btn-primary {
     width: 100%;
     padding: 12px;
     background-color: #2196f3;
@@ -50,14 +74,20 @@
     font-weight: bold;
     cursor: pointer;
     margin-top: 10px;
+    transition: background-color 0.2s;
 }
 
-.login-btn:hover {
+.btn-primary:hover {
     background-color: #1976d2;
 }
 
-.error-msg {
-    color: red;
+
+.error-message {
+    color: #d32f2f;
+    background-color: #ffebee;
+    padding: 10px;
+    border-radius: 4px;
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
 }
