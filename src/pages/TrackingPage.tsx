@@ -20,12 +20,12 @@ const TrackingPage: React.FC = () => {
 
     const currentYear = new Date().getFullYear();
 
-    
     const selectedClassId = selectedClass?.id?.toString() || localStorage.getItem('selectedClassId');
     const selectedClassName = selectedClass?.name || localStorage.getItem('selectedClassName');
     const classStartDate = selectedClass?.start_date;
 
     const currentRealWeek = useMemo(() => {
+        if (!classStartDate) return 0;
         return getWeekNumberFromStart(new Date(), classStartDate);
     }, [classStartDate]);
 
@@ -34,7 +34,6 @@ const TrackingPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
 
-    
     useEffect(() => {
         if (currentRealWeek > 0) {
             setSelectedWeek(currentRealWeek);
@@ -76,7 +75,6 @@ const TrackingPage: React.FC = () => {
         }
     }, [user, navigate, selectedClassId]);
 
-    
     useEffect(() => {
         const fetchBaseData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
@@ -98,10 +96,9 @@ const TrackingPage: React.FC = () => {
                 console.error('Lỗi tải dữ liệu gốc:', error);
             }
         };
-        fetchBaseData(); 
-    }, [selectedClassId]); 
+        if (user) fetchBaseData();
+    }, [selectedClassId, user]);
 
-    
     useEffect(() => {
         const fetchWeekData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
@@ -113,7 +110,6 @@ const TrackingPage: React.FC = () => {
                     class_id: selectedClassId,
                 };
 
-                
                 if (user?.role === 'group_leader' && user.group_number) {
                     params.group_number = user.group_number;
                 }
@@ -126,8 +122,8 @@ const TrackingPage: React.FC = () => {
                 setLoading(false);
             }
         };
-        fetchWeekData();
-    }, [selectedWeek, selectedClassId]); 
+        if (user) fetchWeekData();
+    }, [selectedWeek, selectedClassId, user]);
 
     const groupTotalScore = useMemo(() => {
         let total = 0;
@@ -144,9 +140,16 @@ const TrackingPage: React.FC = () => {
         return total;
     }, [existingLogs, displayedStudents, violationTypes]);
 
+    
     const handleSubmit = async (logsToSave: DailyLogPayload[], dateToSave: string) => {
         if (!canEdit) {
             alert('Bạn không có quyền chỉnh sửa tuần này!');
+            return;
+        }
+
+        
+        if (!dateToSave) {
+            alert('Lỗi: Không xác định được ngày cần lưu. Vui lòng thử lại.');
             return;
         }
 
@@ -166,7 +169,6 @@ const TrackingPage: React.FC = () => {
             });
             alert('Lưu thành công!');
 
-            
             const params: any = {
                 week: selectedWeek,
                 class_id: selectedClassId,
@@ -205,7 +207,6 @@ const TrackingPage: React.FC = () => {
         }
     };
 
-    
     const getScoreLabel = () => {
         if (user?.role === 'group_leader') return `Tổng điểm Tổ ${user.group_number}`;
         if (activeGroupTab === 'all') return 'Tổng điểm Lớp';
@@ -283,7 +284,6 @@ const TrackingPage: React.FC = () => {
                 </div>
             </div>
 
-            {}
             {(user?.role === 'teacher' || user?.role === 'admin') && (
                 <div className="group-filter-tabs">
                     <button
@@ -305,7 +305,12 @@ const TrackingPage: React.FC = () => {
             )}
 
             <div className="page-content">
-                {loading ? (
+                {!classStartDate ? (
+                     <div style={{ textAlign: 'center', padding: '40px', color: '#dc2626', background: '#fee2e2', borderRadius: 8 }}>
+                        ⚠ Lớp học chưa được cấu hình "Ngày bắt đầu năm học". <br/>
+                        Vui lòng vào <b>Quản lý Lớp</b> để cập nhật ngày bắt đầu, nếu không số tuần sẽ không chính xác.
+                    </div>
+                ) : loading ? (
                     <div
                         className="loading-container"
                         style={{ textAlign: 'center', padding: '40px', color: '#666' }}
@@ -316,7 +321,7 @@ const TrackingPage: React.FC = () => {
                     <>
                         {students.length === 0 ? (
                             <div style={{textAlign: 'center', padding: 20, color: 'red'}}>
-                                Không tìm thấy học sinh. Vui lòng kiểm tra lại danh sách lớp hoặc chọn đúng lớp học.
+                                Không tìm thấy học sinh.
                             </div>
                         ) : (
                             <DailyTrackingTable

@@ -9,30 +9,35 @@ const formatDate = (date) => {
 const createBulkReports = async (req, res) => {
     const connection = await db.getConnection();
     try {
-        const { reports, reporter_id, week_number, log_date } = req.body;
+        const { reports = [], reporter_id, week_number, log_date, class_id } = req.body;
 
         if (!log_date) {
             return res.status(400).json({ message: 'Thiếu thông tin ngày ghi nhận' });
         }
 
+        
         const [users] = await connection.query('SELECT full_name FROM users WHERE id = ?', [
             reporter_id,
         ]);
 
         await connection.beginTransaction();
 
+        
+        
         let affectedStudentIds = [];
-        if (reports.length > 0) {
+        if (reports && reports.length > 0) {
             affectedStudentIds = [...new Set(reports.map((r) => r.student_id))];
         }
 
         const logDesc = `Cập nhật sổ ngày ${log_date}. Số HS có ghi nhận: ${affectedStudentIds.length}`;
 
+        
         await connection.query(
             'INSERT INTO audit_logs (user_id, action, target_date, description) VALUES (?, ?, ?, ?)',
             [reporter_id, 'UPDATE_DAILY', log_date, logDesc]
         );
 
+        
         if (affectedStudentIds.length > 0) {
             await connection.query(
                 'DELETE FROM daily_logs WHERE log_date = ? AND student_id IN (?)',
@@ -40,11 +45,12 @@ const createBulkReports = async (req, res) => {
             );
         }
 
+        
         if (reports.length > 0) {
             const insertQuery = `
-        INSERT INTO daily_logs (student_id, reporter_id, violation_type_id, log_date, week_number, quantity, note)
-        VALUES ?
-      `;
+                INSERT INTO daily_logs (student_id, reporter_id, violation_type_id, log_date, week_number, quantity, note)
+                VALUES ?
+            `;
 
             const values = reports.map((report) => [
                 report.student_id,
@@ -74,6 +80,7 @@ const getWeeklyReport = async (req, res) => {
     try {
         const { week, group_number, class_id } = req.query;
 
+        
         let query = `
             SELECT 
                 dl.id,
@@ -106,7 +113,8 @@ const getWeeklyReport = async (req, res) => {
             params.push(class_id);
         }
 
-        query += ` ORDER BY dl.log_date DESC, dl.created_at DESC`;
+        
+        query += ` ORDER BY dl.log_date DESC, u.group_number ASC, u.full_name ASC`;
 
         const [rows] = await db.query(query, params);
         res.json(rows);
@@ -120,8 +128,9 @@ const deleteReport = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { id } = req.params;
-        const reporter_id = req.user.id;
+        const reporter_id = req.user.id; 
 
+        
         const [oldLog] = await connection.query(
             `
             SELECT dl.*, u.full_name, vt.name as violation_name 
@@ -137,22 +146,30 @@ const deleteReport = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy bản ghi' });
         }
 
+        
         const [user] = await connection.query('SELECT role_id FROM users WHERE id = ?', [
             reporter_id,
         ]);
-        const isAdmin = user[0]?.role_id === 1;
-        if (!isAdmin && oldLog[0].reporter_id !== reporter_id) {
+        
+        
+        
+        const userRoleId = user[0]?.role_id;
+        const isManager = userRoleId === 1 || userRoleId === 2; 
+
+        if (!isManager && oldLog[0].reporter_id !== reporter_id) {
             return res.status(403).json({ message: 'Bạn không có quyền xóa dòng này' });
         }
 
         const targetDate = formatDate(oldLog[0].log_date);
         const logDesc = `Xóa vi phạm: ${oldLog[0].violation_name} của HS ${oldLog[0].full_name} (Ngày ${targetDate})`;
 
+        
         await connection.query(
             'INSERT INTO audit_logs (user_id, action, target_date, description) VALUES (?, ?, ?, ?)',
             [reporter_id, 'DELETE', targetDate, logDesc]
         );
 
+        
         await connection.query('DELETE FROM daily_logs WHERE id = ?', [id]);
 
         res.json({ message: 'Xóa thành công' });
@@ -193,7 +210,6 @@ const getViolationsByDate = async (req, res) => {
 const getMyLogs = async (req, res) => {
     try {
         const studentId = req.user.id;
-        
         const { startDate, endDate } = req.query;
 
         let query = `
@@ -215,7 +231,6 @@ const getMyLogs = async (req, res) => {
 
         const params = [studentId];
 
-        
         if (startDate && endDate) {
             query += ` AND dl.log_date BETWEEN ? AND ?`;
             params.push(startDate, endDate);

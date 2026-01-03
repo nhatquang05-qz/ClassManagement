@@ -38,7 +38,6 @@ const COLUMNS_CONFIG = [
     { key: 'Điểm kiểm tra 5-7', label: '5-7', group: 'ĐIỂM TRẢ BÀI', subGroup: null },
     { key: 'Điểm kiểm tra 8-10', label: '8-10', group: 'ĐIỂM TRẢ BÀI', subGroup: null },
     { key: 'Phát biểu', label: 'Tham gia', group: 'PHÁT BIỂU', subGroup: null },
-
     { key: 'Tham gia phong trào', label: 'Tham gia PT', group: 'PHONG TRÀO', subGroup: null },
     { key: 'Không tham gia phong trào', label: 'Không TG PT', group: 'PHONG TRÀO', subGroup: null },
 ];
@@ -59,7 +58,9 @@ const DailyTrackingTable: React.FC<Props> = ({
     const [editingCell, setEditingCell] = useState<EditingCellData | null>(null);
 
     const isWeeklyTab = activeDayIndex === 6;
-    const activeDate = !isWeeklyTab ? weekDates[activeDayIndex] : '';
+    
+    
+    const activeDate = (!isWeeklyTab && weekDates && weekDates[activeDayIndex]) ? weekDates[activeDayIndex] : '';
 
     useEffect(() => {
         if (initialData) setLogs(initialData);
@@ -79,6 +80,19 @@ const DailyTrackingTable: React.FC<Props> = ({
         return Object.values(violationMap).find((v) => v.name.toLowerCase().includes(lowerKey))?.id;
     };
 
+    
+    const isSameDate = (d1?: string, d2?: string) => {
+        if (!d1 || !d2) return false;
+        const date1 = new Date(d1);
+        const date2 = new Date(d2);
+        if (isNaN(date1.getTime()) || isNaN(date2.getTime())) return false;
+        return (
+            date1.getFullYear() === date2.getFullYear() &&
+            date1.getMonth() === date2.getMonth() &&
+            date1.getDate() === date2.getDate()
+        );
+    };
+
     const getCellData = (studentId: number, violationId: number) => {
         if (isWeeklyTab) {
             const relevantLogs = logs.filter(
@@ -91,10 +105,9 @@ const DailyTrackingTable: React.FC<Props> = ({
                 (l) =>
                     l.student_id === studentId &&
                     l.violation_type_id === violationId &&
-                    l.log_date === activeDate
+                    isSameDate(l.log_date, activeDate) 
             );
             const totalQty = relevantLogs.reduce((sum, l) => sum + (l.quantity || 0), 0);
-
             const hasNote = relevantLogs.some((l) => l.note && l.note.trim() !== '');
             return { quantity: totalQty, hasNote };
         }
@@ -104,7 +117,8 @@ const DailyTrackingTable: React.FC<Props> = ({
         let total = 0;
         const studentLogs = logs.filter((l) => {
             if (l.student_id !== studentId) return false;
-            if (!isWeeklyTab && l.log_date !== activeDate) return false;
+            
+            if (!isWeeklyTab && !isSameDate(l.log_date, activeDate)) return false;
             return true;
         });
 
@@ -125,7 +139,8 @@ const DailyTrackingTable: React.FC<Props> = ({
         const absenceP_ID = getViolationIdByKey('Vắng (P)');
         const absenceK_ID = getViolationIdByKey('Vắng (K)');
         return currentLogs.filter((l) => {
-            const isTarget = l.student_id === studentId && l.log_date === date;
+            
+            const isTarget = l.student_id === studentId && isSameDate(l.log_date, date);
             if (!isTarget) return true;
             if (
                 (l.violation_type_id === absenceP_ID || l.violation_type_id === absenceK_ID) &&
@@ -139,6 +154,8 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const handleCellClick = (student: Student, colKey: string, subGroup: string | null) => {
         if (isReadOnly || isWeeklyTab) return;
+        
+        if (!activeDate) return;
 
         const violationId = getViolationIdByKey(colKey);
         if (!violationId) return;
@@ -152,7 +169,7 @@ const DailyTrackingTable: React.FC<Props> = ({
                     (l) =>
                         l.student_id === student.id &&
                         l.violation_type_id === violationId &&
-                        l.log_date === activeDate
+                        isSameDate(l.log_date, activeDate) 
                 );
                 if (exists) {
                     newLogs = newLogs.filter((l) => l !== exists);
@@ -185,7 +202,7 @@ const DailyTrackingTable: React.FC<Props> = ({
     };
 
     const handleSaveModal = (quantityToAdd: number, note: string) => {
-        if (!editingCell) return;
+        if (!editingCell || !activeDate) return; 
 
         setLogs((prev) => {
             const newLogs = [...prev];
@@ -221,7 +238,15 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const handleSaveCurrentDay = () => {
         if (isWeeklyTab) return;
-        const logsForToday = logs.filter((l) => l.log_date === activeDate);
+        
+        
+        if (!activeDate) {
+            alert('Lỗi: Không xác định được ngày cần lưu.');
+            return;
+        }
+
+        
+        const logsForToday = logs.filter((l) => isSameDate(l.log_date, activeDate));
         onSubmit(logsForToday, activeDate);
     };
 
@@ -244,163 +269,46 @@ const DailyTrackingTable: React.FC<Props> = ({
                     <thead>
                         {}
                         <tr>
-                            <th
-                                rowSpan={4}
-                                className="trk-sticky-col trk-stt-col"
-                                style={{ left: 0, zIndex: 21 }}
-                            >
-                                STT
-                            </th>
-                            <th
-                                rowSpan={4}
-                                className="trk-sticky-col trk-name-col"
-                                style={{ left: '40px', zIndex: 21 }}
-                            >
-                                Họ và tên
-                            </th>
-                            <th
-                                rowSpan={4}
-                                className="trk-sticky-col trk-total-col"
-                                style={{ zIndex: 20 }}
-                            >
-                                Tổng
-                            </th>
-                            <th colSpan={4} className="trk-group-header">
-                                GIỜ GIẤC
-                            </th>
-                            <th colSpan={3} className="trk-group-header">
-                                HỌC TẬP
-                            </th>
-                            <th colSpan={4} className="trk-group-header">
-                                NỀ NẾP
-                            </th>
-                            <th colSpan={3} className="trk-group-header">
-                                MẮC THÁI ĐỘ SAI
-                            </th>
-                            <th colSpan={3} className="trk-group-header">
-                                ĐIỂM TRẢ BÀI
-                            </th>
-                            <th colSpan={1} className="trk-group-header">
-                                PHÁT BIỂU
-                            </th>
-                            {}
-                            <th colSpan={2} className="trk-group-header">
-                                PHONG TRÀO
-                            </th>
+                            <th rowSpan={4} className="trk-sticky-col trk-stt-col" style={{ left: 0, zIndex: 21 }}>STT</th>
+                            <th rowSpan={4} className="trk-sticky-col trk-name-col" style={{ left: '40px', zIndex: 21 }}>Họ và tên</th>
+                            <th rowSpan={4} className="trk-sticky-col trk-total-col" style={{ zIndex: 20 }}>Tổng</th>
+                            <th colSpan={4} className="trk-group-header">GIỜ GIẤC</th>
+                            <th colSpan={3} className="trk-group-header">HỌC TẬP</th>
+                            <th colSpan={4} className="trk-group-header">NỀ NẾP</th>
+                            <th colSpan={3} className="trk-group-header">MẮC THÁI ĐỘ SAI</th>
+                            <th colSpan={3} className="trk-group-header">ĐIỂM TRẢ BÀI</th>
+                            <th colSpan={1} className="trk-group-header">PHÁT BIỂU</th>
+                            <th colSpan={2} className="trk-group-header">PHONG TRÀO</th>
                         </tr>
 
                         {}
                         <tr>
-                            <th colSpan={2} className="trk-sub-group-header">
-                                Vắng
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Trễ</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Bỏ tiết</span>
-                                </div>
-                            </th>
-                            <th colSpan={3} className="trk-sub-group-header">
-                                KHÔNG
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Trực nhật</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Giữ vệ sinh</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Đồng phục</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Giữ trật tự</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Đánh nhau</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Nói tục</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Vô lễ</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>1-4</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>5-7</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>8-10</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Tham gia</span>
-                                </div>
-                            </th>
-                            {}
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Tham gia</span>
-                                </div>
-                            </th>
-                            <th rowSpan={2} className="trk-th-rotate">
-                                <div>
-                                    <span>Không tham gia</span>
-                                </div>
-                            </th>
+                            <th colSpan={2} className="trk-sub-group-header">Vắng</th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Trễ</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Bỏ tiết</span></div></th>
+                            <th colSpan={3} className="trk-sub-group-header">KHÔNG</th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Trực nhật</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Giữ vệ sinh</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Đồng phục</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Giữ trật tự</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Đánh nhau</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Nói tục</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Vô lễ</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>1-4</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>5-7</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>8-10</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Tham gia</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Tham gia</span></div></th>
+                            <th rowSpan={2} className="trk-th-rotate"><div><span>Không tham gia</span></div></th>
                         </tr>
 
+                        {}
                         <tr>
-                            <th className="trk-th-rotate">
-                                <div>
-                                    <span>P</span>
-                                </div>
-                            </th>
-                            <th className="trk-th-rotate">
-                                <div>
-                                    <span>K</span>
-                                </div>
-                            </th>
-                            <th className="trk-th-rotate">
-                                <div>
-                                    <span>Làm BT</span>
-                                </div>
-                            </th>
-                            <th className="trk-th-rotate">
-                                <div>
-                                    <span>Soạn bài</span>
-                                </div>
-                            </th>
-                            <th className="trk-th-rotate">
-                                <div>
-                                    <span>Thuộc bài</span>
-                                </div>
-                            </th>
+                            <th className="trk-th-rotate"><div><span>P</span></div></th>
+                            <th className="trk-th-rotate"><div><span>K</span></div></th>
+                            <th className="trk-th-rotate"><div><span>Làm BT</span></div></th>
+                            <th className="trk-th-rotate"><div><span>Soạn bài</span></div></th>
+                            <th className="trk-th-rotate"><div><span>Thuộc bài</span></div></th>
                         </tr>
 
                         {}
@@ -419,44 +327,26 @@ const DailyTrackingTable: React.FC<Props> = ({
                                     <td className="trk-sticky-col trk-stt-col" style={{ left: 0 }}>
                                         {index + 1}
                                     </td>
-                                    <td
-                                        className="trk-sticky-col trk-name-col"
-                                        style={{ left: '40px' }}
-                                    >
+                                    <td className="trk-sticky-col trk-name-col" style={{ left: '40px' }}>
                                         <span className="name">{student.full_name}</span>
                                     </td>
-                                    <td
-                                        className="text-center font-bold"
-                                        style={{ color: totalScore < 0 ? 'red' : 'blue' }}
-                                    >
+                                    <td className="text-center font-bold" style={{ color: totalScore < 0 ? 'red' : 'blue' }}>
                                         {totalScore > 0 ? `+${totalScore}` : totalScore}
                                     </td>
 
                                     {COLUMNS_CONFIG.map((col, colIndex) => {
                                         const violationId = getViolationIdByKey(col.key);
                                         if (!violationId)
-                                            return (
-                                                <td
-                                                    key={colIndex}
-                                                    className="trk-checkbox-cell trk-disabled"
-                                                ></td>
-                                            );
+                                            return <td key={colIndex} className="trk-checkbox-cell trk-disabled"></td>;
 
-                                        const { quantity, hasNote } = getCellData(
-                                            student.id,
-                                            violationId
-                                        );
-                                        const isBonus =
-                                            (violationTypes.find((v) => v.id === violationId)
-                                                ?.points || 0) > 0;
+                                        const { quantity, hasNote } = getCellData(student.id, violationId);
+                                        const isBonus = (violationTypes.find((v) => v.id === violationId)?.points || 0) > 0;
 
                                         return (
                                             <td
                                                 key={`${student.id}-${colIndex}`}
                                                 className={`trk-checkbox-cell ${isBonus ? 'trk-bonus-cell' : ''} ${quantity > 0 ? 'trk-has-data' : ''} ${isWeeklyTab ? 'trk-readonly-cell' : ''}`}
-                                                onClick={() =>
-                                                    handleCellClick(student, col.key, col.subGroup)
-                                                }
+                                                onClick={() => handleCellClick(student, col.key, col.subGroup)}
                                             >
                                                 {col.subGroup === 'Vắng' && !isWeeklyTab ? (
                                                     <div className="trk-cell-content">
@@ -466,24 +356,12 @@ const DailyTrackingTable: React.FC<Props> = ({
                                                             readOnly
                                                             style={{ pointerEvents: 'none' }}
                                                         />
-                                                        {hasNote && (
-                                                            <span className="trk-note-indicator">
-                                                                📝
-                                                            </span>
-                                                        )}
+                                                        {hasNote && <span className="trk-note-indicator">📝</span>}
                                                     </div>
                                                 ) : (
                                                     <div className="trk-cell-content">
-                                                        {quantity > 0 && (
-                                                            <span className="trk-quantity-badge">
-                                                                {quantity}
-                                                            </span>
-                                                        )}
-                                                        {hasNote && !isWeeklyTab && (
-                                                            <span className="trk-note-indicator">
-                                                                📝
-                                                            </span>
-                                                        )}
+                                                        {quantity > 0 && <span className="trk-quantity-badge">{quantity}</span>}
+                                                        {hasNote && !isWeeklyTab && <span className="trk-note-indicator">📝</span>}
                                                     </div>
                                                 )}
                                             </td>
