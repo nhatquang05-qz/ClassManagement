@@ -1,9 +1,10 @@
 
 
-
 const parseLocalDate = (dateStr: string): Date => {
     if (!dateStr) return new Date();
-    const [y, m, d] = dateStr.split('-').map(Number);
+    
+    const cleanDateStr = dateStr.split('T')[0];
+    const [y, m, d] = cleanDateStr.split('-').map(Number);
     const date = new Date(y, m - 1, d);
     date.setHours(0, 0, 0, 0);
     return date;
@@ -14,6 +15,7 @@ const getMondayOfWeek = (d: Date): Date => {
     const date = new Date(d);
     date.setHours(0, 0, 0, 0);
     const day = date.getDay(); 
+    
     
     const diff = date.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(date.setDate(diff));

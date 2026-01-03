@@ -1,118 +1,129 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DailyLogPayload } from '../../types/trackingTypes';
 import '../../assets/styles/TrackingTable.css';
 
 interface Props {
     logs: DailyLogPayload[];
     onDelete: (id: number) => void;
-    activeDate?: string; 
+    activeDate?: string | null;
+    viewMode?: 'day' | 'week'; 
 }
 
-const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
-    
-    const [activeTab, setActiveTab] = useState<'day' | 'week'>('week');
-    
+const HistoryLogTable: React.FC<Props> = ({ 
+    logs = [], 
+    onDelete, 
+    activeDate, 
+    viewMode = 'week' 
+}) => {
     
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
 
-    
-    useEffect(() => {
-        if (activeDate) {
-            setActiveTab('day');
-        } else {
-            setActiveTab('week');
-        }
-    }, [activeDate]);
-
-    
     const categories = useMemo(() => {
+        if (!Array.isArray(logs)) return [];
         const cats = new Set(logs.map((l) => l.category).filter(Boolean));
         return Array.from(cats);
     }, [logs]);
 
-    
-    const isSameDate = (d1?: string, d2?: string) => {
-        if (!d1 || !d2) return false;
-        const date1 = new Date(d1);
-        const date2 = new Date(d2);
-        return (
-            date1.getFullYear() === date2.getFullYear() &&
-            date1.getMonth() === date2.getMonth() &&
-            date1.getDate() === date2.getDate()
-        );
+    const getWeekRange = (dateStr: string) => {
+        const current = new Date(dateStr);
+        if (isNaN(current.getTime())) return null;
+
+        current.setHours(0, 0, 0, 0);
+        const day = current.getDay(); 
+        const distanceToMonday = day === 0 ? 6 : day - 1;
+        
+        const startOfWeek = new Date(current);
+        startOfWeek.setDate(current.getDate() - distanceToMonday);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6); 
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        return { start: startOfWeek, end: endOfWeek };
     };
 
-    
     const filteredLogs = useMemo(() => {
+        if (!Array.isArray(logs)) return [];
+
+        const lowerSearch = searchTerm.toLowerCase().trim();
+
         return logs.filter((log) => {
             
-            
-            if (activeTab === 'day' && activeDate) {
-                if (!isSameDate(log.log_date, activeDate)) return false;
+            if (activeDate && log.log_date) {
+                if (viewMode === 'day') {
+                    if (log.log_date.slice(0, 10) !== activeDate.slice(0, 10)) {
+                        return false;
+                    }
+                } else {
+                    
+                    const range = getWeekRange(activeDate);
+                    if (range) {
+                        const logDate = new Date(log.log_date);
+                        logDate.setHours(0, 0, 0, 0);
+                        if (logDate.getTime() < range.start.getTime() || logDate.getTime() > range.end.getTime()) {
+                            return false;
+                        }
+                    }
+                }
             }
 
-            
-            const lowerSearch = searchTerm.toLowerCase();
-            const matchName = log.student_name?.toLowerCase().includes(lowerSearch);
-            const matchViolation = log.violation_name?.toLowerCase().includes(lowerSearch);
-            
-            
-            if (searchTerm && !matchName && !matchViolation) return false;
-
-            
             if (filterCategory !== 'all' && log.category !== filterCategory) return false;
+
+            if (lowerSearch) {
+                const matchName = log.student_name?.toLowerCase().includes(lowerSearch);
+                const matchViolation = log.violation_name?.toLowerCase().includes(lowerSearch);
+                if (!matchName && !matchViolation) return false;
+            }
 
             return true;
         });
-    }, [logs, activeTab, activeDate, searchTerm, filterCategory]);
+    }, [logs, activeDate, viewMode, searchTerm, filterCategory]);
 
-    
-    const formatDateTime = (dateStr?: string) => {
+    const formatTime = (dateStr?: string) => {
         if (!dateStr) return '-';
         const d = new Date(dateStr);
-        
-        if (isNaN(d.getTime())) return dateStr;
-        
-        const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        const date = d.toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-        });
-        return `${time} ${date}`;
+        return isNaN(d.getTime()) ? dateStr : d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     };
 
-    
     const formatDateOnly = (dateStr?: string) => {
         if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '';
-        return `${d.getDate()}/${d.getMonth() + 1}`;
+        try {
+            const datePart = dateStr.slice(0, 10); 
+            const [year, month, day] = datePart.split('-');
+            return `${day}/${month}`;
+        } catch (e) { return dateStr; }
+    };
+
+    const getDisplayTitle = () => {
+        if (!activeDate) return 'Cả Tuần';
+        
+        if (viewMode === 'day') {
+            return `Ngày ${formatDateOnly(activeDate)}`;
+        }
+
+        const range = getWeekRange(activeDate);
+        if (range) {
+            const s = range.start;
+            const e = range.end;
+            const startStr = `${s.getDate().toString().padStart(2, '0')}/${(s.getMonth() + 1).toString().padStart(2, '0')}`;
+            const endStr = `${e.getDate().toString().padStart(2, '0')}/${(e.getMonth() + 1).toString().padStart(2, '0')}`;
+            return `Tuần từ ${startStr} đến ${endStr}`;
+        }
+        
+        return 'Cả Tuần';
     };
 
     return (
         <div className="trk-history-container">
             <div className="trk-history-header">
-                <h3 className="history-title">📋 Nhật Ký Hoạt Động</h3>
-
-                <div className="trk-history-tabs">
-                    <button
-                        className={`trk-history-tab-btn ${activeTab === 'day' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('day')}
-                        disabled={!activeDate} 
-                        style={{ opacity: !activeDate ? 0.5 : 1, cursor: !activeDate ? 'not-allowed' : 'pointer' }}
-                        title={!activeDate ? 'Chọn một ngày cụ thể ở bảng trên để xem log ngày đó' : ''}
-                    >
-                        Theo Ngày {activeDate ? `(${formatDateOnly(activeDate)})` : ''}
-                    </button>
-                    <button
-                        className={`trk-history-tab-btn ${activeTab === 'week' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('week')}
-                    >
-                        Cả Tuần
-                    </button>
-                </div>
+                <h3 className="history-title">
+                    📋 Nhật Ký Hoạt Động 
+                    <span style={{ fontWeight: 'normal', fontSize: '0.9em', marginLeft: '10px', color: '#666' }}>
+                        ({getDisplayTitle()})
+                    </span>
+                </h3>
             </div>
 
             <div className="trk-history-filters">
@@ -130,7 +141,7 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                 >
                     <option value="all">Tất cả nhóm</option>
                     {categories.map((cat) => (
-                        <option key={cat} value={cat as string}>
+                        <option key={cat as string} value={cat as string}>
                             {cat}
                         </option>
                     ))}
@@ -156,9 +167,9 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                         {filteredLogs.length === 0 ? (
                             <tr>
                                 <td colSpan={9} className="trk-history-empty">
-                                    {activeTab === 'day' && activeDate 
-                                        ? `Chưa có ghi nhận nào trong ngày ${formatDateOnly(activeDate)}.`
-                                        : "Không tìm thấy dữ liệu phù hợp."}
+                                    {viewMode === 'day' 
+                                        ? `Chưa có ghi nhận nào trong ngày ${formatDateOnly(activeDate || undefined)}.`
+                                        : "Chưa có dữ liệu nào trong tuần này."}
                                 </td>
                             </tr>
                         ) : (
@@ -170,9 +181,10 @@ const HistoryLogTable: React.FC<Props> = ({ logs, onDelete, activeDate }) => {
                                 return (
                                     <tr key={log.id || index} className="history-row">
                                         <td style={{ fontSize: '12px', color: '#666' }}>
-                                            {formatDateTime(log.created_at)}
+                                            {formatTime(log.created_at)} <br/>
+                                            {formatDateOnly(log.created_at)}
                                         </td>
-                                        <td style={{ fontSize: '13px' }}>
+                                        <td style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>
                                             {formatDateOnly(log.log_date)}
                                         </td>
                                         <td style={{ fontWeight: 'bold', textAlign: 'left', color: '#2c3e50' }}>

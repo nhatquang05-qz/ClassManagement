@@ -17,15 +17,16 @@ const TrackingPage: React.FC = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [violationTypes, setViolationTypes] = useState<ViolationType[]>([]);
     const [existingLogs, setExistingLogs] = useState<DailyLogPayload[]>([]);
+    
+    const [fetchedStartDate, setFetchedStartDate] = useState<string | undefined>(selectedClass?.start_date);
 
     const currentYear = new Date().getFullYear();
 
-    
     const selectedClassId = selectedClass?.id?.toString() || localStorage.getItem('selectedClassId');
     const selectedClassName = selectedClass?.name || localStorage.getItem('selectedClassName');
-    const classStartDate = selectedClass?.start_date;
-
     
+    const classStartDate = fetchedStartDate || selectedClass?.start_date;
+
     const currentRealWeek = useMemo(() => {
         return getWeekNumberFromStart(new Date(), classStartDate);
     }, [classStartDate]);
@@ -35,23 +36,25 @@ const TrackingPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
 
-    
     useEffect(() => {
         if (currentRealWeek > 0) {
             setSelectedWeek(currentRealWeek);
         }
     }, [currentRealWeek]);
 
-    
     const weekDates = useMemo(
         () => getWeekDatesFromStart(selectedWeek, classStartDate),
         [selectedWeek, classStartDate]
     );
 
     
+    
     const currentSelectedDate = (activeDayIndex < 7 && weekDates.length > 0) 
         ? weekDates[activeDayIndex] 
         : undefined;
+
+    
+    const viewMode = activeDayIndex < 7 ? 'day' : 'week';
 
     const canEdit = useMemo(() => {
         if (user?.role === 'admin') return true;
@@ -70,7 +73,6 @@ const TrackingPage: React.FC = () => {
         return Array.from(groups).filter((g) => g != null).sort((a, b) => a - b);
     }, [students]);
 
-    
     useEffect(() => {
         if ((user?.role === 'teacher' || user?.role === 'admin') && !selectedClassId) {
             alert('Bạn chưa chọn lớp học!');
@@ -78,11 +80,23 @@ const TrackingPage: React.FC = () => {
         }
     }, [user, navigate, selectedClassId]);
 
+    useEffect(() => {
+        if (selectedClass?.start_date) {
+            setFetchedStartDate(selectedClass.start_date);
+        }
+    }, [selectedClass]);
     
     useEffect(() => {
         const fetchBaseData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
             try {
+                if (selectedClassId) {
+                    const classRes = await api.get(`/classes/${selectedClassId}`);
+                    if (classRes.data && classRes.data.start_date) {
+                        setFetchedStartDate(classRes.data.start_date);
+                    }
+                }
+
                 const [vRes, sRes] = await Promise.all([
                     api.get('/violations'),
                     api.get('/users', {
@@ -99,17 +113,21 @@ const TrackingPage: React.FC = () => {
             }
         };
         fetchBaseData();
-    }, [selectedClassId]);
+    }, [selectedClassId, user]);
 
-    
     useEffect(() => {
         const fetchWeekData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
+            
+            if (!weekDates || weekDates.length === 0) return;
+
             setLoading(true);
             try {
                 const params: any = {
                     week: selectedWeek,
                     class_id: selectedClassId,
+                    from_date: weekDates[0], 
+                    to_date: weekDates[6],   
                 };
                 if (user?.role === 'group_leader' && user.group_number) {
                     params.group_number = user.group_number;
@@ -123,7 +141,7 @@ const TrackingPage: React.FC = () => {
             }
         };
         fetchWeekData();
-    }, [selectedWeek, selectedClassId]);
+    }, [selectedWeek, selectedClassId, weekDates, user]); 
 
     const groupTotalScore = useMemo(() => {
         let total = 0;
@@ -165,8 +183,12 @@ const TrackingPage: React.FC = () => {
             });
             alert('Lưu thành công!');
             
-            
-            const params: any = { week: selectedWeek, class_id: selectedClassId };
+            const params: any = { 
+                week: selectedWeek, 
+                class_id: selectedClassId,
+                from_date: weekDates[0],
+                to_date: weekDates[6] 
+            };
             if (user?.role === 'group_leader') params.group_number = user.group_number;
             const res = await api.get('/reports/weekly', { params });
             setExistingLogs(res.data);
@@ -181,7 +203,13 @@ const TrackingPage: React.FC = () => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa?')) return;
         try {
             await api.delete(`/reports/${logId}`);
-            const params: any = { week: selectedWeek, class_id: selectedClassId };
+            
+            const params: any = { 
+                week: selectedWeek, 
+                class_id: selectedClassId,
+                from_date: weekDates[0],
+                to_date: weekDates[6] 
+            };
             if (user?.role === 'group_leader') params.group_number = user.group_number;
             const res = await api.get('/reports/weekly', { params });
             setExistingLogs(res.data);
@@ -267,6 +295,7 @@ const TrackingPage: React.FC = () => {
                             logs={existingLogs}
                             onDelete={handleDeleteLog}
                             activeDate={currentSelectedDate}
+                            viewMode={viewMode} 
                         />
                     </>
                 )}
