@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useClass } from '../../contexts/ClassContext';
+import api from '../../utils/api';
 import '../../assets/styles/MainLayout.css';
 import ClassManagerModal from '../classes/ClassManagerModal';
 
@@ -17,18 +18,47 @@ import {
     FaChevronLeft,
     FaChevronRight,
     FaExchangeAlt,
+    FaLock,
 } from 'react-icons/fa';
 
 const MainLayout: React.FC = () => {
     const { user, logout } = useAuth();
-    const { selectedClass } = useClass();
+    const { selectedClass, setSelectedClass } = useClass();
     const location = useLocation();
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
     const [isClassModalOpen, setIsClassModalOpen] = useState(false);
 
+    useEffect(() => {
+        const autoLoadClass = async () => {
+            if (
+                !selectedClass &&
+                user?.class_id &&
+                (user.role === 'group_leader' || user.role === 'monitor' || user.role === 'student')
+            ) {
+                try {
+                    const res = await api.get(`/classes/${user.class_id}`);
+
+                    if (setSelectedClass) {
+                        setSelectedClass(res.data);
+                        localStorage.setItem('selectedClassId', user.class_id.toString());
+                        localStorage.setItem('selectedClassName', res.data.name);
+                        localStorage.setItem('currentClass', JSON.stringify(res.data));
+                    }
+                } catch (error) {
+                    console.error('Lỗi tự động load lớp:', error);
+                }
+            }
+        };
+
+        autoLoadClass();
+    }, [user, selectedClass, setSelectedClass]);
+
     const handleLogout = () => {
+        localStorage.removeItem('selectedClassId');
+        localStorage.removeItem('selectedClassName');
+        localStorage.removeItem('currentClass');
+        if (setSelectedClass) setSelectedClass(null);
         logout();
         navigate('/login');
     };
@@ -45,9 +75,15 @@ const MainLayout: React.FC = () => {
         }
     };
 
+    const isClassLocked =
+        !selectedClass &&
+        (user?.role === 'teacher' ||
+            user?.role === 'admin' ||
+            user?.role === 'group_leader' ||
+            user?.role === 'monitor');
+
     return (
         <div className={`main-layout ${isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-            {}
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <div className="app-logo">⚡ ClassManager</div>
@@ -68,15 +104,14 @@ const MainLayout: React.FC = () => {
 
                 {}
                 {isSidebarOpen &&
-                    (user?.role === 'teacher' || user?.role === 'admin' || selectedClass) && (
+                    (user?.role === 'teacher' ||
+                        user?.role === 'admin' ||
+                        user?.role === 'group_leader' ||
+                        user?.role === 'monitor' ||
+                        selectedClass) && (
                         <div
                             className={`current-class-badge ${user?.role === 'teacher' || user?.role === 'admin' ? 'clickable' : ''}`}
                             onClick={handleClassClick}
-                            title={
-                                user?.role === 'teacher' || user?.role === 'admin'
-                                    ? 'Bấm để đổi lớp'
-                                    : ''
-                            }
                         >
                             {selectedClass ? (
                                 <>
@@ -89,7 +124,10 @@ const MainLayout: React.FC = () => {
                                 </>
                             ) : (
                                 <span style={{ color: 'var(--danger-color)', cursor: 'pointer' }}>
-                                    + Chọn lớp học...
+                                    {}
+                                    {user?.role === 'group_leader' || user?.role === 'monitor'
+                                        ? 'Đang tải lớp...'
+                                        : '+ Chọn lớp học...'}
                                 </span>
                             )}
                         </div>
@@ -115,7 +153,6 @@ const MainLayout: React.FC = () => {
                             </Link>
                         </li>
 
-                        {}
                         {user?.role !== 'admin' && user?.role !== 'teacher' && (
                             <li>
                                 <Link
@@ -137,15 +174,32 @@ const MainLayout: React.FC = () => {
                             user?.role === 'teacher' ||
                             user?.role === 'admin') && (
                             <li>
-                                <Link
-                                    to="/tracking"
-                                    className={`nav-item ${isActive('/tracking')}`}
-                                >
-                                    <span className="icon">
-                                        <FaClipboardList />
-                                    </span>
-                                    {isSidebarOpen && <span className="label">Sổ theo dõi</span>}
-                                </Link>
+                                {isClassLocked ? (
+                                    <div
+                                        className="nav-item"
+                                        style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                        title="Đang tải dữ liệu lớp..."
+                                    >
+                                        <span className="icon">
+                                            <FaLock />
+                                        </span>
+                                        {isSidebarOpen && (
+                                            <span className="label">Sổ theo dõi</span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Link
+                                        to="/tracking"
+                                        className={`nav-item ${isActive('/tracking')}`}
+                                    >
+                                        <span className="icon">
+                                            <FaClipboardList />
+                                        </span>
+                                        {isSidebarOpen && (
+                                            <span className="label">Sổ theo dõi</span>
+                                        )}
+                                    </Link>
+                                )}
                             </li>
                         )}
 
@@ -153,30 +207,61 @@ const MainLayout: React.FC = () => {
                             user?.role === 'monitor' ||
                             user?.role === 'teacher') && (
                             <li>
-                                <Link to="/report" className={`nav-item ${isActive('/report')}`}>
-                                    <span className="icon">
-                                        <FaChartBar />
-                                    </span>
-                                    {isSidebarOpen && <span className="label">Báo cáo</span>}
-                                </Link>
+                                {isClassLocked ? (
+                                    <div
+                                        className="nav-item"
+                                        style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                        title="Đang tải dữ liệu lớp..."
+                                    >
+                                        <span className="icon">
+                                            <FaLock />
+                                        </span>
+                                        {isSidebarOpen && <span className="label">Báo cáo</span>}
+                                    </div>
+                                ) : (
+                                    <Link
+                                        to="/report"
+                                        className={`nav-item ${isActive('/report')}`}
+                                    >
+                                        <span className="icon">
+                                            <FaChartBar />
+                                        </span>
+                                        {isSidebarOpen && <span className="label">Báo cáo</span>}
+                                    </Link>
+                                )}
                             </li>
                         )}
 
                         {(user?.role === 'teacher' || user?.role === 'admin') && (
                             <li>
-                                <Link
-                                    to="/students"
-                                    className={`nav-item ${isActive('/students')}`}
-                                >
-                                    <span className="icon">
-                                        <FaUsers />
-                                    </span>
-                                    {isSidebarOpen && <span className="label">DS Học sinh</span>}
-                                </Link>
+                                {isClassLocked ? (
+                                    <div
+                                        className="nav-item"
+                                        style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                        title="Hãy chọn lớp trước"
+                                    >
+                                        <span className="icon">
+                                            <FaLock />
+                                        </span>
+                                        {isSidebarOpen && (
+                                            <span className="label">DS Học sinh</span>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <Link
+                                        to="/students"
+                                        className={`nav-item ${isActive('/students')}`}
+                                    >
+                                        <span className="icon">
+                                            <FaUsers />
+                                        </span>
+                                        {isSidebarOpen && (
+                                            <span className="label">DS Học sinh</span>
+                                        )}
+                                    </Link>
+                                )}
                             </li>
                         )}
-
-                        {}
                     </ul>
                 </nav>
 
@@ -196,13 +281,11 @@ const MainLayout: React.FC = () => {
                         <FaBars />
                     </button>
                 )}
-
                 <div className="page-content-container">
                     <Outlet />
                 </div>
             </main>
 
-            {}
             <ClassManagerModal
                 isOpen={isClassModalOpen}
                 onClose={() => setIsClassModalOpen(false)}

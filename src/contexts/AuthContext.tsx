@@ -7,6 +7,7 @@ interface User {
     role: string;
     role_display: string;
     group_number: number | null;
+    class_id: number | null;
 }
 
 interface AuthContextType {

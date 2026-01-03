@@ -2,6 +2,77 @@ const db = require('../config/dbConfig');
 const bcrypt = require('bcryptjs');
 const xlsx = require('xlsx');
 
+function removeAccents(str) {
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+}
+
+function generateNamePart(fullName) {
+    const cleanName = removeAccents(fullName).trim();
+    const parts = cleanName.split(/\s+/);
+
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+
+    const firstName = parts[parts.length - 1];
+    const lastName = parts[0];
+    const middleNames = parts.slice(1, parts.length - 1);
+
+    let code = firstName.charAt(0).toUpperCase();
+    code += lastName.charAt(0).toUpperCase();
+    middleNames.forEach((m) => {
+        code += m.charAt(0).toUpperCase();
+    });
+
+    return code;
+}
+
+function generateYearPart(schoolYear) {
+    const years = schoolYear.match(/\d+/g);
+    if (!years || years.length < 2) return '';
+    return years[0].slice(-2) + years[1].slice(-2);
+}
+
+async function generateUniqueUsername(fullName, classId, connection, existingUsernamesSet = null) {
+    const [classes] = await connection.query('SELECT name, school_year FROM classes WHERE id = ?', [
+        classId,
+    ]);
+    if (classes.length === 0) throw new Error('Không tìm thấy lớp');
+
+    const { name: className, school_year } = classes[0];
+
+    const namePart = generateNamePart(fullName);
+    const classPart = className.replace(/\s+/g, '').toUpperCase();
+    const yearPart = generateYearPart(school_year);
+
+    const baseUsername = `${namePart}${classPart}${yearPart}`;
+
+    let finalUsername = baseUsername;
+    let suffix = 0;
+
+    while (true) {
+        const check = suffix === 0 ? baseUsername : `${baseUsername}${suffix}`;
+
+        if (existingUsernamesSet && existingUsernamesSet.has(check)) {
+            suffix++;
+            continue;
+        }
+
+        const [rows] = await connection.query('SELECT id FROM users WHERE username = ?', [check]);
+        if (rows.length > 0) {
+            suffix++;
+        } else {
+            finalUsername = check;
+            break;
+        }
+    }
+
+    return finalUsername;
+}
+
 const getUsers = async (req, res) => {
     try {
         const { class_id, group_number } = req.query;
@@ -38,7 +109,7 @@ const createUser = async (req, res) => {
         const { full_name, group_number, class_id, role_id } = req.body;
         if (!full_name || !class_id) return res.status(400).json({ message: 'Thiếu thông tin' });
 
-        const username = `hs${Date.now()}`;
+        const username = await generateUniqueUsername(full_name, class_id, db);
         const defaultHash = await bcrypt.hash('123456', 10);
 
         await db.query(
@@ -46,8 +117,9 @@ const createUser = async (req, res) => {
              VALUES (?, ?, ?, ?, ?, ?, 0)`,
             [username, defaultHash, full_name, role_id || 6, group_number || 0, class_id]
         );
-        res.json({ message: 'Thêm thành công' });
+        res.json({ message: 'Thêm thành công', username });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Lỗi thêm học sinh' });
     }
 };
@@ -65,11 +137,22 @@ const importStudents = async (req, res) => {
         await connection.beginTransaction();
         const defaultHash = await bcrypt.hash('123456', 10);
 
+        const generatedUsernamesSet = new Set();
+
         for (let row of data) {
             const fullName = row['HoTen'] || row['Họ và tên'];
             const groupNum = row['To'] || row['Tổ'] || 0;
-            const username = `hs${Date.now()}${Math.floor(Math.random() * 100)}`;
+
             if (fullName) {
+                const username = await generateUniqueUsername(
+                    fullName,
+                    class_id,
+                    connection,
+                    generatedUsernamesSet
+                );
+
+                generatedUsernamesSet.add(username);
+
                 await connection.query(
                     `INSERT INTO users (username, password, full_name, role_id, group_number, class_id, is_locked) 
                      VALUES (?, ?, ?, 6, ?, ?, 0)`,
@@ -81,6 +164,7 @@ const importStudents = async (req, res) => {
         res.json({ message: `Đã thêm ${data.length} học sinh.` });
     } catch (error) {
         await connection.rollback();
+        console.error(error);
         res.status(500).json({ message: 'Lỗi file Excel' });
     } finally {
         connection.release();

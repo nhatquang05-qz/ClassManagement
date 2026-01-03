@@ -23,6 +23,22 @@ const getClasses = async (req, res) => {
     }
 };
 
+const getClassById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await db.query('SELECT * FROM classes WHERE id = ?', [id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Lớp không tồn tại' });
+        }
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Lỗi lấy thông tin lớp:', error);
+        res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
 const createClass = async (req, res) => {
     try {
         const { name, school_year, start_date } = req.body;
@@ -86,4 +102,4 @@ const deleteClass = async (req, res) => {
     }
 };
 
-module.exports = { getClasses, createClass, deleteClass, updateClass };
+module.exports = { getClasses, getClassById, createClass, deleteClass, updateClass };
