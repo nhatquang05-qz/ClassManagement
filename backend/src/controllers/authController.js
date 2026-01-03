@@ -1,6 +1,7 @@
 const db = require('../config/dbConfig');
 const jwt = require('jsonwebtoken');
 
+
 const login = async (req, res) => {
     const { username, password } = req.body;
 
@@ -42,6 +43,7 @@ const login = async (req, res) => {
                 role: user.role_name,
                 role_display: user.role_display,
                 group_number: user.group_number,
+                class_id: user.class_id 
             },
         });
     } catch (error) {
@@ -50,4 +52,32 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = { login };
+
+const getMe = async (req, res) => {
+    try {
+        
+        const userId = req.user.id; 
+
+        const [users] = await db.query(
+            `SELECT u.id, u.username, u.full_name, u.role_id, u.class_id, u.group_number, 
+                    r.name as role, r.display_name as role_display 
+             FROM users u 
+             JOIN roles r ON u.role_id = r.id 
+             WHERE u.id = ?`,
+            [userId]
+        );
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+        }
+
+        
+        res.json(users[0]);
+    } catch (error) {
+        console.error('Lỗi lấy thông tin user:', error);
+        res.status(500).json({ message: 'Lỗi server khi lấy thông tin người dùng' });
+    }
+};
+
+
+module.exports = { login, getMe };

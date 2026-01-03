@@ -9,7 +9,7 @@ const classRoutes = require('./routes/classRoutes');
 const userRoutes = require('./routes/userRoutes');
 
 const reportRoutes = require('./routes/reportRoutes');
-const verifyToken = require('./middleware/authMiddleware');
+const verifyToken = require('./middleware/authMiddleware'); 
 
 const app = express();
 
@@ -24,10 +24,14 @@ app.get('/ping', (req, res) => {
 
 app.use(express.json());
 
+
 app.use('/api/classes', classRoutes);
 app.use('/api/users', userRoutes);
 
+
 app.post('/api/auth/login', authController.login);
+app.get('/api/auth/me', verifyToken, authController.getMe); 
+
 app.get('/api/dashboard/rankings', dashboardController.getGroupRankings);
 
 app.use('/api/reports', reportRoutes);
