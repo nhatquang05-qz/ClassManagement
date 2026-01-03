@@ -9,19 +9,31 @@ interface Props {
 }
 
 const EditLogModal: React.FC<Props> = ({ data, onClose, onSave }) => {
+    
     const [addQuantity, setAddQuantity] = useState(1);
     const [note, setNote] = useState('');
-    const inputRef = useRef<HTMLInputElement>(null);
+    
+    
+    const quantityInputRef = useRef<HTMLInputElement>(null);
+    const noteInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        if (inputRef.current) {
-            inputRef.current.focus();
-            inputRef.current.select();
+        
+        
+        if (!data.isAbsence && quantityInputRef.current) {
+            quantityInputRef.current.focus();
+            quantityInputRef.current.select();
+        } 
+        
+        else if (data.isAbsence && noteInputRef.current) {
+            noteInputRef.current.focus();
         }
-    }, []);
+    }, [data.isAbsence]);
 
     const handleSave = () => {
-        onSave(addQuantity, note);
+        
+        const finalQuantity = data.isAbsence ? 1 : addQuantity;
+        onSave(finalQuantity, note);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -50,25 +62,30 @@ const EditLogModal: React.FC<Props> = ({ data, onClose, onSave }) => {
                         <span className="trk-badge-count">{data.currentQuantity}</span>
                     </div>
 
-                    <div className="trk-form-group">
-                        <label>Thêm số lượng (+):</label>
-                        <input
-                            ref={inputRef}
-                            type="number"
-                            min="1"
-                            className="trk-form-control"
-                            value={addQuantity}
-                            onChange={(e) => setAddQuantity(parseInt(e.target.value) || 0)}
-                            onKeyDown={handleKeyDown}
-                        />
-                    </div>
+                    {}
+                    {!data.isAbsence && (
+                        <div className="trk-form-group">
+                            <label>Thêm số lượng (+):</label>
+                            <input
+                                ref={quantityInputRef}
+                                type="number"
+                                min="1"
+                                className="trk-form-control"
+                                value={addQuantity}
+                                onChange={(e) => setAddQuantity(parseInt(e.target.value) || 0)}
+                                onKeyDown={handleKeyDown}
+                            />
+                        </div>
+                    )}
 
                     <div className="trk-form-group">
-                        <label>Ghi chú (nếu có):</label>
+                        {}
+                        <label>{data.isAbsence ? 'Lý do nghỉ (bắt buộc/tùy chọn):' : 'Ghi chú (nếu có):'}</label>
                         <input
+                            ref={noteInputRef}
                             type="text"
                             className="trk-form-control"
-                            placeholder="Ví dụ: Tiết 2, Bài số 3..."
+                            placeholder={data.isAbsence ? "Ví dụ: Bệnh, việc gia đình..." : "Ví dụ: Tiết 2, Bài số 3..."}
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -81,7 +98,7 @@ const EditLogModal: React.FC<Props> = ({ data, onClose, onSave }) => {
                         Hủy
                     </button>
                     <button className="trk-btn-save" onClick={handleSave}>
-                        Thêm Mới
+                        {data.isAbsence ? 'Lưu Lý Do' : 'Thêm Mới'}
                     </button>
                 </div>
             </div>

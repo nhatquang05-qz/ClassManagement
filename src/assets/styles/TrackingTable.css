@@ -44,17 +44,22 @@
     opacity: 0.9;
 }
 
+
 .trk-table-wrapper {
-    overflow-x: auto;
-    max-width: 100%;
+    
+    overflow: auto; 
+    
+    max-height: 70vh; 
+    
+    position: relative;
     margin-bottom: 20px;
     border: 1px solid #e0e0e0;
-    max-height: 70vh;
+    background: #fff;
 }
 
 .trk-table {
     width: 100%;
-    border-collapse: separate;
+    border-collapse: separate; 
     border-spacing: 0;
     font-size: 13px;
     min-width: max-content;
@@ -62,19 +67,43 @@
 
 .trk-table th,
 .trk-table td {
-    border: 1px solid #e0e0e0;
+    border-right: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
     padding: 8px 5px;
     text-align: center;
     vertical-align: middle;
+    background-clip: padding-box;
+    box-sizing: border-box;
 }
+
+
+.trk-table thead th {
+    position: sticky;
+    top: 0; 
+    z-index: 20; 
+    background: #f8f9fa; 
+    border-bottom: 1px solid #ccc;
+    box-shadow: 0 1px 0 #ccc; 
+}
+
 
 .trk-sticky-col {
     position: sticky;
     left: 0;
     background: #fff;
-    z-index: 10;
-    border-right: 2px solid #ccc !important;
+    z-index: 10; 
+    border-right: 2px solid #ccc !important; 
 }
+
+
+
+.trk-table thead th.trk-sticky-col {
+    z-index: 30 !important; 
+    background: #e9ecef !important;
+    border-right: 2px solid #ccc !important; 
+}
+
+
 
 .trk-name-col {
     min-width: 180px;
@@ -84,13 +113,8 @@
     color: #333;
     padding-left: 10px !important;
     white-space: nowrap;
-}
-
-.trk-table thead th {
-    position: sticky;
-    top: 0;
-    z-index: 9;
-    background: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .trk-group-header {
@@ -193,6 +217,7 @@
 .trk-btn-submit:hover {
     background-color: #1976d2;
 }
+
 
 .trk-modal-overlay {
     position: fixed;
@@ -305,6 +330,7 @@
     cursor: pointer;
     font-weight: 500;
 }
+
 
 .trk-history-container {
     margin-top: 30px;
@@ -427,4 +453,60 @@
 .trk-btn-delete-icon:hover {
     opacity: 1;
     transform: scale(1.1);
+}
+
+
+@media (max-width: 768px) {
+    .trk-container {
+        padding: 10px;
+    }
+
+    
+    .trk-day-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .trk-day-tabs::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .trk-day-tab {
+        padding: 8px 15px;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    
+    .trk-table {
+        font-size: 12px;
+    }
+
+    .trk-name-col {
+        min-width: 130px;
+        max-width: 150px;
+        font-size: 12px;
+    }
+
+    .trk-th-rotate {
+        min-width: 60px;
+    }
+
+    
+    .trk-btn-submit {
+        width: 100%;
+        padding: 12px;
+    }
+
+    
+    .trk-history-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .trk-history-filters {
+        flex-direction: column;
+    }
 }

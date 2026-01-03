@@ -282,6 +282,7 @@ const TrackingPage: React.FC = () => {
                 ) : (
                     <>
                         <DailyTrackingTable
+                            key={`table-${selectedWeek}-${existingLogs.length}-${displayedStudents.length}`}
                             students={displayedStudents}
                             violationTypes={violationTypes}
                             initialData={existingLogs}
