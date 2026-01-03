@@ -113,7 +113,7 @@ const MyRecordPage: React.FC = () => {
                 <button onClick={() => (window.location.href = '/')} className="back-btn">
                     ← Trang chủ
                 </button>
-                <h2>Hạnh Kiểm: {user?.full_name}</h2>
+                <h2>Thông tin của {user?.full_name}</h2>
                 {}
                 <div style={{ width: 88 }}></div>
             </header>

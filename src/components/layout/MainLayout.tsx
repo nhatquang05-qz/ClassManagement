@@ -163,7 +163,7 @@ const MainLayout: React.FC = () => {
                                         <FaUser />
                                     </span>
                                     {isSidebarOpen && (
-                                        <span className="label">Hạnh kiểm cá nhân</span>
+                                        <span className="label">Cá nhân</span>
                                     )}
                                 </Link>
                             </li>

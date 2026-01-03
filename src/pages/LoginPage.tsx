@@ -231,7 +231,7 @@ const LoginPage = () => {
                     <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
                         <FaKey style={{ marginRight: '10px', color: '#27ae60', minWidth: '16px' }} />
                         <div>
-                            <strong>Mật khẩu mặc định:</strong>{' '}
+                            <strong>Mật khẩu mặc định lần đầu đăng nhập:</strong>{' '}
                             <code
                                 style={{
                                     background: '#eee',
