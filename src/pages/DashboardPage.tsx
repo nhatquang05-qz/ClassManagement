@@ -24,7 +24,8 @@ const DashboardPage: React.FC = () => {
         logout();
     };
 
-    const handleChangeClass = () => {
+    
+    const handleBackToClasses = () => {
         localStorage.removeItem('selectedClassId');
         localStorage.removeItem('selectedClassName');
         navigate('/classes');
@@ -33,22 +34,30 @@ const DashboardPage: React.FC = () => {
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
-                <h1>{currentClassName}</h1>
-
-                <div
-                    className="user-info"
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                >
-                    <span>
-                        Xin chào, <b>{user?.full_name}</b> ({user?.role_display})
-                    </span>
-
+                {}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     {(user?.role === 'teacher' || user?.role === 'admin') && (
-                        <button onClick={handleChangeClass} className="btn btn-primary">
-                            ↻ Đổi lớp
+                        <button
+                            onClick={handleBackToClasses}
+                            className="btn btn-outline"
+                            title="Quay lại danh sách lớp"
+                            style={{ padding: '8px 12px', borderColor: '#cbd5e1' }}
+                        >
+                            ← Quay lại
                         </button>
                     )}
-
+                    <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#1e293b' }}>
+                        {currentClassName}
+                    </h1>
+                </div>
+                
+                <div className="user-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <span style={{ color: '#64748b' }}>
+                        Xin chào, <b style={{ color: '#333' }}>{user?.full_name}</b> ({user?.role_display})
+                    </span>
+                    
+                    {}
+                    
                     <button onClick={handleLogout} className="btn btn-danger">
                         Đăng xuất
                     </button>
@@ -86,7 +95,7 @@ const DashboardPage: React.FC = () => {
                         user?.role === 'vice_moniter_study' ||
                         user?.role === 'vice_moniter_labor' ||
                         user?.role === 'monitor' ||
-                        user?.role === 'teacher' ||
+                        user?.role === 'teacher' || 
                         user?.role === 'admin') && (
                         <Link
                             to="/tracking"
@@ -120,8 +129,6 @@ const DashboardPage: React.FC = () => {
                             👥 Danh sách học sinh
                         </Link>
                     )}
-
-                    {}
                 </section>
             </main>
         </div>
