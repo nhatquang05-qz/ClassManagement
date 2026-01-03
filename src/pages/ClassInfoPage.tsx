@@ -14,6 +14,7 @@ import {
     FaDownload,
     FaBullhorn,
     FaPaperclip,
+    FaClock,
 } from 'react-icons/fa';
 import '../assets/styles/ClassInfoPage.css';
 
@@ -113,7 +114,7 @@ const ClassInfoPage: React.FC = () => {
     };
 
     const getFileIcon = (type?: string) => {
-        if (!type) return <FaFileAlt />;
+        if (!type) return <FaFileAlt className="text-gray-500" />;
         const t = type.toLowerCase();
         if (t.includes('pdf')) return <FaFilePdf color="#e74c3c" />;
         if (t.includes('doc') || t.includes('word')) return <FaFileWord color="#3498db" />;
@@ -137,7 +138,7 @@ const ClassInfoPage: React.FC = () => {
         <div className="class-info-page">
             <div className="info-header">
                 <h2>
-                    <FaBullhorn /> Thông tin lớp học {selectedClass?.name}
+                    <FaBullhorn /> {selectedClass?.name}
                 </h2>
                 <div className="info-actions">
                     <div className="search-box">
@@ -151,7 +152,7 @@ const ClassInfoPage: React.FC = () => {
                     </div>
                     {canEdit && (
                         <button className="btn-add-post" onClick={() => setIsModalOpen(true)}>
-                            <FaPlus /> Tạo thông báo mới
+                            <FaPlus /> <span className="btn-text">Tạo thông báo</span>
                         </button>
                     )}
                 </div>
@@ -162,19 +163,30 @@ const ClassInfoPage: React.FC = () => {
                     <div className="loading">Đang tải...</div>
                 ) : posts.length > 0 ? (
                     posts.map((post) => (
-                        <div key={post.id} className="post-card">
+                        <div
+                            key={post.id}
+                            className={`post-card ${post.is_pinned ? 'pinned' : ''}`}
+                        >
                             <div className="post-header">
                                 <h3 className="post-title">{post.title}</h3>
                                 <div className="post-meta">
-                                    <span>
-                                        Đăng bởi: <strong>{post.author_name}</strong>
+                                    <span className="author-name">{post.author_name}</span>
+                                    <span>•</span>
+                                    <span
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                        }}
+                                    >
+                                        <FaClock size={12} /> {formatDate(post.created_at)}
                                     </span>
-                                    <span> • {formatDate(post.created_at)}</span>
                                 </div>
                                 {canEdit && (
                                     <button
                                         className="btn-delete-post"
                                         onClick={() => handleDelete(post.id)}
+                                        title="Xóa bài viết"
                                     >
                                         <FaTrash />
                                     </button>
@@ -210,7 +222,6 @@ const ClassInfoPage: React.FC = () => {
                 )}
             </div>
 
-            {}
             {isModalOpen && (
                 <div className="modal-overlay">
                     <div className="modal-content info-modal">
@@ -235,13 +246,13 @@ const ClassInfoPage: React.FC = () => {
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Đính kèm tệp (Tùy chọn)</label>
+                                <label>Đính kèm tệp</label>
                                 <div
                                     className="file-upload-wrapper"
                                     onClick={() => fileInputRef.current?.click()}
                                 >
                                     <FaPaperclip />{' '}
-                                    {file ? file.name : 'Chọn file (Word, Excel, PDF, Ảnh...)'}
+                                    {file ? file.name : 'Chọn file (PDF, Word, Ảnh...)'}
                                     <input
                                         type="file"
                                         ref={fileInputRef}
