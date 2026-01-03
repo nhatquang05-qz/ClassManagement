@@ -6,9 +6,8 @@ import {
     FaChevronRight, 
     FaChartBar, 
     FaSave, 
-    FaStickyNote,
-    FaRegSave
-} from 'react-icons/fa'; 
+    FaStickyNote 
+} from 'react-icons/fa';
 import api from '../utils/api';
 import DailyTrackingTable from '../components/tracking/DailyTrackingTable';
 import HistoryLogTable from '../components/tracking/HistoryLogTable';
@@ -51,7 +50,6 @@ const TrackingPage: React.FC = () => {
     
     const [dailyNote, setDailyNote] = useState('');
     const [isNoteSaving, setIsNoteSaving] = useState(false);
-    
 
     const targetGroupNumber = useMemo(() => {
         if (user?.role === 'group_leader') {
@@ -71,10 +69,14 @@ const TrackingPage: React.FC = () => {
         [selectedWeek, classStartDate]
     );
 
+    
     const currentSelectedDate =
-        activeDayIndex < 7 && weekDates.length > 0 ? weekDates[activeDayIndex] : undefined;
+        weekDates.length > 0 ? weekDates[activeDayIndex < 6 ? activeDayIndex : 0] : undefined;
 
-    const viewMode = activeDayIndex < 7 ? 'day' : 'week';
+    
+    
+    
+    const viewMode = activeDayIndex === 6 ? 'week' : 'day';
 
     const canEdit = useMemo(() => {
         if (user?.role === 'admin') return true;
@@ -172,14 +174,12 @@ const TrackingPage: React.FC = () => {
         fetchWeekData();
     }, [selectedWeek, selectedClassId, weekDates, user, targetGroupNumber]);
 
-    
     useEffect(() => {
         const fetchDailyNote = async () => {
             if (activeDayIndex === 6 || !currentSelectedDate || !selectedClassId) {
                 setDailyNote('');
                 return;
             }
-
             try {
                 const res = await api.get('/reports/note', {
                     params: {
@@ -196,10 +196,8 @@ const TrackingPage: React.FC = () => {
         fetchDailyNote();
     }, [currentSelectedDate, activeDayIndex, selectedClassId, currentNoteGroup]);
 
-    
     const handleSaveNote = async () => {
         if (!currentSelectedDate || !selectedClassId) return;
-        
         setIsNoteSaving(true);
         try {
             await api.post('/reports/note', {
@@ -241,12 +239,9 @@ const TrackingPage: React.FC = () => {
             alert('Lỗi: Ngày không hợp lệ.');
             return;
         }
-
         const [y, m, d] = dateToSave.split('-');
         const displayDate = `${d}/${m}/${y}`;
-
         if (!window.confirm(`Xác nhận lưu dữ liệu sổ cho ngày ${displayDate}?`)) return;
-
         try {
             await api.post('/reports/bulk', {
                 reports: logsToSave,
@@ -257,14 +252,12 @@ const TrackingPage: React.FC = () => {
                 class_id: selectedClassId,
             });
             alert('Lưu thành công!');
-
             const params: any = {
                 week: selectedWeek,
                 class_id: selectedClassId,
                 from_date: weekDates[0],
                 to_date: weekDates[6],
             };
-
             if (user?.role === 'group_leader') params.group_number = targetGroupNumber;
             const res = await api.get('/reports/weekly', { params });
             setExistingLogs(res.data);
@@ -279,14 +272,12 @@ const TrackingPage: React.FC = () => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa?')) return;
         try {
             await api.delete(`/reports/${logId}`);
-
             const params: any = {
                 week: selectedWeek,
                 class_id: selectedClassId,
                 from_date: weekDates[0],
                 to_date: weekDates[6],
             };
-
             if (user?.role === 'group_leader') params.group_number = targetGroupNumber;
             const res = await api.get('/reports/weekly', { params });
             setExistingLogs(res.data);
@@ -347,9 +338,7 @@ const TrackingPage: React.FC = () => {
                         </div>
                         <div className="info-content">
                             <span className="info-label">{getScoreLabel()}</span>
-                            <span
-                                className={`info-value score-value ${groupTotalScore >= 0 ? 'positive' : 'negative'}`}
-                            >
+                            <span className={`info-value score-value ${groupTotalScore >= 0 ? 'positive' : 'negative'}`}>
                                 {groupTotalScore > 0 ? `+${groupTotalScore}` : groupTotalScore}
                             </span>
                         </div>
@@ -379,18 +368,8 @@ const TrackingPage: React.FC = () => {
 
             <div className="page-content">
                 {!classStartDate && (
-                    <div
-                        style={{
-                            textAlign: 'center',
-                            padding: '10px',
-                            background: '#fff3cd',
-                            color: '#856404',
-                            marginBottom: '20px',
-                            borderRadius: '4px',
-                        }}
-                    >
-                        ⚠ Lưu ý: Lớp học chưa được cấu hình "Ngày bắt đầu năm học". Số tuần có thể
-                        không chính xác.
+                    <div className="alert-warning" style={{marginBottom: 20, padding: 10, background: '#fff3cd', color: '#856404', borderRadius: 4, textAlign: 'center'}}>
+                        ⚠ Lưu ý: Lớp học chưa được cấu hình "Ngày bắt đầu năm học".
                     </div>
                 )}
 
@@ -410,7 +389,6 @@ const TrackingPage: React.FC = () => {
                             onSubmit={handleSubmit}
                         />
 
-                        {}
                         {activeDayIndex < 6 && (
                             <div className="daily-note-section">
                                 <div className="daily-note-header">

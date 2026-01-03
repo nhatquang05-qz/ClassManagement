@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { FaClipboardList, FaSearch, FaTrash, FaFilter } from 'react-icons/fa';
 import { DailyLogPayload } from '../../types/trackingTypes';
 import '../../assets/styles/TrackingTable.css';
 
@@ -30,6 +31,7 @@ const HistoryLogTable: React.FC<Props> = ({
 
         current.setHours(0, 0, 0, 0);
         const day = current.getDay();
+        
         const distanceToMonday = day === 0 ? 6 : day - 1;
 
         const startOfWeek = new Date(current);
@@ -49,12 +51,18 @@ const HistoryLogTable: React.FC<Props> = ({
         const lowerSearch = searchTerm.toLowerCase().trim();
 
         return logs.filter((log) => {
+            
             if (activeDate && log.log_date) {
                 if (viewMode === 'day') {
+                    
                     if (log.log_date.slice(0, 10) !== activeDate.slice(0, 10)) {
                         return false;
                     }
                 } else {
+                    
+                    
+                    
+                    
                     const range = getWeekRange(activeDate);
                     if (range) {
                         const logDate = new Date(log.log_date);
@@ -69,12 +77,15 @@ const HistoryLogTable: React.FC<Props> = ({
                 }
             }
 
+            
             if (filterCategory !== 'all' && log.category !== filterCategory) return false;
 
+            
             if (lowerSearch) {
                 const matchName = log.student_name?.toLowerCase().includes(lowerSearch);
                 const matchViolation = log.violation_name?.toLowerCase().includes(lowerSearch);
-                if (!matchName && !matchViolation) return false;
+                const matchNote = log.note?.toLowerCase().includes(lowerSearch);
+                if (!matchName && !matchViolation && !matchNote) return false;
             }
 
             return true;
@@ -123,7 +134,8 @@ const HistoryLogTable: React.FC<Props> = ({
         <div className="trk-history-container">
             <div className="trk-history-header">
                 <h3 className="history-title">
-                    📋 Nhật Ký Hoạt Động
+                    <FaClipboardList style={{ marginRight: '8px', color: '#3498db' }} /> 
+                    Nhật Ký Hoạt Động
                     <span
                         style={{
                             fontWeight: 'normal',
@@ -138,32 +150,39 @@ const HistoryLogTable: React.FC<Props> = ({
             </div>
 
             <div className="trk-history-filters">
-                <input
-                    type="text"
-                    placeholder="🔍 Tìm tên học sinh hoặc lỗi..."
-                    className="search-input"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <select
-                    className="trk-filter-select"
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                >
-                    <option value="all">Tất cả nhóm</option>
-                    {categories.map((cat) => (
-                        <option key={cat as string} value={cat as string}>
-                            {cat}
-                        </option>
-                    ))}
-                </select>
+                <div className="search-box-wrapper">
+                    <FaSearch className="search-icon-inside" />
+                    <input
+                        type="text"
+                        placeholder="Tìm tên học sinh, lỗi..."
+                        className="search-input-modern"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                
+                <div className="filter-box-wrapper">
+                    <FaFilter className="filter-icon-inside" />
+                    <select
+                        className="trk-filter-select-modern"
+                        value={filterCategory}
+                        onChange={(e) => setFilterCategory(e.target.value)}
+                    >
+                        <option value="all">Tất cả danh mục</option>
+                        {categories.map((cat) => (
+                            <option key={cat as string} value={cat as string}>
+                                {cat}
+                            </option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div className="trk-table-wrapper">
                 <table className="history-table">
                     <thead>
                         <tr>
-                            <th style={{ width: '130px' }}>Thời gian</th>
+                            <th style={{ width: '100px' }}>Thời gian</th>
                             <th style={{ width: '80px' }}>Ngày</th>
                             <th>Học sinh</th>
                             <th>Nội dung</th>
@@ -192,8 +211,7 @@ const HistoryLogTable: React.FC<Props> = ({
                                 return (
                                     <tr key={log.id || index} className="history-row">
                                         <td style={{ fontSize: '12px', color: '#666' }}>
-                                            {formatTime(log.created_at)} <br />
-                                            {formatDateOnly(log.created_at)}
+                                            {formatTime(log.created_at)}
                                         </td>
                                         <td
                                             style={{
@@ -250,7 +268,7 @@ const HistoryLogTable: React.FC<Props> = ({
                                                     onClick={() => log.id && onDelete(log.id)}
                                                     title="Xóa ghi nhận này"
                                                 >
-                                                    🗑️
+                                                    <FaTrash />
                                                 </button>
                                             )}
                                         </td>
