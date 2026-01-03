@@ -20,18 +20,21 @@ const TrackingPage: React.FC = () => {
 
     const currentYear = new Date().getFullYear();
 
+    
+    const selectedClassId = selectedClass?.id?.toString() || localStorage.getItem('selectedClassId');
+    const selectedClassName = selectedClass?.name || localStorage.getItem('selectedClassName');
+    const classStartDate = selectedClass?.start_date;
+
     const currentRealWeek = useMemo(() => {
-        return getWeekNumberFromStart(new Date(), selectedClass?.start_date);
-    }, [selectedClass]);
+        return getWeekNumberFromStart(new Date(), classStartDate);
+    }, [classStartDate]);
 
     const [selectedWeek, setSelectedWeek] = useState(1);
     const [activeDayIndex, setActiveDayIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
 
-    const selectedClassId = localStorage.getItem('selectedClassId');
-    const selectedClassName = localStorage.getItem('selectedClassName');
-
+    
     useEffect(() => {
         if (currentRealWeek > 0) {
             setSelectedWeek(currentRealWeek);
@@ -39,8 +42,8 @@ const TrackingPage: React.FC = () => {
     }, [currentRealWeek]);
 
     const weekDates = useMemo(
-        () => getWeekDatesFromStart(selectedWeek, selectedClass?.start_date),
-        [selectedWeek, selectedClass]
+        () => getWeekDatesFromStart(selectedWeek, classStartDate),
+        [selectedWeek, classStartDate]
     );
 
     const currentSelectedDate = activeDayIndex < 6 ? weekDates[activeDayIndex] : undefined;
@@ -61,21 +64,19 @@ const TrackingPage: React.FC = () => {
 
     const uniqueGroups = useMemo(() => {
         const groups = new Set(students.map((s) => s.group_number));
-
         return Array.from(groups)
             .filter((g) => g != null)
             .sort((a, b) => a - b);
     }, [students]);
 
     useEffect(() => {
-        if (user?.role === 'teacher' || user?.role === 'admin') {
-            if (!selectedClassId) {
-                alert('Bạn chưa chọn lớp học!');
-                navigate('/classes');
-            }
+        if ((user?.role === 'teacher' || user?.role === 'admin') && !selectedClassId) {
+            alert('Bạn chưa chọn lớp học!');
+            navigate('/');
         }
     }, [user, navigate, selectedClassId]);
 
+    
     useEffect(() => {
         const fetchBaseData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
@@ -97,9 +98,10 @@ const TrackingPage: React.FC = () => {
                 console.error('Lỗi tải dữ liệu gốc:', error);
             }
         };
-        if (user) fetchBaseData();
-    }, [user, selectedClassId]);
+        fetchBaseData(); 
+    }, [selectedClassId]); 
 
+    
     useEffect(() => {
         const fetchWeekData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
@@ -111,6 +113,7 @@ const TrackingPage: React.FC = () => {
                     class_id: selectedClassId,
                 };
 
+                
                 if (user?.role === 'group_leader' && user.group_number) {
                     params.group_number = user.group_number;
                 }
@@ -123,8 +126,8 @@ const TrackingPage: React.FC = () => {
                 setLoading(false);
             }
         };
-        if (user) fetchWeekData();
-    }, [selectedWeek, user, selectedClassId]);
+        fetchWeekData();
+    }, [selectedWeek, selectedClassId]); 
 
     const groupTotalScore = useMemo(() => {
         let total = 0;
@@ -159,11 +162,11 @@ const TrackingPage: React.FC = () => {
                 week_number: selectedWeek,
                 log_date: dateToSave,
                 year: currentYear,
-
                 class_id: selectedClassId,
             });
             alert('Lưu thành công!');
 
+            
             const params: any = {
                 week: selectedWeek,
                 class_id: selectedClassId,
@@ -202,6 +205,13 @@ const TrackingPage: React.FC = () => {
         }
     };
 
+    
+    const getScoreLabel = () => {
+        if (user?.role === 'group_leader') return `Tổng điểm Tổ ${user.group_number}`;
+        if (activeGroupTab === 'all') return 'Tổng điểm Lớp';
+        return `Tổng điểm Tổ ${activeGroupTab}`;
+    };
+
     return (
         <div className="tracking-page">
             <div className="tracking-header-modern">
@@ -211,7 +221,7 @@ const TrackingPage: React.FC = () => {
                     </button>
                     <h1 className="page-title">
                         SỔ THEO DÕI {selectedClassName ? `- ${selectedClassName}` : ''}{' '}
-                        {user?.group_number ? `(TỔ ${user.group_number})` : ''}
+                        {user?.role === 'group_leader' ? `(TỔ ${user.group_number})` : ''}
                     </h1>
                 </div>
 
@@ -228,21 +238,14 @@ const TrackingPage: React.FC = () => {
                     <div className="week-display">
                         <span className="week-number">TUẦN {selectedWeek}</span>
                         {selectedWeek === currentRealWeek && (
-                            <span className="badge-current">Tuần hiện tại</span>
+                            <span className="badge-current">Hiện tại</span>
                         )}
-                        {}
+                        
                         {weekDates.length > 0 && (
-                            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '4px' }}>
-                                {new Date(weekDates[0]).getDate()}/
-                                {new Date(weekDates[0]).getMonth() + 1}
+                            <div style={{ fontSize: '0.9rem', color: '#4b5563', marginTop: '4px', fontWeight: 500 }}>
+                                {new Date(weekDates[0]).toLocaleDateString('vi-VN')}
                                 {' - '}
-                                {new Date(
-                                    weekDates[6] || weekDates[weekDates.length - 1]
-                                ).getDate()}
-                                /
-                                {new Date(
-                                    weekDates[6] || weekDates[weekDates.length - 1]
-                                ).getMonth() + 1}
+                                {new Date(weekDates[6] || weekDates[weekDates.length - 1]).toLocaleDateString('vi-VN')}
                             </div>
                         )}
                     </div>
@@ -269,11 +272,7 @@ const TrackingPage: React.FC = () => {
                     <div className="info-card">
                         <div className="info-icon score-icon">📊</div>
                         <div className="info-content">
-                            <span className="info-label">
-                                {activeGroupTab === 'all'
-                                    ? 'Tổng điểm Lớp'
-                                    : `Tổng điểm Tổ ${activeGroupTab}`}
-                            </span>
+                            <span className="info-label">{getScoreLabel()}</span>
                             <span
                                 className={`info-value score-value ${groupTotalScore >= 0 ? 'positive' : 'negative'}`}
                             >
@@ -293,7 +292,6 @@ const TrackingPage: React.FC = () => {
                     >
                         Toàn bộ lớp ({students.length})
                     </button>
-                    {}
                     {uniqueGroups.map((gNum) => (
                         <button
                             key={gNum}
@@ -303,7 +301,6 @@ const TrackingPage: React.FC = () => {
                             Tổ {gNum}
                         </button>
                     ))}
-                    {}
                 </div>
             )}
 
@@ -317,18 +314,23 @@ const TrackingPage: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                        <DailyTrackingTable
-                            students={displayedStudents}
-                            violationTypes={violationTypes}
-                            initialData={existingLogs}
-                            isReadOnly={!canEdit}
-                            weekDates={weekDates}
-                            activeDayIndex={activeDayIndex}
-                            setActiveDayIndex={setActiveDayIndex}
-                            onSubmit={handleSubmit}
-                        />
+                        {students.length === 0 ? (
+                            <div style={{textAlign: 'center', padding: 20, color: 'red'}}>
+                                Không tìm thấy học sinh. Vui lòng kiểm tra lại danh sách lớp hoặc chọn đúng lớp học.
+                            </div>
+                        ) : (
+                            <DailyTrackingTable
+                                students={displayedStudents}
+                                violationTypes={violationTypes}
+                                initialData={existingLogs}
+                                isReadOnly={!canEdit}
+                                weekDates={weekDates}
+                                activeDayIndex={activeDayIndex}
+                                setActiveDayIndex={setActiveDayIndex}
+                                onSubmit={handleSubmit}
+                            />
+                        )}
 
-                        {}
                         <HistoryLogTable
                             logs={
                                 user?.role === 'student'

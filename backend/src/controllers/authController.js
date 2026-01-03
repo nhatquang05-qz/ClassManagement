@@ -1,5 +1,6 @@
 const db = require('../config/dbConfig');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const login = async (req, res) => {
     const { username, password } = req.body;
@@ -22,8 +23,15 @@ const login = async (req, res) => {
         }
 
         const user = users[0];
+        let isMatch = false;
 
-        if (password !== user.password) {
+        if (user.password && user.password.startsWith('$2b$')) {
+            isMatch = await bcrypt.compare(password, user.password);
+        } else {
+            isMatch = password === user.password;
+        }
+
+        if (!isMatch) {
             return res.status(401).json({ message: 'Mật khẩu không đúng' });
         }
 
@@ -43,11 +51,35 @@ const login = async (req, res) => {
                 role_display: user.role_display,
                 group_number: user.group_number,
                 class_id: user.class_id,
+                must_change_password: user.must_change_password,
             },
         });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+const changePassword = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await db.query('UPDATE users SET password = ?, must_change_password = 0 WHERE id = ?', [
+            hashedPassword,
+            userId,
+        ]);
+
+        res.json({ message: 'Đổi mật khẩu thành công' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi đổi mật khẩu' });
     }
 };
 
@@ -75,4 +107,4 @@ const getMe = async (req, res) => {
     }
 };
 
-module.exports = { login, getMe };
+module.exports = { login, getMe, changePassword };

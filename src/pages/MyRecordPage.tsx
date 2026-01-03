@@ -114,11 +114,12 @@ const MyRecordPage: React.FC = () => {
                     ← Trang chủ
                 </button>
                 <h2>Hạnh Kiểm: {user?.full_name}</h2>
+                {}
+                <div style={{ width: 88 }}></div>
             </header>
 
-            {}
-            <div className="filter-controls" style={{ marginBottom: '20px', textAlign: 'center' }}>
-                <div className="view-mode-tabs" style={{ marginBottom: '15px' }}>
+            <div className="filter-controls">
+                <div className="view-mode-tabs">
                     <button
                         className={`mode-btn ${viewMode === 'week' ? 'active' : ''}`}
                         onClick={() => setViewMode('week')}
@@ -139,29 +140,15 @@ const MyRecordPage: React.FC = () => {
                     </button>
                 </div>
 
-                <div
-                    className="time-nav"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '15px',
-                    }}
-                >
+                <div className="time-nav">
                     <button onClick={handlePrev} className="nav-btn">
                         ❮ Trước
                     </button>
-                    <span style={{ fontWeight: 'bold', fontSize: '1.1rem', minWidth: '200px' }}>
-                        {label}
-                    </span>
+                    <span className="time-label">{label}</span>
                     <button onClick={handleNext} className="nav-btn">
                         Sau ❯
                     </button>
-                    <button
-                        onClick={handleToday}
-                        className="today-btn"
-                        style={{ marginLeft: '10px' }}
-                    >
+                    <button onClick={handleToday} className="today-btn">
                         Hiện tại
                     </button>
                 </div>
@@ -181,11 +168,11 @@ const MyRecordPage: React.FC = () => {
                 <table className="history-table">
                     <thead>
                         <tr>
-                            <th>Ngày</th>
-                            <th>Nội dung</th>
-                            <th>Loại</th>
-                            <th>Người ghi</th>
-                            <th>Điểm</th>
+                            <th style={{ width: '15%' }}>Ngày</th>
+                            <th style={{ width: '30%' }}>Nội dung</th>
+                            <th style={{ width: '20%' }}>Loại</th>
+                            <th style={{ width: '20%' }}>Người ghi</th>
+                            <th style={{ width: '15%', textAlign: 'right' }}>Điểm</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -217,7 +204,10 @@ const MyRecordPage: React.FC = () => {
                                         </span>
                                     </td>
                                     <td>{log.reporter_name}</td>
-                                    <td className={log.points > 0 ? 'p-plus' : 'p-minus'}>
+                                    <td
+                                        className={log.points > 0 ? 'p-plus' : 'p-minus'}
+                                        style={{ textAlign: 'right' }}
+                                    >
                                         {log.points * log.quantity}
                                     </td>
                                 </tr>
@@ -226,33 +216,6 @@ const MyRecordPage: React.FC = () => {
                     </tbody>
                 </table>
             </div>
-
-            <style>{`
-                .mode-btn {
-                    padding: 8px 16px;
-                    border: 1px solid #ddd;
-                    background: #f5f5f5;
-                    cursor: pointer;
-                    margin: 0 2px;
-                    border-radius: 4px;
-                    transition: all 0.2s;
-                }
-                .mode-btn.active {
-                    background: #2563eb;
-                    color: white;
-                    border-color: #2563eb;
-                }
-                .nav-btn, .today-btn {
-                    padding: 6px 12px;
-                    border: 1px solid #ddd;
-                    background: white;
-                    border-radius: 4px;
-                    cursor: pointer;
-                }
-                .nav-btn:hover, .today-btn:hover {
-                    background: #f0f0f0;
-                }
-            `}</style>
         </div>
     );
 };

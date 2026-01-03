@@ -84,6 +84,7 @@ const getWeeklyReport = async (req, res) => {
                 dl.note,
                 dl.created_at, 
                 u.full_name as student_name,
+                u.group_number,
                 vt.name as violation_name,
                 vt.category,
                 vt.points
@@ -192,7 +193,7 @@ const getViolationsByDate = async (req, res) => {
 const getMyLogs = async (req, res) => {
     try {
         const studentId = req.user.id;
-        // [CẬP NHẬT] Nhận thêm startDate, endDate
+        
         const { startDate, endDate } = req.query;
 
         let query = `
@@ -214,7 +215,7 @@ const getMyLogs = async (req, res) => {
 
         const params = [studentId];
 
-        // [CẬP NHẬT] Điều kiện lọc ngày
+        
         if (startDate && endDate) {
             query += ` AND dl.log_date BETWEEN ? AND ?`;
             params.push(startDate, endDate);

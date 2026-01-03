@@ -3,7 +3,7 @@ const cors = require('cors');
 const authController = require('./controllers/authController');
 const dashboardController = require('./controllers/dashboardController');
 const reportController = require('./controllers/reportController');
-const userController = require('./controllers/userController'); // Import controller này nhưng không dùng trực tiếp ở app.js nữa
+const userController = require('./controllers/userController');
 const violationController = require('./controllers/violationController');
 const classRoutes = require('./routes/classRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -13,9 +13,6 @@ const verifyToken = require('./middleware/authMiddleware');
 
 const app = express();
 
-// --- SỬA LỖI CORS ---
-// Bỏ credentials: true đi vì bạn dùng Token (Bearer) nên không cần cookie.
-// Điều này giúp origin: '*' hoạt động ổn định, không bị lỗi trình duyệt chặn.
 app.use(
     cors({
         origin: '*',
@@ -34,6 +31,7 @@ app.use('/api/classes', classRoutes);
 app.use('/api/users', userRoutes);
 
 app.post('/api/auth/login', authController.login);
+app.post('/api/auth/change-password', verifyToken, authController.changePassword);
 app.get('/api/auth/me', verifyToken, authController.getMe);
 
 app.get('/api/dashboard/rankings', dashboardController.getGroupRankings);

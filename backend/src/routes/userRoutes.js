@@ -9,6 +9,7 @@ router.get('/', authenticateToken, userController.getUsers);
 router.post('/create', authenticateToken, userController.createUser);
 router.put('/bulk-group', authenticateToken, userController.bulkUpdateGroup);
 router.put('/:id', authenticateToken, userController.updateUser);
+router.put('/:id/reset-password', authenticateToken, userController.resetPassword);
 router.post('/import', authenticateToken, upload.single('file'), userController.importStudents);
 
 module.exports = router;

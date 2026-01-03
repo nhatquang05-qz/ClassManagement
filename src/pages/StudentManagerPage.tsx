@@ -281,6 +281,30 @@ const StudentManagerPage = () => {
                                                     }}
                                                 >
                                                     <button
+                                                        className="sm-btn sm-btn-info"
+                                                        style={{ marginRight: 0 }}
+                                                        onClick={async () => {
+                                                            if (
+                                                                window.confirm(
+                                                                    `Bạn muốn đặt lại mật khẩu của ${s.full_name} về '123456'?`
+                                                                )
+                                                            ) {
+                                                                try {
+                                                                    await api.put(
+                                                                        `/users/${s.id}/reset-password`
+                                                                    );
+                                                                    alert(
+                                                                        'Đã reset mật khẩu thành công!'
+                                                                    );
+                                                                } catch (e) {
+                                                                    alert('Lỗi reset mật khẩu');
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        Reset MK
+                                                    </button>
+                                                    <button
                                                         className="sm-btn sm-btn-edit"
                                                         onClick={() => handleEdit(s)}
                                                     >

@@ -113,8 +113,8 @@ const createUser = async (req, res) => {
         const defaultHash = await bcrypt.hash('123456', 10);
 
         await db.query(
-            `INSERT INTO users (username, password, full_name, role_id, group_number, class_id, is_locked) 
-             VALUES (?, ?, ?, ?, ?, ?, 0)`,
+            `INSERT INTO users (username, password, full_name, role_id, group_number, class_id, is_locked, must_change_password) 
+             VALUES (?, ?, ?, ?, ?, ?, 0, 1)`,
             [username, defaultHash, full_name, role_id || 6, group_number || 0, class_id]
         );
         res.json({ message: 'Thêm thành công', username });
@@ -154,8 +154,8 @@ const importStudents = async (req, res) => {
                 generatedUsernamesSet.add(username);
 
                 await connection.query(
-                    `INSERT INTO users (username, password, full_name, role_id, group_number, class_id, is_locked) 
-                     VALUES (?, ?, ?, 6, ?, ?, 0)`,
+                    `INSERT INTO users (username, password, full_name, role_id, group_number, class_id, is_locked, must_change_password) 
+                     VALUES (?, ?, ?, 6, ?, ?, 0, 1)`,
                     [username, defaultHash, fullName, groupNum, class_id]
                 );
             }
@@ -225,4 +225,28 @@ const bulkUpdateGroup = async (req, res) => {
     }
 };
 
-module.exports = { getUsers, importStudents, updateUser, createUser, bulkUpdateGroup };
+const resetPassword = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const defaultHash = await bcrypt.hash('123456', 10);
+
+        await db.query('UPDATE users SET password = ?, must_change_password = 1 WHERE id = ?', [
+            defaultHash,
+            id,
+        ]);
+
+        res.json({ message: 'Đã khôi phục mật khẩu về 123456' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi reset mật khẩu' });
+    }
+};
+
+module.exports = {
+    getUsers,
+    importStudents,
+    updateUser,
+    createUser,
+    bulkUpdateGroup,
+    resetPassword,
+};
