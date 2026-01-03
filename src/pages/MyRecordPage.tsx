@@ -24,7 +24,7 @@ const MyRecordPage: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [loading, setLoading] = useState(false);
 
-    // Tính toán ngày bắt đầu và kết thúc dựa trên viewMode và currentDate
+    
     const { startDate, endDate, label } = useMemo(() => {
         const start = new Date(currentDate);
         const end = new Date(currentDate);
@@ -32,7 +32,7 @@ const MyRecordPage: React.FC = () => {
 
         if (viewMode === 'week') {
             const day = start.getDay();
-            const diff = start.getDate() - day + (day === 0 ? -6 : 1); // Thứ 2 là đầu tuần
+            const diff = start.getDate() - day + (day === 0 ? -6 : 1); 
             start.setDate(diff);
             start.setHours(0, 0, 0, 0);
 
@@ -45,7 +45,7 @@ const MyRecordPage: React.FC = () => {
             start.setHours(0, 0, 0, 0);
 
             end.setMonth(start.getMonth() + 1);
-            end.setDate(0); // Ngày cuối tháng
+            end.setDate(0); 
             end.setHours(23, 59, 59, 999);
 
             lbl = `Tháng ${start.getMonth() + 1}/${start.getFullYear()}`;
@@ -70,7 +70,7 @@ const MyRecordPage: React.FC = () => {
         const fetchMyLogs = async () => {
             setLoading(true);
             try {
-                // Gửi kèm tham số startDate và endDate để lọc
+                
                 const res = await api.get('/reports/my-logs', {
                     params: { startDate, endDate },
                 });
@@ -118,7 +118,7 @@ const MyRecordPage: React.FC = () => {
                 <h2>Hạnh Kiểm: {user?.full_name}</h2>
             </header>
 
-            {/* Bộ điều khiển Filter */}
+            {}
             <div className="filter-controls" style={{ marginBottom: '20px', textAlign: 'center' }}>
                 <div className="view-mode-tabs" style={{ marginBottom: '15px' }}>
                     <button

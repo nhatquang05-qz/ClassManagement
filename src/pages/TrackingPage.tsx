@@ -5,13 +5,13 @@ import DailyTrackingTable from '../components/tracking/DailyTrackingTable';
 import HistoryLogTable from '../components/tracking/HistoryLogTable';
 import { Student, ViolationType, DailyLogPayload } from '../types/trackingTypes';
 import { useAuth } from '../contexts/AuthContext';
-import { useClass } from '../contexts/ClassContext'; // [MỚI] Import Context
-import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils'; // [MỚI] Import Utils
+import { useClass } from '../contexts/ClassContext'; 
+import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils'; 
 import '../assets/styles/TrackingPage.css';
 
 const TrackingPage: React.FC = () => {
     const { user } = useAuth();
-    const { selectedClass } = useClass(); // [MỚI] Lấy thông tin lớp
+    const { selectedClass } = useClass(); 
     const navigate = useNavigate();
 
     const [students, setStudents] = useState<Student[]>([]);
@@ -20,7 +20,7 @@ const TrackingPage: React.FC = () => {
 
     const currentYear = new Date().getFullYear();
 
-    // [MỚI] Tính tuần hiện tại dựa trên ngày bắt đầu của lớp
+    
     const currentRealWeek = useMemo(() => {
         return getWeekNumberFromStart(new Date(), selectedClass?.start_date);
     }, [selectedClass]);
@@ -33,14 +33,14 @@ const TrackingPage: React.FC = () => {
     const selectedClassId = localStorage.getItem('selectedClassId');
     const selectedClassName = localStorage.getItem('selectedClassName');
 
-    // [MỚI] Cập nhật selectedWeek khi currentRealWeek thay đổi (khi load xong class)
+    
     useEffect(() => {
         if (currentRealWeek > 0) {
             setSelectedWeek(currentRealWeek);
         }
     }, [currentRealWeek]);
 
-    // [MỚI] Lấy danh sách ngày trong tuần dựa trên selectedWeek và start_date
+    
     const weekDates = useMemo(
         () => getWeekDatesFromStart(selectedWeek, selectedClass?.start_date),
         [selectedWeek, selectedClass]
@@ -233,7 +233,7 @@ const TrackingPage: React.FC = () => {
                         {selectedWeek === currentRealWeek && (
                             <span className="badge-current">Tuần hiện tại</span>
                         )}
-                        {/* [MỚI] Hiển thị khoảng thời gian của tuần */}
+                        {}
                         {weekDates.length > 0 && (
                             <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '4px' }}>
                                 {new Date(weekDates[0]).getDate()}/

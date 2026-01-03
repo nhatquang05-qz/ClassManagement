@@ -69,6 +69,7 @@ const getCurrentWeek = () => {
 const ReportPage = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
+    const API_URL = import.meta.env.VITE_API_URL;
 
     const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
     const [startDate, setStartDate] = useState(() => getWeekRange(getCurrentWeek()).start);
@@ -115,7 +116,7 @@ const ReportPage = () => {
     useEffect(() => {
         const fetchViolations = async () => {
             try {
-                const res = await fetch('http://localhost:3000/api/violations', {
+                const res = await fetch(`${API_URL}/api/violations`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -125,7 +126,7 @@ const ReportPage = () => {
             }
         };
         fetchViolations();
-    }, [token]);
+    }, [token, API_URL]);
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -134,7 +135,7 @@ const ReportPage = () => {
 
             try {
                 const res = await fetch(
-                    `http://localhost:3000/api/users?class_id=${selectedClassId}`,
+                    `${API_URL}/api/users?class_id=${selectedClassId}`,
                     {
                         headers: { Authorization: `Bearer ${token}` },
                     }
@@ -151,7 +152,7 @@ const ReportPage = () => {
             }
         };
         fetchGroups();
-    }, [token]);
+    }, [token, API_URL]);
 
     const fetchReport = async () => {
         const selectedClassId = localStorage.getItem('selectedClassId');
@@ -172,7 +173,7 @@ const ReportPage = () => {
                 class_id: selectedClassId,
             });
 
-            const res = await fetch(`http://localhost:3000/api/reports/detailed?${queryParams}`, {
+            const res = await fetch(`${API_URL}/api/reports/detailed?${queryParams}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
@@ -190,7 +191,7 @@ const ReportPage = () => {
 
     useEffect(() => {
         fetchReport();
-    }, [startDate, endDate]);
+    }, [startDate, endDate, API_URL]);
 
     const chartGroupStats = useMemo(() => {
         const stats: Record<
