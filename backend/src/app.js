@@ -16,11 +16,13 @@ const app = express();
 // --- SỬA LỖI CORS ---
 // Bỏ credentials: true đi vì bạn dùng Token (Bearer) nên không cần cookie.
 // Điều này giúp origin: '*' hoạt động ổn định, không bị lỗi trình duyệt chặn.
-app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+    cors({
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+);
 
 app.get('/ping', (req, res) => {
     res.status(200).send('Pong!');

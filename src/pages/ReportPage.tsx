@@ -3,6 +3,8 @@ import '../assets/styles/ReportPage.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
+
+import api from '../utils/api';
 import {
     BarChart,
     Bar,
@@ -67,9 +69,7 @@ const getCurrentWeek = () => {
 };
 
 const ReportPage = () => {
-    const { token } = useAuth();
     const navigate = useNavigate();
-    const API_URL = import.meta.env.VITE_API_URL;
 
     const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
     const [startDate, setStartDate] = useState(() => getWeekRange(getCurrentWeek()).start);
@@ -85,8 +85,6 @@ const ReportPage = () => {
     const [availableGroups, setAvailableGroups] = useState<number[]>([]);
 
     const [loading, setLoading] = useState(false);
-
-    const START_POINTS = 0;
 
     const weekOptions = useMemo(() => {
         const options = [];
@@ -116,17 +114,14 @@ const ReportPage = () => {
     useEffect(() => {
         const fetchViolations = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/violations`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const data = await res.json();
-                if (Array.isArray(data)) setViolationsList(data);
+                const res = await api.get('/violations');
+                if (Array.isArray(res.data)) setViolationsList(res.data);
             } catch (err) {
-                console.error(err);
+                console.error('Lỗi tải danh sách vi phạm:', err);
             }
         };
         fetchViolations();
-    }, [token, API_URL]);
+    }, []);
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -134,13 +129,11 @@ const ReportPage = () => {
             if (!selectedClassId) return;
 
             try {
-                const res = await fetch(
-                    `${API_URL}/api/users?class_id=${selectedClassId}`,
-                    {
-                        headers: { Authorization: `Bearer ${token}` },
-                    }
-                );
-                const data = await res.json();
+                const res = await api.get('/users', {
+                    params: { class_id: selectedClassId },
+                });
+
+                const data = res.data;
                 if (Array.isArray(data)) {
                     const groups = Array.from(new Set(data.map((u: any) => u.group_number)))
                         .filter((g: any) => g != null)
@@ -152,7 +145,7 @@ const ReportPage = () => {
             }
         };
         fetchGroups();
-    }, [token, API_URL]);
+    }, []);
 
     const fetchReport = async () => {
         const selectedClassId = localStorage.getItem('selectedClassId');
@@ -164,26 +157,20 @@ const ReportPage = () => {
 
         setLoading(true);
         try {
-            const queryParams = new URLSearchParams({
-                startDate,
-                endDate,
-                studentName,
-                violationTypeId,
-                groupId,
-                class_id: selectedClassId,
+            const res = await api.get('/reports/detailed', {
+                params: {
+                    startDate,
+                    endDate,
+                    studentName,
+                    violationTypeId,
+                    groupId,
+                    class_id: selectedClassId,
+                },
             });
 
-            const res = await fetch(`${API_URL}/api/reports/detailed?${queryParams}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            if (!res.ok) throw new Error('Failed to fetch');
-
-            const data = await res.json();
-            setReportData(data);
+            setReportData(res.data);
         } catch (error) {
             console.error('Lỗi tải báo cáo:', error);
-            alert('Không thể tải dữ liệu báo cáo');
         } finally {
             setLoading(false);
         }
@@ -191,7 +178,7 @@ const ReportPage = () => {
 
     useEffect(() => {
         fetchReport();
-    }, [startDate, endDate, API_URL]);
+    }, [startDate, endDate]);
 
     const chartGroupStats = useMemo(() => {
         const stats: Record<

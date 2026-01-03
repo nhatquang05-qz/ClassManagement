@@ -24,7 +24,6 @@ const MyRecordPage: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [loading, setLoading] = useState(false);
 
-    
     const { startDate, endDate, label } = useMemo(() => {
         const start = new Date(currentDate);
         const end = new Date(currentDate);
@@ -32,7 +31,7 @@ const MyRecordPage: React.FC = () => {
 
         if (viewMode === 'week') {
             const day = start.getDay();
-            const diff = start.getDate() - day + (day === 0 ? -6 : 1); 
+            const diff = start.getDate() - day + (day === 0 ? -6 : 1);
             start.setDate(diff);
             start.setHours(0, 0, 0, 0);
 
@@ -45,7 +44,7 @@ const MyRecordPage: React.FC = () => {
             start.setHours(0, 0, 0, 0);
 
             end.setMonth(start.getMonth() + 1);
-            end.setDate(0); 
+            end.setDate(0);
             end.setHours(23, 59, 59, 999);
 
             lbl = `Tháng ${start.getMonth() + 1}/${start.getFullYear()}`;
@@ -70,7 +69,6 @@ const MyRecordPage: React.FC = () => {
         const fetchMyLogs = async () => {
             setLoading(true);
             try {
-                
                 const res = await api.get('/reports/my-logs', {
                     params: { startDate, endDate },
                 });

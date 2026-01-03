@@ -5,13 +5,13 @@ import DailyTrackingTable from '../components/tracking/DailyTrackingTable';
 import HistoryLogTable from '../components/tracking/HistoryLogTable';
 import { Student, ViolationType, DailyLogPayload } from '../types/trackingTypes';
 import { useAuth } from '../contexts/AuthContext';
-import { useClass } from '../contexts/ClassContext'; 
-import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils'; 
+import { useClass } from '../contexts/ClassContext';
+import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils';
 import '../assets/styles/TrackingPage.css';
 
 const TrackingPage: React.FC = () => {
     const { user } = useAuth();
-    const { selectedClass } = useClass(); 
+    const { selectedClass } = useClass();
     const navigate = useNavigate();
 
     const [students, setStudents] = useState<Student[]>([]);
@@ -20,7 +20,6 @@ const TrackingPage: React.FC = () => {
 
     const currentYear = new Date().getFullYear();
 
-    
     const currentRealWeek = useMemo(() => {
         return getWeekNumberFromStart(new Date(), selectedClass?.start_date);
     }, [selectedClass]);
@@ -33,14 +32,12 @@ const TrackingPage: React.FC = () => {
     const selectedClassId = localStorage.getItem('selectedClassId');
     const selectedClassName = localStorage.getItem('selectedClassName');
 
-    
     useEffect(() => {
         if (currentRealWeek > 0) {
             setSelectedWeek(currentRealWeek);
         }
     }, [currentRealWeek]);
 
-    
     const weekDates = useMemo(
         () => getWeekDatesFromStart(selectedWeek, selectedClass?.start_date),
         [selectedWeek, selectedClass]

@@ -1,16 +1,12 @@
 import axios from 'axios';
 
-
 let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-
-
 if (!baseUrl.endsWith('/api')) {
-    
     if (baseUrl.endsWith('/')) {
         baseUrl = baseUrl.slice(0, -1);
     }
-    
+
     baseUrl += '/api';
 }
 
@@ -22,7 +18,6 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
-
 
 api.interceptors.request.use(
     (config) => {
