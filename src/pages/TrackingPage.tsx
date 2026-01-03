@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+    FaArrowLeft, 
+    FaChevronLeft, 
+    FaChevronRight, 
+    FaChartBar, 
+    FaSave, 
+    FaStickyNote,
+    FaRegSave
+} from 'react-icons/fa'; 
 import api from '../utils/api';
 import DailyTrackingTable from '../components/tracking/DailyTrackingTable';
 import HistoryLogTable from '../components/tracking/HistoryLogTable';
@@ -38,6 +47,11 @@ const TrackingPage: React.FC = () => {
     const [activeDayIndex, setActiveDayIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
+
+    
+    const [dailyNote, setDailyNote] = useState('');
+    const [isNoteSaving, setIsNoteSaving] = useState(false);
+    
 
     const targetGroupNumber = useMemo(() => {
         if (user?.role === 'group_leader') {
@@ -80,6 +94,12 @@ const TrackingPage: React.FC = () => {
             .filter((g) => g != null)
             .sort((a, b) => a - b);
     }, [students]);
+
+    const currentNoteGroup = useMemo(() => {
+        if (user?.role === 'group_leader') return targetGroupNumber;
+        if (activeGroupTab !== 'all') return parseInt(activeGroupTab);
+        return undefined;
+    }, [user, targetGroupNumber, activeGroupTab]);
 
     useEffect(() => {
         if ((user?.role === 'teacher' || user?.role === 'admin') && !selectedClassId) {
@@ -127,7 +147,6 @@ const TrackingPage: React.FC = () => {
     useEffect(() => {
         const fetchWeekData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
-
             if (!weekDates || weekDates.length === 0) return;
 
             setLoading(true);
@@ -152,6 +171,51 @@ const TrackingPage: React.FC = () => {
         };
         fetchWeekData();
     }, [selectedWeek, selectedClassId, weekDates, user, targetGroupNumber]);
+
+    
+    useEffect(() => {
+        const fetchDailyNote = async () => {
+            if (activeDayIndex === 6 || !currentSelectedDate || !selectedClassId) {
+                setDailyNote('');
+                return;
+            }
+
+            try {
+                const res = await api.get('/reports/note', {
+                    params: {
+                        class_id: selectedClassId,
+                        date: currentSelectedDate,
+                        group_number: currentNoteGroup
+                    }
+                });
+                setDailyNote(res.data.content || '');
+            } catch (error) {
+                console.error('Lỗi tải ghi chú:', error);
+            }
+        };
+        fetchDailyNote();
+    }, [currentSelectedDate, activeDayIndex, selectedClassId, currentNoteGroup]);
+
+    
+    const handleSaveNote = async () => {
+        if (!currentSelectedDate || !selectedClassId) return;
+        
+        setIsNoteSaving(true);
+        try {
+            await api.post('/reports/note', {
+                class_id: selectedClassId,
+                date: currentSelectedDate,
+                group_number: currentNoteGroup,
+                content: dailyNote
+            });
+            alert('Đã lưu ghi chú thành công!');
+        } catch (error) {
+            console.error('Lỗi lưu ghi chú:', error);
+            alert('Lỗi khi lưu ghi chú');
+        } finally {
+            setIsNoteSaving(false);
+        }
+    };
 
     const groupTotalScore = useMemo(() => {
         let total = 0;
@@ -181,7 +245,7 @@ const TrackingPage: React.FC = () => {
         const [y, m, d] = dateToSave.split('-');
         const displayDate = `${d}/${m}/${y}`;
 
-        if (!window.confirm(`Xác nhận lưu dữ liệu cho ngày ${displayDate}?`)) return;
+        if (!window.confirm(`Xác nhận lưu dữ liệu sổ cho ngày ${displayDate}?`)) return;
 
         try {
             await api.post('/reports/bulk', {
@@ -244,7 +308,7 @@ const TrackingPage: React.FC = () => {
             <div className="tracking-header-modern">
                 <div className="header-top">
                     <button onClick={() => navigate(-1)} className="btn-back-modern">
-                        ← Quay lại
+                        <FaArrowLeft /> Quay lại
                     </button>
                     <h1 className="page-title">
                         SỔ THEO DÕI {selectedClassName ? `- ${selectedClassName}` : ''}
@@ -257,7 +321,7 @@ const TrackingPage: React.FC = () => {
                         disabled={selectedWeek <= 1}
                         onClick={() => setSelectedWeek((p) => p - 1)}
                     >
-                        ❮
+                        <FaChevronLeft />
                     </button>
                     <div className="week-display">
                         <span className="week-number">TUẦN {selectedWeek}</span>
@@ -272,13 +336,15 @@ const TrackingPage: React.FC = () => {
                         )}
                     </div>
                     <button className="btn-nav" onClick={() => setSelectedWeek((p) => p + 1)}>
-                        ❯
+                        <FaChevronRight />
                     </button>
                 </div>
 
                 <div className="info-bar">
                     <div className="info-card">
-                        <div className="info-icon score-icon">📊</div>
+                        <div className="info-icon score-icon">
+                            <FaChartBar />
+                        </div>
                         <div className="info-content">
                             <span className="info-label">{getScoreLabel()}</span>
                             <span
@@ -343,6 +409,37 @@ const TrackingPage: React.FC = () => {
                             setActiveDayIndex={setActiveDayIndex}
                             onSubmit={handleSubmit}
                         />
+
+                        {}
+                        {activeDayIndex < 6 && (
+                            <div className="daily-note-section">
+                                <div className="daily-note-header">
+                                    <h3 className="note-title">
+                                        <FaStickyNote style={{ marginRight: '8px', color: '#f39c12' }} />
+                                        Ghi chú {currentNoteGroup ? `Tổ ${currentNoteGroup}` : 'Chung'} 
+                                        {' - '}{new Date(currentSelectedDate || '').toLocaleDateString('vi-VN')}
+                                    </h3>
+                                    {canEdit && (
+                                        <button 
+                                            className="btn-save-note" 
+                                            onClick={handleSaveNote}
+                                            disabled={isNoteSaving}
+                                        >
+                                            <FaSave /> {isNoteSaving ? 'Đang lưu...' : 'Lưu ghi chú'}
+                                        </button>
+                                    )}
+                                </div>
+                                <textarea
+                                    className="daily-note-input"
+                                    placeholder="Nhập ghi chú chung, các vi phạm khác hoặc nhắc nhở..."
+                                    value={dailyNote}
+                                    onChange={(e) => setDailyNote(e.target.value)}
+                                    disabled={!canEdit}
+                                    rows={3}
+                                />
+                            </div>
+                        )}
+
                         <HistoryLogTable
                             logs={existingLogs}
                             onDelete={handleDeleteLog}

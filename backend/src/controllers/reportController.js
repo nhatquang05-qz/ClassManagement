@@ -300,6 +300,57 @@ const getDetailedReport = async (req, res) => {
     }
 };
 
+const getDailyNote = async (req, res) => {
+    try {
+        const { class_id, date, group_number } = req.query;
+        if (!class_id || !date) return res.json({ content: '' });
+
+        let query = 'SELECT content FROM daily_notes WHERE class_id = ? AND log_date = ?';
+        let params = [class_id, date];
+
+        if (group_number) {
+            query += ' AND group_number = ?';
+            params.push(group_number);
+        } else {
+            query += ' AND group_number IS NULL';
+        }
+
+        const [rows] = await db.query(query, params);
+        res.json({ content: rows.length > 0 ? rows[0].content : '' });
+    } catch (error) {
+        console.error('Lỗi lấy ghi chú:', error);
+        res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+const saveDailyNote = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        const { class_id, date, group_number, content } = req.body;
+        
+        if (!class_id || !date) {
+            return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' });
+        }
+
+        const finalGroupNumber = group_number || null;
+
+        const query = `
+            INSERT INTO daily_notes (class_id, group_number, log_date, content)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE content = VALUES(content)
+        `;
+
+        await connection.query(query, [class_id, finalGroupNumber, date, content]);
+        
+        res.json({ message: 'Đã lưu ghi chú' });
+    } catch (error) {
+        console.error('Lỗi lưu ghi chú:', error);
+        res.status(500).json({ message: 'Lỗi server khi lưu ghi chú' });
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     createBulkReports,
     getWeeklyReport,
@@ -307,4 +358,6 @@ module.exports = {
     getMyLogs,
     deleteReport,
     getDetailedReport,
+    saveDailyNote,
+    getDailyNote
 };

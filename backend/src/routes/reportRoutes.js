@@ -11,5 +11,7 @@ router.get('/date', reportController.getViolationsByDate);
 router.get('/my-logs', reportController.getMyLogs);
 router.get('/detailed', reportController.getDetailedReport);
 router.delete('/:id', reportController.deleteReport);
+router.get('/note', reportController.getDailyNote);
+router.post('/note', reportController.saveDailyNote);
 
 module.exports = router;
