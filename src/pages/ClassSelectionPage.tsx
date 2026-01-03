@@ -5,6 +5,8 @@ import { useClass } from '../contexts/ClassContext';
 import { useAuth } from '../contexts/AuthContext';
 import '../assets/styles/ClassSelection.css';
 
+import { FaPlus, FaEdit, FaChalkboardTeacher, FaCalendarAlt, FaRocket } from 'react-icons/fa';
+
 interface ClassItem {
     id: number;
     name: string;
@@ -93,9 +95,7 @@ const ClassSelectionPage = () => {
         setSelectedClass(cls);
         localStorage.setItem('selectedClassId', cls.id.toString());
         localStorage.setItem('selectedClassName', cls.name);
-
         localStorage.setItem('currentClass', JSON.stringify(cls));
-
         navigate('/');
     };
 
@@ -108,89 +108,81 @@ const ClassSelectionPage = () => {
     };
 
     return (
-        <div className="dashboard-layout">
-            <aside className="sidebar">
-                <div className="logo-area">
-                    <span>⚡ ClassManager</span>
+        <div className="class-selection-content">
+            <div className="page-header-simple">
+                <div>
+                    <h2 style={{ margin: 0, color: 'var(--text-color)' }}>Danh Sách Lớp Học</h2>
+                    <p style={{ color: '#666', marginTop: '5px' }}>
+                        Quản lý và chọn lớp để làm việc
+                    </p>
                 </div>
-                <div className="menu-item active">
-                    <span>📚</span> Danh Sách Lớp
-                </div>
-                <div className="menu-item">
-                    <span>⚙️</span> Cài Đặt
-                </div>
-            </aside>
+                <button className="btn btn-primary" onClick={handleOpenCreate}>
+                    <FaPlus /> Tạo Lớp Mới
+                </button>
+            </div>
 
-            <main className="main-content">
-                <header className="page-header">
-                    <div className="welcome-text">
-                        <h1>Xin chào, {user?.full_name}!</h1>
-                        <p>Chọn lớp học để bắt đầu làm việc.</p>
-                    </div>
-                    <button className="btn-create" onClick={handleOpenCreate}>
-                        <span>+</span> Tạo Lớp Mới
-                    </button>
-                </header>
-
-                {classes.length === 0 ? (
-                    <div className="empty-state" style={{ textAlign: 'center', marginTop: 50 }}>
-                        <div style={{ fontSize: 50, marginBottom: 20 }}>🚀</div>
-                        <h3 style={{ color: '#333' }}>Chưa có lớp học nào</h3>
-                        <p style={{ color: '#94a3b8' }}>Hãy tạo lớp học đầu tiên ngay bây giờ.</p>
-                    </div>
-                ) : (
-                    <div className="class-grid">
-                        {classes.map((cls) => (
-                            <div
-                                key={cls.id}
-                                className="glass-card"
-                                onClick={() => handleSelectClass(cls)}
-                            >
-                                <div className="card-header">
-                                    <div className="card-info">
-                                        <h2>Lớp {cls.name}</h2>
-                                        <span>Niên khóa: {cls.school_year}</span>
-                                    </div>
-                                    {}
-                                    <button
-                                        className="btn-edit-icon"
-                                        title="Chỉnh sửa thông tin lớp"
-                                        onClick={(e) => handleOpenEdit(e, cls)}
-                                    >
-                                        ✏️
-                                    </button>
+            {classes.length === 0 ? (
+                <div className="empty-state">
+                    <div style={{ fontSize: 50, marginBottom: 20 }}>🚀</div>
+                    <h3>Chưa có lớp học nào</h3>
+                    <p>Hãy tạo lớp học đầu tiên ngay bây giờ.</p>
+                </div>
+            ) : (
+                <div className="class-grid">
+                    {classes.map((cls) => (
+                        <div
+                            key={cls.id}
+                            className="glass-card"
+                            onClick={() => handleSelectClass(cls)}
+                        >
+                            <div className="card-header">
+                                <div className="card-info">
+                                    <h3 style={{ margin: 0, color: 'var(--primary-color)' }}>
+                                        Lớp {cls.name}
+                                    </h3>
+                                    <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                                        Niên khóa: {cls.school_year}
+                                    </span>
                                 </div>
+                                <button
+                                    className="btn-icon-only"
+                                    title="Chỉnh sửa"
+                                    onClick={(e) => handleOpenEdit(e, cls)}
+                                >
+                                    <FaEdit />
+                                </button>
+                            </div>
 
-                                <div className="card-stats">
-                                    <div className="stat-item">
-                                        <span>📅</span> <b>{cls.school_year}</b>
-                                    </div>
-                                    <div className="stat-item">
-                                        <span>🚀</span>
-                                        {cls.start_date ? (
-                                            `Khai giảng: ${new Date(cls.start_date).toLocaleDateString('vi-VN')}`
-                                        ) : (
-                                            <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
-                                                Chưa set ngày bắt đầu
-                                            </span>
-                                        )}
-                                    </div>
+                            <div className="card-stats">
+                                <div className="stat-item">
+                                    <FaCalendarAlt className="icon-small" />
+                                    <b>{cls.school_year}</b>
                                 </div>
-
-                                <div className="card-actions">
-                                    <button className="btn-action primary">Vào Sổ</button>
-                                    <button
-                                        className="btn-action"
-                                        onClick={(e) => handleManageStudents(e, cls)}
-                                    >
-                                        Học Sinh
-                                    </button>
+                                <div className="stat-item">
+                                    <FaRocket className="icon-small" />
+                                    {cls.start_date ? (
+                                        `Khai giảng: ${new Date(cls.start_date).toLocaleDateString('vi-VN')}`
+                                    ) : (
+                                        <span style={{ fontStyle: 'italic', color: '#999' }}>
+                                            Chưa set ngày
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                )}
-            </main>
+
+                            <div className="card-actions">
+                                <button className="btn btn-outline btn-sm">Vào Sổ</button>
+                                <button
+                                    className="btn btn-outline btn-sm"
+                                    onClick={(e) => handleManageStudents(e, cls)}
+                                >
+                                    <FaChalkboardTeacher /> Học Sinh
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {}
             {showModal && (
@@ -204,7 +196,7 @@ const ClassSelectionPage = () => {
                             <label className="form-label">Tên Lớp</label>
                             <input
                                 type="text"
-                                className="form-input"
+                                className="form-control"
                                 value={className}
                                 onChange={(e) => setClassName(e.target.value)}
                                 placeholder="VD: 12A1"
@@ -213,10 +205,9 @@ const ClassSelectionPage = () => {
 
                         <div className="form-group">
                             <label className="form-label">Năm Học</label>
-                            {}
                             <input
                                 type="text"
-                                className="form-input"
+                                className="form-control"
                                 value={schoolYear}
                                 onChange={(e) => setSchoolYear(e.target.value)}
                                 placeholder="VD: 2024-2025"
@@ -227,21 +218,20 @@ const ClassSelectionPage = () => {
                             <label className="form-label">Ngày Khai Giảng (Tuần 1)</label>
                             <input
                                 type="date"
-                                className="form-input"
+                                className="form-control"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                             />
                             <small className="form-hint">
-                                * Tuần 1 sẽ được tính bắt đầu từ ngày này đến hết Chủ Nhật cùng
-                                tuần.
+                                * Tuần 1 sẽ được tính bắt đầu từ ngày này.
                             </small>
                         </div>
 
                         <div className="modal-footer">
-                            <button className="btn-cancel" onClick={() => setShowModal(false)}>
+                            <button className="btn btn-outline" onClick={() => setShowModal(false)}>
                                 Hủy
                             </button>
-                            <button className="btn-submit" onClick={handleSaveClass}>
+                            <button className="btn btn-primary" onClick={handleSaveClass}>
                                 {isEditing ? 'Cập Nhật' : 'Tạo Lớp'}
                             </button>
                         </div>

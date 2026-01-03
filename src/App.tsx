@@ -7,29 +7,13 @@ import DashboardPage from './pages/DashboardPage';
 import RankingPage from './pages/RankingPage';
 import TrackingPage from './pages/TrackingPage';
 import MyRecordPage from './pages/MyRecordPage';
-import ClassSelectionPage from './pages/ClassSelectionPage';
-
 import StudentManagerPage from './pages/StudentManagerPage';
 import ReportPage from './pages/ReportPage';
+import MainLayout from './components/layout/MainLayout';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     const { isAuthenticated, isLoading } = useAuth();
-
-    if (isLoading) {
-        return (
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    marginTop: '50px',
-                    color: '#666',
-                }}
-            >
-                Đang tải dữ liệu...
-            </div>
-        );
-    }
-
+    if (isLoading) return <div>Loading...</div>;
     return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
@@ -42,69 +26,19 @@ function App() {
                         <Route path="/login" element={<LoginPage />} />
 
                         <Route
-                            path="/"
                             element={
                                 <ProtectedRoute>
-                                    <DashboardPage />
+                                    <MainLayout />
                                 </ProtectedRoute>
                             }
-                        />
-
-                        <Route
-                            path="/ranking"
-                            element={
-                                <ProtectedRoute>
-                                    <RankingPage />
-                                </ProtectedRoute>
-                            }
-                        />
-
-                        <Route
-                            path="/tracking"
-                            element={
-                                <ProtectedRoute>
-                                    <TrackingPage />
-                                </ProtectedRoute>
-                            }
-                        />
-
-                        <Route
-                            path="/my-record"
-                            element={
-                                <ProtectedRoute>
-                                    <MyRecordPage />
-                                </ProtectedRoute>
-                            }
-                        />
-
-                        <Route
-                            path="/classes"
-                            element={
-                                <ProtectedRoute>
-                                    <ClassSelectionPage />
-                                </ProtectedRoute>
-                            }
-                        />
-
-                        {}
-
-                        <Route
-                            path="/students"
-                            element={
-                                <ProtectedRoute>
-                                    <StudentManagerPage />
-                                </ProtectedRoute>
-                            }
-                        />
-
-                        <Route
-                            path="/report"
-                            element={
-                                <ProtectedRoute>
-                                    <ReportPage />
-                                </ProtectedRoute>
-                            }
-                        />
+                        >
+                            <Route path="/" element={<DashboardPage />} />
+                            <Route path="/ranking" element={<RankingPage />} />
+                            <Route path="/tracking" element={<TrackingPage />} />
+                            <Route path="/my-record" element={<MyRecordPage />} />
+                            <Route path="/students" element={<StudentManagerPage />} />
+                            <Route path="/report" element={<ReportPage />} />
+                        </Route>
                     </Routes>
                 </ClassProvider>
             </AuthProvider>

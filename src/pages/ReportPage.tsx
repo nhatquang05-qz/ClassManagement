@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import '../assets/styles/ReportPage.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { FaArrowLeft, FaSearch } from 'react-icons/fa';
 import {
     BarChart,
     Bar,
@@ -34,6 +35,7 @@ interface ViolationType {
 }
 
 const getWeekRange = (weekValue: string) => {
+    if (!weekValue) return { start: '', end: '' };
     const [year, week] = weekValue.split('-W').map(Number);
     const simpleDate = new Date(year, 0, 1 + (week - 1) * 7);
     const dow = simpleDate.getDay();
@@ -85,7 +87,22 @@ const ReportPage = () => {
 
     const START_POINTS = 0;
 
-    const handleWeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const weekOptions = useMemo(() => {
+        const options = [];
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const totalWeeks = 52;
+
+        for (let i = 1; i <= totalWeeks; i++) {
+            const weekValue = `${currentYear}-W${i.toString().padStart(2, '0')}`;
+            const { start, end } = getWeekRange(weekValue);
+            const label = `Tuần ${i} (${start.split('-').reverse().join('/')} - ${end.split('-').reverse().join('/')})`;
+            options.push({ value: weekValue, label });
+        }
+        return options;
+    }, []);
+
+    const handleWeekChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSelectedWeek(val);
         if (val) {
@@ -250,9 +267,16 @@ const ReportPage = () => {
                 <button
                     onClick={() => navigate(-1)}
                     className="btn-back"
-                    style={{ marginRight: '15px', padding: '8px 15px', cursor: 'pointer' }}
+                    style={{
+                        marginRight: '15px',
+                        padding: '8px 15px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                    }}
                 >
-                    ← Quay lại
+                    <FaArrowLeft /> Quay lại
                 </button>
                 <h2 className="r-page-title" style={{ margin: 0 }}>
                     Báo Cáo Chi Tiết & Thống Kê
@@ -262,10 +286,13 @@ const ReportPage = () => {
             <div className="filter-section">
                 <div className="filter-group">
                     <label>Chọn tuần:</label>
-                    <input type="week" value={selectedWeek} onChange={handleWeekChange} />
-                    <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
-                        ({startDate} đến {endDate})
-                    </small>
+                    <select value={selectedWeek} onChange={handleWeekChange}>
+                        {weekOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
                 <div className="filter-group">
                     <label>Tên học sinh:</label>
@@ -294,17 +321,30 @@ const ReportPage = () => {
                     <label>Nhóm/Tổ:</label>
                     <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
                         <option value="">-- Tất cả --</option>
-                        {}
                         {availableGroups.map((g) => (
                             <option key={g} value={g}>
                                 Tổ {g}
                             </option>
                         ))}
-                        {}
                     </select>
                 </div>
-                <button className="btn-search" onClick={fetchReport}>
-                    {loading ? 'Đang tải...' : '🔍 Tìm kiếm'}
+                <button
+                    className="btn-search"
+                    onClick={fetchReport}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        justifyContent: 'center',
+                    }}
+                >
+                    {loading ? (
+                        'Đang tải...'
+                    ) : (
+                        <>
+                            <FaSearch /> Tìm kiếm
+                        </>
+                    )}
                 </button>
             </div>
 
@@ -377,7 +417,6 @@ const ReportPage = () => {
                         justifyContent: 'center',
                     }}
                 >
-                    {}
                     <div
                         style={{
                             flex: '1 1 45%',
@@ -394,14 +433,10 @@ const ReportPage = () => {
                             <BarChart data={chartGroupStats}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
-                                {}
                                 <YAxis />
                                 <Tooltip cursor={{ fill: 'transparent' }} />
                                 <Legend verticalAlign="top" height={36} />
-
                                 <Bar dataKey="bonus" name="Điểm Cộng" fill="#00C49F" barSize={30} />
-
-                                {}
                                 <Bar
                                     dataKey="penalty"
                                     name="Điểm Trừ"
@@ -412,7 +447,6 @@ const ReportPage = () => {
                         </ResponsiveContainer>
                     </div>
 
-                    {}
                     <div
                         style={{
                             flex: '1 1 45%',
@@ -432,7 +466,6 @@ const ReportPage = () => {
                                 <YAxis allowDecimals={false} />
                                 <Tooltip cursor={{ fill: 'transparent' }} />
                                 <Legend verticalAlign="top" height={36} />
-
                                 <Bar
                                     dataKey="violationCount"
                                     name="Số lần vi phạm"
@@ -443,9 +476,6 @@ const ReportPage = () => {
                         </ResponsiveContainer>
                     </div>
 
-                    {}
-
-                    {}
                     <div
                         style={{
                             flex: '1 1 45%',

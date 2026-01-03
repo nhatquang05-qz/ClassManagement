@@ -1,136 +1,56 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import '../assets/styles/Dashboard.css';
 
 const DashboardPage: React.FC = () => {
-    const { user, logout } = useAuth();
-    const navigate = useNavigate();
-
+    const { user } = useAuth();
     const [currentClassName] = useState(localStorage.getItem('selectedClassName') || 'Lớp Học');
 
-    useEffect(() => {
-        if (user?.role === 'teacher' || user?.role === 'admin') {
-            const classId = localStorage.getItem('selectedClassId');
-            if (!classId) {
-                navigate('/classes');
-            }
-        }
-    }, [user, navigate]);
-
-    const handleLogout = () => {
-        localStorage.removeItem('selectedClassId');
-        localStorage.removeItem('selectedClassName');
-        logout();
-    };
-
-    
-    const handleBackToClasses = () => {
-        localStorage.removeItem('selectedClassId');
-        localStorage.removeItem('selectedClassName');
-        navigate('/classes');
-    };
-
     return (
-        <div className="dashboard-container">
-            <header className="dashboard-header">
+        <div className="dashboard-content">
+            <div style={{ marginBottom: '20px' }}>
+                <h1 style={{ color: 'var(--primary-color)' }}>Xin chào, {user?.full_name}! 👋</h1>
+                <p style={{ color: '#666' }}>
+                    Chào mừng bạn quay trở lại với hệ thống quản lý lớp học{' '}
+                    <b>{currentClassName}</b>.
+                </p>
+            </div>
+
+            {}
+            <div className="ranking-cards">
+                <div className="rank-card" style={{ borderTop: '4px solid var(--primary-color)' }}>
+                    <h3>Vai trò</h3>
+                    <p className="points">{user?.role_display}</p>
+                </div>
                 {}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    {(user?.role === 'teacher' || user?.role === 'admin') && (
-                        <button
-                            onClick={handleBackToClasses}
-                            className="btn btn-outline"
-                            title="Quay lại danh sách lớp"
-                            style={{ padding: '8px 12px', borderColor: '#cbd5e1' }}
-                        >
-                            ← Quay lại
-                        </button>
-                    )}
-                    <h1 style={{ margin: 0, fontSize: '1.5rem', color: '#1e293b' }}>
-                        {currentClassName}
-                    </h1>
-                </div>
-                
-                <div className="user-info" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <span style={{ color: '#64748b' }}>
-                        Xin chào, <b style={{ color: '#333' }}>{user?.full_name}</b> ({user?.role_display})
-                    </span>
-                    
-                    {}
-                    
-                    <button onClick={handleLogout} className="btn btn-danger">
-                        Đăng xuất
-                    </button>
-                </div>
-            </header>
+            </div>
 
-            <main className="dashboard-content">
-                <section className="actions-section">
-                    {}
-                    <Link
-                        to="/ranking"
-                        className="action-card"
-                        style={{ borderLeft: '5px solid #eab308', backgroundColor: '#fffbeb' }}
-                    >
-                        <div style={{ fontSize: '2rem', marginRight: '15px' }}>🏆</div>
-                        <div>
-                            <h3 style={{ margin: 0, color: '#b45309' }}>Bảng xếp hạng</h3>
-                        </div>
-                    </Link>
-
-                    {}
-                    {user?.role !== 'admin' && user?.role !== 'teacher' && (
-                        <Link
-                            to="/my-record"
-                            className="action-card"
-                            style={{ borderLeft: '5px solid #4caf50' }}
-                        >
-                            👤 Xem thông tin cá nhân
-                        </Link>
+            <div
+                style={{
+                    marginTop: '30px',
+                    padding: '20px',
+                    background: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #eee',
+                }}
+            >
+                <h3>📌 Hướng dẫn nhanh</h3>
+                <ul style={{ paddingLeft: '20px', color: '#555', lineHeight: '1.6' }}>
+                    <li>
+                        Sử dụng <b>Sidebar bên trái</b> để di chuyển giữa các trang.
+                    </li>
+                    <li>
+                        Bạn có thể đóng/mở Sidebar bằng nút mũi tên để mở rộng không gian làm việc.
+                    </li>
+                    {user?.role === 'group_leader' && (
+                        <li>
+                            Bạn là <b>Tổ trưởng</b>: Hãy vào mục "Sổ theo dõi" để ghi nhận vi phạm.
+                        </li>
                     )}
-
-                    {}
-                    {(user?.role === 'group_leader' ||
-                        user?.role === 'vice_group_leader' ||
-                        user?.role === 'vice_moniter_study' ||
-                        user?.role === 'vice_moniter_labor' ||
-                        user?.role === 'monitor' ||
-                        user?.role === 'teacher' || 
-                        user?.role === 'admin') && (
-                        <Link
-                            to="/tracking"
-                            className="action-card"
-                            style={{ borderLeft: '5px solid #2196f3' }}
-                        >
-                            📝 Sổ theo dõi
-                        </Link>
+                    {user?.role === 'student' && (
+                        <li>Bạn có thể xem điểm thi đua của mình tại mục "Hạnh kiểm cá nhân".</li>
                     )}
-
-                    {}
-                    {(user?.role === 'admin' ||
-                        user?.role === 'monitor' ||
-                        user?.role === 'teacher') && (
-                        <Link
-                            to="/report"
-                            className="action-card"
-                            style={{ borderLeft: '5px solid #ff9800' }}
-                        >
-                            📊 Báo cáo tổng hợp
-                        </Link>
-                    )}
-
-                    {}
-                    {(user?.role === 'teacher' || user?.role === 'admin') && (
-                        <Link
-                            to="/students"
-                            className="action-card"
-                            style={{ borderLeft: '5px solid #9c27b0' }}
-                        >
-                            👥 Danh sách học sinh
-                        </Link>
-                    )}
-                </section>
-            </main>
+                </ul>
+            </div>
         </div>
     );
 };
