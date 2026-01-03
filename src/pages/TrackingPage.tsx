@@ -99,6 +99,8 @@ const TrackingPage: React.FC = () => {
 
     useEffect(() => {
         const fetchBaseData = async () => {
+            if (!selectedClassId && user?.role !== 'student') return;
+
             try {
                 const [vRes, sRes] = await Promise.all([
                     api.get('/violations'),
@@ -121,11 +123,13 @@ const TrackingPage: React.FC = () => {
 
     useEffect(() => {
         const fetchWeekData = async () => {
+            if (!selectedClassId && user?.role !== 'student') return;
+
             setLoading(true);
             try {
                 const params: any = {
                     week: selectedWeek,
-                    class_id: selectedClassId || undefined,
+                    class_id: selectedClassId,
                 };
 
                 if (user?.role === 'group_leader' && user.group_number) {
@@ -183,7 +187,7 @@ const TrackingPage: React.FC = () => {
 
             const params: any = {
                 week: selectedWeek,
-                class_id: selectedClassId || undefined,
+                class_id: selectedClassId,
             };
             if (user?.role === 'group_leader') params.group_number = user.group_number;
 
@@ -207,7 +211,7 @@ const TrackingPage: React.FC = () => {
 
             const params: any = {
                 week: selectedWeek,
-                class_id: selectedClassId || undefined,
+                class_id: selectedClassId,
             };
             if (user?.role === 'group_leader') params.group_number = user.group_number;
 

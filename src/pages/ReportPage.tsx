@@ -113,10 +113,11 @@ const ReportPage = () => {
     
     useEffect(() => {
         const fetchGroups = async () => {
+            const selectedClassId = localStorage.getItem('selectedClassId');
+            if (!selectedClassId) return;
+
             try {
-                const selectedClassId = localStorage.getItem('selectedClassId');
-                const query = selectedClassId ? `?class_id=${selectedClassId}` : '';
-                const res = await fetch(`http://localhost:3000/api/users${query}`, {
+                const res = await fetch(`http://localhost:3000/api/users?class_id=${selectedClassId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 const data = await res.json();
@@ -136,6 +137,13 @@ const ReportPage = () => {
     
 
     const fetchReport = async () => {
+        const selectedClassId = localStorage.getItem('selectedClassId');
+        if (!selectedClassId) {
+            alert('Vui lòng chọn lớp trước khi xem báo cáo.');
+            navigate('/classes');
+            return;
+        }
+
         setLoading(true);
         try {
             const queryParams = new URLSearchParams({
@@ -144,10 +152,8 @@ const ReportPage = () => {
                 studentName,
                 violationTypeId,
                 groupId,
+                class_id: selectedClassId
             });
-            
-            const selectedClassId = localStorage.getItem('selectedClassId');
-            if (selectedClassId) queryParams.append('class_id', selectedClassId);
 
             const res = await fetch(`http://localhost:3000/api/reports/detailed?${queryParams}`, {
                 headers: { Authorization: `Bearer ${token}` },

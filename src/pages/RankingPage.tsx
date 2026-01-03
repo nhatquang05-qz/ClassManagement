@@ -56,7 +56,10 @@ const RankingPage: React.FC = () => {
             setLoading(true);
             const classId = localStorage.getItem('selectedClassId') || (user as any)?.class_id;
 
-            if (!classId) return;
+            if (!classId) {
+                setLoading(false);
+                return;
+            }
 
             const { start, end } = getWeekRange(selectedWeek);
 

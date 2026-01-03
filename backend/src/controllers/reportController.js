@@ -72,7 +72,8 @@ const createBulkReports = async (req, res) => {
 
 const getWeeklyReport = async (req, res) => {
     try {
-        const { week, group_number } = req.query;
+        // [SỬA] Nhận thêm class_id từ query
+        const { week, group_number, class_id } = req.query;
 
         let query = `
             SELECT 
@@ -98,6 +99,12 @@ const getWeeklyReport = async (req, res) => {
         if (group_number) {
             query += ` AND u.group_number = ?`;
             params.push(group_number);
+        }
+
+        // [SỬA] Thêm điều kiện lọc theo class_id để History Log hiển thị đúng
+        if (class_id) {
+            query += ` AND u.class_id = ?`;
+            params.push(class_id);
         }
 
         query += ` ORDER BY dl.log_date DESC, dl.created_at DESC`;
@@ -160,7 +167,8 @@ const deleteReport = async (req, res) => {
 
 const getViolationsByDate = async (req, res) => {
     try {
-        const { date, group_number } = req.query;
+        // [SỬA] Nhận thêm class_id
+        const { date, group_number, class_id } = req.query;
         let query = `
       SELECT l.*, u.full_name as student_name, v.name as violation_name, v.points
       FROM daily_logs l
@@ -173,6 +181,13 @@ const getViolationsByDate = async (req, res) => {
             query += ` AND u.group_number = ?`;
             params.push(group_number);
         }
+        
+        // [SỬA] Lọc theo class_id
+        if (class_id) {
+            query += ` AND u.class_id = ?`;
+            params.push(class_id);
+        }
+
         const [rows] = await db.query(query, params);
         res.json(rows);
     } catch (error) {
@@ -210,7 +225,8 @@ const getMyLogs = async (req, res) => {
 
 const getDetailedReport = async (req, res) => {
     try {
-        const { startDate, endDate, studentName, violationTypeId, groupId } = req.query;
+        // [SỬA] Nhận thêm class_id
+        const { startDate, endDate, studentName, violationTypeId, groupId, class_id } = req.query;
 
         let query = `
       SELECT 
@@ -251,6 +267,12 @@ const getDetailedReport = async (req, res) => {
         if (groupId) {
             query += ` AND u.group_number = ?`;
             params.push(groupId);
+        }
+
+        // [SỬA] Lọc class_id cho trang Ranking và Report
+        if (class_id) {
+            query += ` AND u.class_id = ?`;
+            params.push(class_id);
         }
 
         query += ` ORDER BY dl.log_date DESC, u.group_number ASC, u.full_name ASC`;
