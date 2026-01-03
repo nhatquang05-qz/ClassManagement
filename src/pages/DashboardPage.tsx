@@ -93,19 +93,24 @@ const DashboardPage: React.FC = () => {
                     </Link>
 
                     {}
-                    <Link
-                        to="/my-record"
-                        className="action-card"
-                        style={{ borderLeft: '5px solid #4caf50' }}
-                    >
-                        👤 Xem thông tin cá nhân
-                    </Link>
+                    {user?.role !== 'admin' && user?.role !== 'teacher' && (
+                        <Link
+                            to="/my-record"
+                            className="action-card"
+                            style={{ borderLeft: '5px solid #4caf50' }}
+                        >
+                            👤 Xem thông tin cá nhân
+                        </Link>
+                    )}
 
+                    {}
                     {(user?.role === 'group_leader' ||
                         user?.role === 'vice_group_leader' ||
+                        user?.role === 'vice_moniter_study' ||
+                        user?.role === 'vice_moniter_labor' ||
                         user?.role === 'monitor' ||
-                        user?.role === 'admin' ||
-                        user?.role === 'student') && (
+                        user?.role === 'teacher' || 
+                        user?.role === 'admin') && (
                         <Link
                             to="/tracking"
                             className="action-card"
@@ -115,6 +120,7 @@ const DashboardPage: React.FC = () => {
                         </Link>
                     )}
 
+                    {}
                     {(user?.role === 'admin' ||
                         user?.role === 'monitor' ||
                         user?.role === 'teacher') && (
@@ -127,6 +133,7 @@ const DashboardPage: React.FC = () => {
                         </Link>
                     )}
 
+                    {}
                     {(user?.role === 'teacher' || user?.role === 'admin') && (
                         <Link
                             to="/students"

@@ -9,6 +9,7 @@ interface ClassItem {
     id: number;
     name: string;
     school_year: string;
+    start_date?: string; 
 }
 
 const ClassSelectionPage = () => {
@@ -17,9 +18,15 @@ const ClassSelectionPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
+    
     const [showModal, setShowModal] = useState(false);
-    const [newClassName, setNewClassName] = useState('');
-    const [newSchoolYear, setNewSchoolYear] = useState('2024-2025');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingClassId, setEditingClassId] = useState<number | null>(null);
+
+    
+    const [className, setClassName] = useState('');
+    const [schoolYear, setSchoolYear] = useState('');
+    const [startDate, setStartDate] = useState('');
 
     useEffect(() => {
         fetchClasses();
@@ -34,10 +41,66 @@ const ClassSelectionPage = () => {
         }
     };
 
+    const resetForm = () => {
+        setClassName('');
+        setSchoolYear('2024-2025'); 
+        setStartDate('');
+        setIsEditing(false);
+        setEditingClassId(null);
+    };
+
+    const handleOpenCreate = () => {
+        resetForm();
+        setShowModal(true);
+    };
+
+    const handleOpenEdit = (e: React.MouseEvent, cls: ClassItem) => {
+        e.stopPropagation();
+        setClassName(cls.name);
+        setSchoolYear(cls.school_year);
+        setStartDate(cls.start_date ? cls.start_date.split('T')[0] : '');
+        setIsEditing(true);
+        setEditingClassId(cls.id);
+        setShowModal(true);
+    };
+
+    const handleSaveClass = async () => {
+        if (!className || !schoolYear) return alert('Vui lòng nhập tên lớp và niên khóa!');
+        
+        try {
+            const payload = { 
+                name: className, 
+                school_year: schoolYear,
+                start_date: startDate || null 
+            };
+
+            if (isEditing && editingClassId) {
+                
+                await api.put(`/classes/${editingClassId}`, payload);
+                alert('Cập nhật lớp thành công!');
+            } else {
+                
+                await api.post('/classes', payload);
+                alert('Tạo lớp thành công!');
+            }
+
+            setShowModal(false);
+            resetForm();
+            fetchClasses();
+        } catch (error) {
+            console.error(error);
+            alert('Có lỗi xảy ra khi lưu thông tin lớp.');
+        }
+    };
+
     const handleSelectClass = (cls: ClassItem) => {
         setSelectedClass(cls);
         localStorage.setItem('selectedClassId', cls.id.toString());
         localStorage.setItem('selectedClassName', cls.name);
+        
+        
+        localStorage.setItem('currentClass', JSON.stringify(cls));
+        
         navigate('/');
     };
 
@@ -45,25 +108,12 @@ const ClassSelectionPage = () => {
         e.stopPropagation();
         localStorage.setItem('selectedClassId', cls.id.toString());
         localStorage.setItem('selectedClassName', cls.name);
+        localStorage.setItem('currentClass', JSON.stringify(cls));
         navigate('/students');
-    };
-
-    const handleCreateClass = async () => {
-        if (!newClassName) return alert('Vui lòng nhập tên lớp');
-        try {
-            await api.post('/classes', { name: newClassName, school_year: newSchoolYear });
-            alert('Tạo lớp thành công!');
-            setShowModal(false);
-            setNewClassName('');
-            fetchClasses();
-        } catch (error) {
-            alert('Lỗi khi tạo lớp');
-        }
     };
 
     return (
         <div className="dashboard-layout">
-            {}
             <aside className="sidebar">
                 <div className="logo-area">
                     <span>⚡ ClassManager</span>
@@ -82,14 +132,13 @@ const ClassSelectionPage = () => {
                         <h1>Xin chào, {user?.full_name}!</h1>
                         <p>Chọn lớp học để bắt đầu làm việc.</p>
                     </div>
-                    {}
-                    <button className="btn-create" onClick={() => setShowModal(true)}>
+                    <button className="btn-create" onClick={handleOpenCreate}>
                         <span>+</span> Tạo Lớp Mới
                     </button>
                 </header>
 
                 {classes.length === 0 ? (
-                    <div className="empty-state">
+                    <div className="empty-state" style={{textAlign: 'center', marginTop: 50}}>
                         <div style={{ fontSize: 50, marginBottom: 20 }}>🚀</div>
                         <h3 style={{ color: '#333' }}>Chưa có lớp học nào</h3>
                         <p style={{ color: '#94a3b8' }}>Hãy tạo lớp học đầu tiên ngay bây giờ.</p>
@@ -107,7 +156,14 @@ const ClassSelectionPage = () => {
                                         <h2>Lớp {cls.name}</h2>
                                         <span>Niên khóa: {cls.school_year}</span>
                                     </div>
-                                    <div className="class-icon-box">🎓</div>
+                                    {}
+                                    <button 
+                                        className="btn-edit-icon" 
+                                        title="Chỉnh sửa thông tin lớp"
+                                        onClick={(e) => handleOpenEdit(e, cls)}
+                                    >
+                                        ✏️
+                                    </button>
                                 </div>
 
                                 <div className="card-stats">
@@ -115,7 +171,11 @@ const ClassSelectionPage = () => {
                                         <span>📅</span> <b>{cls.school_year}</b>
                                     </div>
                                     <div className="stat-item">
-                                        <span>ID:</span> <b>{cls.id}</b>
+                                        <span>🚀</span> 
+                                        {cls.start_date 
+                                            ? `Khai giảng: ${new Date(cls.start_date).toLocaleDateString('vi-VN')}` 
+                                            : <span style={{color: '#9ca3af', fontStyle:'italic'}}>Chưa set ngày bắt đầu</span>
+                                        }
                                     </div>
                                 </div>
 
@@ -136,129 +196,52 @@ const ClassSelectionPage = () => {
 
             {}
             {showModal && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0,0,0,0.5)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 1000,
-                    }}
-                >
-                    <div
-                        style={{
-                            background: 'white',
-                            padding: 30,
-                            borderRadius: 16,
-                            width: 400,
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-                        }}
-                    >
-                        <h3
-                            style={{
-                                color: '#111827',
-                                marginTop: 0,
-                                marginBottom: 20,
-                                fontSize: 20,
-                            }}
-                        >
-                            Thêm Lớp Mới
-                        </h3>
+                <div className="modal-overlay">
+                    <div className="modal-box">
+                        <h3 className="modal-title">{isEditing ? 'Cập Nhật Lớp' : 'Thêm Lớp Mới'}</h3>
 
-                        <div style={{ marginBottom: 15 }}>
-                            <label
-                                style={{
-                                    color: '#4b5563',
-                                    display: 'block',
-                                    marginBottom: 8,
-                                    fontSize: 14,
-                                    fontWeight: 500,
-                                }}
-                            >
-                                Tên Lớp
-                            </label>
+                        <div className="form-group">
+                            <label className="form-label">Tên Lớp</label>
                             <input
                                 type="text"
-                                value={newClassName}
-                                onChange={(e) => setNewClassName(e.target.value)}
+                                className="form-input"
+                                value={className}
+                                onChange={(e) => setClassName(e.target.value)}
                                 placeholder="VD: 12A1"
-                                style={{
-                                    width: '100%',
-                                    padding: 10,
-                                    borderRadius: 8,
-                                    border: '1px solid #d1d5db',
-                                    background: 'white',
-                                    color: '#111827',
-                                    fontSize: 15,
-                                }}
                             />
                         </div>
 
-                        <div style={{ marginBottom: 30 }}>
-                            <label
-                                style={{
-                                    color: '#4b5563',
-                                    display: 'block',
-                                    marginBottom: 8,
-                                    fontSize: 14,
-                                    fontWeight: 500,
-                                }}
-                            >
-                                Năm Học
-                            </label>
-                            <select
-                                value={newSchoolYear}
-                                onChange={(e) => setNewSchoolYear(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: 10,
-                                    borderRadius: 8,
-                                    border: '1px solid #d1d5db',
-                                    background: 'white',
-                                    color: '#111827',
-                                    fontSize: 15,
-                                }}
-                            >
-                                <option>2023-2024</option>
-                                <option>2024-2025</option>
-                                <option>2025-2026</option>
-                            </select>
+                        <div className="form-group">
+                            <label className="form-label">Năm Học</label>
+                            {}
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={schoolYear}
+                                onChange={(e) => setSchoolYear(e.target.value)}
+                                placeholder="VD: 2024-2025"
+                            />
                         </div>
 
-                        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                style={{
-                                    padding: '10px 20px',
-                                    borderRadius: 8,
-                                    border: '1px solid #e5e7eb',
-                                    background: 'white',
-                                    color: '#4b5563',
-                                    cursor: 'pointer',
-                                    fontWeight: 500,
-                                }}
-                            >
+                        <div className="form-group">
+                            <label className="form-label">Ngày Khai Giảng (Tuần 1)</label>
+                            <input
+                                type="date"
+                                className="form-input"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                            />
+                            <small className="form-hint">
+                                * Tuần 1 sẽ được tính bắt đầu từ ngày này đến hết Chủ Nhật cùng tuần.
+                            </small>
+                        </div>
+
+                        <div className="modal-footer">
+                            <button className="btn-cancel" onClick={() => setShowModal(false)}>
                                 Hủy
                             </button>
-                            <button
-                                onClick={handleCreateClass}
-                                style={{
-                                    padding: '10px 20px',
-                                    borderRadius: 8,
-                                    border: 'none',
-                                    background: '#2563eb',
-                                    color: 'white',
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
-                                }}
-                            >
-                                Tạo Lớp
+                            <button className="btn-submit" onClick={handleSaveClass}>
+                                {isEditing ? 'Cập Nhật' : 'Tạo Lớp'}
                             </button>
                         </div>
                     </div>
