@@ -31,60 +31,37 @@ const DashboardPage: React.FC = () => {
     };
 
     return (
-        <div
-            className="dashboard-container"
-            style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}
-        >
-            <header
-                className="dashboard-header"
-                style={{ marginBottom: '40px', textAlign: 'center' }}
-            >
-                <h1 style={{ color: '#1e293b', marginBottom: '10px' }}>{currentClassName}</h1>
-                <div className="user-info">
+        <div className="dashboard-container">
+            <header className="dashboard-header">
+                <h1>{currentClassName}</h1>
+
+                <div
+                    className="user-info"
+                    style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                >
                     <span>
                         Xin chào, <b>{user?.full_name}</b> ({user?.role_display})
                     </span>
+
                     {(user?.role === 'teacher' || user?.role === 'admin') && (
-                        <button
-                            onClick={handleChangeClass}
-                            className="logout-btn"
-                            style={{ marginRight: 10, backgroundColor: '#2196f3' }}
-                        >
+                        <button onClick={handleChangeClass} className="btn btn-primary">
                             ↻ Đổi lớp
                         </button>
                     )}
-                    <button onClick={handleLogout} className="logout-btn">
+
+                    <button onClick={handleLogout} className="btn btn-danger">
                         Đăng xuất
                     </button>
                 </div>
             </header>
 
             <main className="dashboard-content">
-                <section
-                    className="actions-section"
-                    style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                        gap: '20px',
-                    }}
-                >
+                <section className="actions-section">
                     {}
                     <Link
                         to="/ranking"
                         className="action-card"
-                        style={{
-                            borderLeft: '5px solid #eab308',
-                            backgroundColor: '#fffbeb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '20px',
-                            textDecoration: 'none',
-                            color: '#333',
-                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                            borderRadius: '8px',
-                            transition: 'transform 0.2s',
-                            cursor: 'pointer',
-                        }}
+                        style={{ borderLeft: '5px solid #eab308', backgroundColor: '#fffbeb' }}
                     >
                         <div style={{ fontSize: '2rem', marginRight: '15px' }}>🏆</div>
                         <div>
@@ -109,7 +86,7 @@ const DashboardPage: React.FC = () => {
                         user?.role === 'vice_moniter_study' ||
                         user?.role === 'vice_moniter_labor' ||
                         user?.role === 'monitor' ||
-                        user?.role === 'teacher' || 
+                        user?.role === 'teacher' ||
                         user?.role === 'admin') && (
                         <Link
                             to="/tracking"
@@ -143,6 +120,8 @@ const DashboardPage: React.FC = () => {
                             👥 Danh sách học sinh
                         </Link>
                     )}
+
+                    {}
                 </section>
             </main>
         </div>

@@ -1,6 +1,6 @@
 .dashboard-container {
     min-height: 100vh;
-    background-color: #f5f7fa;
+    background-color: var(--bg-light);
 }
 
 .dashboard-header {
@@ -22,19 +22,10 @@
     margin-right: 15px;
 }
 
-.logout-btn {
-    padding: 5px 15px;
-    background: #ff5252;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
 .dashboard-content {
     padding: 30px;
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
 }
 
 .ranking-cards {
@@ -67,7 +58,7 @@
 .rank-card .points {
     font-size: 32px;
     font-weight: bold;
-    color: #2196f3;
+    color: var(--primary-color);
     margin: 0;
 }
 
@@ -105,12 +96,14 @@
 
 .actions-section {
     margin-top: 40px;
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
 }
 
 .action-card {
-    display: block;
+    display: flex;
+    align-items: center;
     padding: 30px;
     background: #fff;
     color: #333;
@@ -120,9 +113,11 @@
     font-weight: bold;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
     border: 1px solid #eee;
+    transition: all 0.2s ease;
 }
 
 .action-card:hover {
     background: #e3f2fd;
-    border-color: #2196f3;
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
 }

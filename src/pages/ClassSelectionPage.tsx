@@ -9,7 +9,7 @@ interface ClassItem {
     id: number;
     name: string;
     school_year: string;
-    start_date?: string; 
+    start_date?: string;
 }
 
 const ClassSelectionPage = () => {
@@ -18,12 +18,10 @@ const ClassSelectionPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editingClassId, setEditingClassId] = useState<number | null>(null);
 
-    
     const [className, setClassName] = useState('');
     const [schoolYear, setSchoolYear] = useState('');
     const [startDate, setStartDate] = useState('');
@@ -43,7 +41,7 @@ const ClassSelectionPage = () => {
 
     const resetForm = () => {
         setClassName('');
-        setSchoolYear('2024-2025'); 
+        setSchoolYear('2024-2025');
         setStartDate('');
         setIsEditing(false);
         setEditingClassId(null);
@@ -66,20 +64,18 @@ const ClassSelectionPage = () => {
 
     const handleSaveClass = async () => {
         if (!className || !schoolYear) return alert('Vui lòng nhập tên lớp và niên khóa!');
-        
+
         try {
-            const payload = { 
-                name: className, 
+            const payload = {
+                name: className,
                 school_year: schoolYear,
-                start_date: startDate || null 
+                start_date: startDate || null,
             };
 
             if (isEditing && editingClassId) {
-                
                 await api.put(`/classes/${editingClassId}`, payload);
                 alert('Cập nhật lớp thành công!');
             } else {
-                
                 await api.post('/classes', payload);
                 alert('Tạo lớp thành công!');
             }
@@ -97,10 +93,9 @@ const ClassSelectionPage = () => {
         setSelectedClass(cls);
         localStorage.setItem('selectedClassId', cls.id.toString());
         localStorage.setItem('selectedClassName', cls.name);
-        
-        
+
         localStorage.setItem('currentClass', JSON.stringify(cls));
-        
+
         navigate('/');
     };
 
@@ -138,7 +133,7 @@ const ClassSelectionPage = () => {
                 </header>
 
                 {classes.length === 0 ? (
-                    <div className="empty-state" style={{textAlign: 'center', marginTop: 50}}>
+                    <div className="empty-state" style={{ textAlign: 'center', marginTop: 50 }}>
                         <div style={{ fontSize: 50, marginBottom: 20 }}>🚀</div>
                         <h3 style={{ color: '#333' }}>Chưa có lớp học nào</h3>
                         <p style={{ color: '#94a3b8' }}>Hãy tạo lớp học đầu tiên ngay bây giờ.</p>
@@ -157,8 +152,8 @@ const ClassSelectionPage = () => {
                                         <span>Niên khóa: {cls.school_year}</span>
                                     </div>
                                     {}
-                                    <button 
-                                        className="btn-edit-icon" 
+                                    <button
+                                        className="btn-edit-icon"
                                         title="Chỉnh sửa thông tin lớp"
                                         onClick={(e) => handleOpenEdit(e, cls)}
                                     >
@@ -171,11 +166,14 @@ const ClassSelectionPage = () => {
                                         <span>📅</span> <b>{cls.school_year}</b>
                                     </div>
                                     <div className="stat-item">
-                                        <span>🚀</span> 
-                                        {cls.start_date 
-                                            ? `Khai giảng: ${new Date(cls.start_date).toLocaleDateString('vi-VN')}` 
-                                            : <span style={{color: '#9ca3af', fontStyle:'italic'}}>Chưa set ngày bắt đầu</span>
-                                        }
+                                        <span>🚀</span>
+                                        {cls.start_date ? (
+                                            `Khai giảng: ${new Date(cls.start_date).toLocaleDateString('vi-VN')}`
+                                        ) : (
+                                            <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+                                                Chưa set ngày bắt đầu
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -198,7 +196,9 @@ const ClassSelectionPage = () => {
             {showModal && (
                 <div className="modal-overlay">
                     <div className="modal-box">
-                        <h3 className="modal-title">{isEditing ? 'Cập Nhật Lớp' : 'Thêm Lớp Mới'}</h3>
+                        <h3 className="modal-title">
+                            {isEditing ? 'Cập Nhật Lớp' : 'Thêm Lớp Mới'}
+                        </h3>
 
                         <div className="form-group">
                             <label className="form-label">Tên Lớp</label>
@@ -232,7 +232,8 @@ const ClassSelectionPage = () => {
                                 onChange={(e) => setStartDate(e.target.value)}
                             />
                             <small className="form-hint">
-                                * Tuần 1 sẽ được tính bắt đầu từ ngày này đến hết Chủ Nhật cùng tuần.
+                                * Tuần 1 sẽ được tính bắt đầu từ ngày này đến hết Chủ Nhật cùng
+                                tuần.
                             </small>
                         </div>
 

@@ -8,9 +8,8 @@ import RankingPage from './pages/RankingPage';
 import TrackingPage from './pages/TrackingPage';
 import MyRecordPage from './pages/MyRecordPage';
 import ClassSelectionPage from './pages/ClassSelectionPage';
-import ClassManagementPage from './pages/ClassManagementPage';
-import StudentManagerPage from './pages/StudentManagerPage';
 
+import StudentManagerPage from './pages/StudentManagerPage';
 import ReportPage from './pages/ReportPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
@@ -51,7 +50,6 @@ function App() {
                             }
                         />
 
-                        {}
                         <Route
                             path="/ranking"
                             element={
@@ -88,14 +86,7 @@ function App() {
                             }
                         />
 
-                        <Route
-                            path="/manage-classes"
-                            element={
-                                <ProtectedRoute>
-                                    <ClassManagementPage />
-                                </ProtectedRoute>
-                            }
-                        />
+                        {}
 
                         <Route
                             path="/students"
