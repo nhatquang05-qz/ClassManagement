@@ -7,7 +7,7 @@ const userController = require('./controllers/userController');
 const violationController = require('./controllers/violationController');
 const classRoutes = require('./routes/classRoutes');
 const userRoutes = require('./routes/userRoutes');
-
+const infoRoutes = require('./routes/infoRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const verifyToken = require('./middleware/authMiddleware');
 
@@ -44,5 +44,5 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
-
+app.use('/api/info', infoRoutes);
 module.exports = app;
