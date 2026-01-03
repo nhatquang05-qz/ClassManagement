@@ -242,6 +242,35 @@ const resetPassword = async (req, res) => {
     }
 };
 
+const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.query('DELETE FROM users WHERE id = ?', [id]);
+        res.json({ message: 'Đã xóa học sinh thành công' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi khi xóa học sinh' });
+    }
+};
+
+const bulkDeleteUsers = async (req, res) => {
+    try {
+        const { student_ids } = req.body; 
+        if (!student_ids || student_ids.length === 0) {
+            return res.status(400).json({ message: 'Chưa chọn học sinh để xóa' });
+        }
+
+        const placeholders = student_ids.map(() => '?').join(',');
+        
+        await db.query(`DELETE FROM users WHERE id IN (${placeholders})`, student_ids);
+
+        res.json({ message: `Đã xóa thành công ${student_ids.length} học sinh.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi khi xóa danh sách học sinh' });
+    }
+};
+
 module.exports = {
     getUsers,
     importStudents,
@@ -249,4 +278,6 @@ module.exports = {
     createUser,
     bulkUpdateGroup,
     resetPassword,
+    deleteUser, 
+    bulkDeleteUsers
 };

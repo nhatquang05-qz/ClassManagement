@@ -11,5 +11,8 @@ router.put('/bulk-group', authenticateToken, userController.bulkUpdateGroup);
 router.put('/:id', authenticateToken, userController.updateUser);
 router.put('/:id/reset-password', authenticateToken, userController.resetPassword);
 router.post('/import', authenticateToken, upload.single('file'), userController.importStudents);
+router.put('/bulk-group', userController.bulkUpdateGroup); 
+router.delete('/:id', userController.deleteUser);
+router.post('/bulk-delete', userController.bulkDeleteUsers);
 
 module.exports = router;

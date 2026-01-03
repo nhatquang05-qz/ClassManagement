@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import '../assets/styles/ReportPage.css';
 import { useAuth } from '../contexts/AuthContext';
+import { useClass } from '../contexts/ClassContext'; 
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
+import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils'; 
 
 import api from '../utils/api';
 import {
@@ -36,44 +38,28 @@ interface ViolationType {
     name: string;
 }
 
-const getWeekRange = (weekValue: string) => {
-    if (!weekValue) return { start: '', end: '' };
-    const [year, week] = weekValue.split('-W').map(Number);
-    const simpleDate = new Date(year, 0, 1 + (week - 1) * 7);
-    const dow = simpleDate.getDay();
-    const ISOweekStart = simpleDate;
-    if (dow <= 4) ISOweekStart.setDate(simpleDate.getDate() - simpleDate.getDay() + 1);
-    else ISOweekStart.setDate(simpleDate.getDate() + 8 - simpleDate.getDay());
-
-    const startDate = new Date(ISOweekStart);
-    const endDate = new Date(ISOweekStart);
-    endDate.setDate(endDate.getDate() + 6);
-
-    return {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0],
-    };
-};
-
-const getCurrentWeek = () => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-    const week1 = new Date(date.getFullYear(), 0, 4);
-    const weekNumber =
-        1 +
-        Math.round(
-            ((date.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7
-        );
-    return `${date.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
-};
-
 const ReportPage = () => {
     const navigate = useNavigate();
+    const { selectedClass } = useClass(); 
 
-    const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
-    const [startDate, setStartDate] = useState(() => getWeekRange(getCurrentWeek()).start);
-    const [endDate, setEndDate] = useState(() => getWeekRange(getCurrentWeek()).end);
+    
+    const [fetchedStartDate, setFetchedStartDate] = useState<string | undefined>(selectedClass?.start_date);
+    
+    
+    const classStartDate = fetchedStartDate || selectedClass?.start_date;
+
+    
+    const currentRealWeek = useMemo(() => {
+        if (!classStartDate) return 1;
+        return getWeekNumberFromStart(new Date(), classStartDate);
+    }, [classStartDate]);
+
+    
+    const [selectedWeek, setSelectedWeek] = useState<number>(1);
+    
+    
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     const [studentName, setStudentName] = useState('');
     const [violationTypeId, setViolationTypeId] = useState('');
@@ -81,35 +67,69 @@ const ReportPage = () => {
 
     const [reportData, setReportData] = useState<ReportItem[]>([]);
     const [violationsList, setViolationsList] = useState<ViolationType[]>([]);
-
     const [availableGroups, setAvailableGroups] = useState<number[]>([]);
-
     const [loading, setLoading] = useState(false);
 
-    const weekOptions = useMemo(() => {
-        const options = [];
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const totalWeeks = 52;
+    
+    useEffect(() => {
+        const fetchClassInfo = async () => {
+            const selectedClassId = selectedClass?.id || localStorage.getItem('selectedClassId');
+            if (selectedClassId && !selectedClass?.start_date) {
+                try {
+                    const res = await api.get(`/classes/${selectedClassId}`);
+                    if (res.data && res.data.start_date) {
+                        setFetchedStartDate(res.data.start_date);
+                    }
+                } catch (error) {
+                    console.error("Lỗi lấy thông tin lớp:", error);
+                }
+            }
+        };
+        fetchClassInfo();
+    }, [selectedClass]);
 
-        for (let i = 1; i <= totalWeeks; i++) {
-            const weekValue = `${currentYear}-W${i.toString().padStart(2, '0')}`;
-            const { start, end } = getWeekRange(weekValue);
-            const label = `Tuần ${i} (${start.split('-').reverse().join('/')} - ${end.split('-').reverse().join('/')})`;
-            options.push({ value: weekValue, label });
+    
+    useEffect(() => {
+        if (currentRealWeek > 0) {
+            setSelectedWeek(currentRealWeek);
+        }
+    }, [currentRealWeek]);
+
+    
+    useEffect(() => {
+        if (classStartDate && selectedWeek > 0) {
+            const dates = getWeekDatesFromStart(selectedWeek, classStartDate);
+            
+            if (dates && dates.length > 0) {
+                setStartDate(dates[0]); 
+                setEndDate(dates[6]);   
+            }
+        }
+    }, [selectedWeek, classStartDate]);
+
+    
+    const weekOptions = useMemo(() => {
+        if (!classStartDate) return [];
+        const options = [];
+        
+        for (let i = 1; i <= 45; i++) {
+            const dates = getWeekDatesFromStart(i, classStartDate);
+            if (dates && dates.length > 0) {
+                const sDate = new Date(dates[0]);
+                const eDate = new Date(dates[6]);
+                const label = `Tuần ${i} (${sDate.getDate()}/${sDate.getMonth() + 1} - ${eDate.getDate()}/${eDate.getMonth() + 1})`;
+                options.push({ value: i, label });
+            }
         }
         return options;
-    }, []);
+    }, [classStartDate]);
 
     const handleWeekChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const val = e.target.value;
+        const val = parseInt(e.target.value);
         setSelectedWeek(val);
-        if (val) {
-            const { start, end } = getWeekRange(val);
-            setStartDate(start);
-            setEndDate(end);
-        }
     };
+
+    
 
     useEffect(() => {
         const fetchViolations = async () => {
@@ -155,6 +175,8 @@ const ReportPage = () => {
             return;
         }
 
+        if (!startDate || !endDate) return;
+
         setLoading(true);
         try {
             const res = await api.get('/reports/detailed', {
@@ -176,9 +198,14 @@ const ReportPage = () => {
         }
     };
 
+    
     useEffect(() => {
-        fetchReport();
+        if (startDate && endDate) {
+            fetchReport();
+        }
     }, [startDate, endDate]);
+
+    
 
     const chartGroupStats = useMemo(() => {
         const stats: Record<
@@ -274,12 +301,22 @@ const ReportPage = () => {
             <div className="filter-section">
                 <div className="filter-group">
                     <label>Chọn tuần:</label>
+                    {}
+                    {!classStartDate && (
+                        <span style={{color: 'red', fontSize: '12px', display: 'block'}}>
+                            (Lớp chưa cấu hình ngày bắt đầu)
+                        </span>
+                    )}
                     <select value={selectedWeek} onChange={handleWeekChange}>
-                        {weekOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
+                        {weekOptions.length > 0 ? (
+                            weekOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))
+                        ) : (
+                            <option value={1}>Đang tải lịch...</option>
+                        )}
                     </select>
                 </div>
                 <div className="filter-group">
@@ -368,7 +405,7 @@ const ReportPage = () => {
                         {reportData.length > 0 ? (
                             reportData.map((row) => (
                                 <tr key={row.id}>
-                                    <td>{row.log_date}</td>
+                                    <td>{new Date(row.log_date).toLocaleDateString('vi-VN')}</td>
                                     <td style={{ textAlign: 'center' }}>{row.group_number}</td>
                                     <td style={{ fontWeight: 'bold' }}>{row.student_name}</td>
                                     <td>
