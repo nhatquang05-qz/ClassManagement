@@ -72,7 +72,6 @@ const createBulkReports = async (req, res) => {
 
 const getWeeklyReport = async (req, res) => {
     try {
-        // [SỬA] Nhận thêm class_id từ query
         const { week, group_number, class_id } = req.query;
 
         let query = `
@@ -101,7 +100,6 @@ const getWeeklyReport = async (req, res) => {
             params.push(group_number);
         }
 
-        // [SỬA] Thêm điều kiện lọc theo class_id để History Log hiển thị đúng
         if (class_id) {
             query += ` AND u.class_id = ?`;
             params.push(class_id);
@@ -167,7 +165,6 @@ const deleteReport = async (req, res) => {
 
 const getViolationsByDate = async (req, res) => {
     try {
-        // [SỬA] Nhận thêm class_id
         const { date, group_number, class_id } = req.query;
         let query = `
       SELECT l.*, u.full_name as student_name, v.name as violation_name, v.points
@@ -181,13 +178,10 @@ const getViolationsByDate = async (req, res) => {
             query += ` AND u.group_number = ?`;
             params.push(group_number);
         }
-        
-        // [SỬA] Lọc theo class_id
         if (class_id) {
             query += ` AND u.class_id = ?`;
             params.push(class_id);
         }
-
         const [rows] = await db.query(query, params);
         res.json(rows);
     } catch (error) {
@@ -198,7 +192,10 @@ const getViolationsByDate = async (req, res) => {
 const getMyLogs = async (req, res) => {
     try {
         const studentId = req.user.id;
-        const query = `
+        // [CẬP NHẬT] Nhận thêm startDate, endDate
+        const { startDate, endDate } = req.query;
+
+        let query = `
       SELECT 
         dl.id,
         DATE_FORMAT(dl.log_date, '%Y-%m-%d') as log_date,
@@ -213,9 +210,19 @@ const getMyLogs = async (req, res) => {
       JOIN violation_types vt ON dl.violation_type_id = vt.id
       JOIN users u ON dl.reporter_id = u.id
       WHERE dl.student_id = ?
-      ORDER BY dl.log_date DESC, dl.created_at DESC
     `;
-        const [rows] = await db.query(query, [studentId]);
+
+        const params = [studentId];
+
+        // [CẬP NHẬT] Điều kiện lọc ngày
+        if (startDate && endDate) {
+            query += ` AND dl.log_date BETWEEN ? AND ?`;
+            params.push(startDate, endDate);
+        }
+
+        query += ` ORDER BY dl.log_date DESC, dl.created_at DESC`;
+
+        const [rows] = await db.query(query, params);
         res.json(rows);
     } catch (error) {
         console.error(error);
@@ -225,7 +232,6 @@ const getMyLogs = async (req, res) => {
 
 const getDetailedReport = async (req, res) => {
     try {
-        // [SỬA] Nhận thêm class_id
         const { startDate, endDate, studentName, violationTypeId, groupId, class_id } = req.query;
 
         let query = `
@@ -269,7 +275,6 @@ const getDetailedReport = async (req, res) => {
             params.push(groupId);
         }
 
-        // [SỬA] Lọc class_id cho trang Ranking và Report
         if (class_id) {
             query += ` AND u.class_id = ?`;
             params.push(class_id);

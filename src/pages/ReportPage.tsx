@@ -78,9 +78,9 @@ const ReportPage = () => {
 
     const [reportData, setReportData] = useState<ReportItem[]>([]);
     const [violationsList, setViolationsList] = useState<ViolationType[]>([]);
-    
+
     const [availableGroups, setAvailableGroups] = useState<number[]>([]);
-    
+
     const [loading, setLoading] = useState(false);
 
     const START_POINTS = 0;
@@ -110,19 +110,20 @@ const ReportPage = () => {
         fetchViolations();
     }, [token]);
 
-    
     useEffect(() => {
         const fetchGroups = async () => {
             const selectedClassId = localStorage.getItem('selectedClassId');
             if (!selectedClassId) return;
 
             try {
-                const res = await fetch(`http://localhost:3000/api/users?class_id=${selectedClassId}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const res = await fetch(
+                    `http://localhost:3000/api/users?class_id=${selectedClassId}`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
                 const data = await res.json();
                 if (Array.isArray(data)) {
-                    
                     const groups = Array.from(new Set(data.map((u: any) => u.group_number)))
                         .filter((g: any) => g != null)
                         .sort((a: any, b: any) => a - b);
@@ -134,7 +135,6 @@ const ReportPage = () => {
         };
         fetchGroups();
     }, [token]);
-    
 
     const fetchReport = async () => {
         const selectedClassId = localStorage.getItem('selectedClassId');
@@ -152,7 +152,7 @@ const ReportPage = () => {
                 studentName,
                 violationTypeId,
                 groupId,
-                class_id: selectedClassId
+                class_id: selectedClassId,
             });
 
             const res = await fetch(`http://localhost:3000/api/reports/detailed?${queryParams}`, {
@@ -181,15 +181,13 @@ const ReportPage = () => {
             { name: string; penaltyRaw: number; bonus: number; violationCount: number }
         > = {};
 
-        
         availableGroups.forEach((g) => {
             stats[g.toString()] = { name: `Tổ ${g}`, penaltyRaw: 0, bonus: 0, violationCount: 0 };
         });
-        
 
         reportData.forEach((item) => {
             const groupKey = item.group_number.toString();
-            
+
             if (!stats[groupKey]) {
                 stats[groupKey] = {
                     name: `Tổ ${item.group_number}`,
@@ -212,7 +210,6 @@ const ReportPage = () => {
             }
         });
 
-        
         return Object.values(stats)
             .sort((a, b) => {
                 const numA = parseInt(a.name.replace('Tổ ', '')) || 0;

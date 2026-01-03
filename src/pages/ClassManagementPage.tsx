@@ -7,15 +7,21 @@ interface ClassItem {
     id: number;
     name: string;
     school_year: string;
+    start_date?: string;
 }
 
 const ClassManagementPage: React.FC = () => {
     const navigate = useNavigate();
     const [classes, setClasses] = useState<ClassItem[]>([]);
+
     const [showModal, setShowModal] = useState(false);
 
-    const [newClassName, setNewClassName] = useState('');
-    const [newSchoolYear, setNewSchoolYear] = useState('2024-2025');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingClassId, setEditingClassId] = useState<number | null>(null);
+
+    const [className, setClassName] = useState('');
+    const [schoolYear, setSchoolYear] = useState('2024-2025');
+    const [startDate, setStartDate] = useState('');
 
     useEffect(() => {
         fetchClasses();
@@ -30,15 +36,56 @@ const ClassManagementPage: React.FC = () => {
         }
     };
 
-    const handleCreateClass = async () => {
-        if (!newClassName) return alert('Chưa nhập tên lớp');
+    const resetForm = () => {
+        setClassName('');
+        setSchoolYear('2024-2025');
+        setStartDate('');
+        setIsEditing(false);
+        setEditingClassId(null);
+    };
+
+    const handleOpenCreate = () => {
+        resetForm();
+        setShowModal(true);
+    };
+
+    const handleOpenEdit = (cls: ClassItem, e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        setClassName(cls.name);
+        setSchoolYear(cls.school_year);
+
+        setStartDate(cls.start_date ? cls.start_date.split('T')[0] : '');
+
+        setIsEditing(true);
+        setEditingClassId(cls.id);
+        setShowModal(true);
+    };
+
+    const handleSaveClass = async () => {
+        if (!className) return alert('Chưa nhập tên lớp');
+
         try {
-            await api.post('/classes', { name: newClassName, school_year: newSchoolYear });
-            alert('Thêm lớp thành công!');
+            const payload = {
+                name: className,
+                school_year: schoolYear,
+                start_date: startDate || null,
+            };
+
+            if (isEditing && editingClassId) {
+                await api.put(`/classes/${editingClassId}`, payload);
+                alert('Cập nhật thành công!');
+            } else {
+                await api.post('/classes', payload);
+                alert('Thêm lớp thành công!');
+            }
+
             setShowModal(false);
+            resetForm();
             fetchClasses();
         } catch (error) {
-            alert('Lỗi tạo lớp');
+            console.error(error);
+            alert('Lỗi lưu thông tin lớp');
         }
     };
 
@@ -56,13 +103,15 @@ const ClassManagementPage: React.FC = () => {
         localStorage.setItem('selectedClassId', cls.id.toString());
         localStorage.setItem('selectedClassName', cls.name);
 
+        localStorage.setItem('currentClass', JSON.stringify(cls));
+
         navigate('/');
     };
 
     return (
         <div className="container" style={{ padding: 20 }}>
             <h1>QUẢN LÝ LỚP HỌC</h1>
-            <button className="btn-submit" onClick={() => setShowModal(true)}>
+            <button className="btn-submit" onClick={handleOpenCreate}>
                 + Thêm Lớp Mới
             </button>
 
@@ -77,23 +126,59 @@ const ClassManagementPage: React.FC = () => {
                         style={{
                             padding: 20,
                             border: '1px solid #ddd',
-                            width: 250,
+                            width: 280,
                             cursor: 'pointer',
+                            position: 'relative',
+                            backgroundColor: '#fff',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                         }}
                         onClick={() => handleSelectClass(cls)}
                     >
-                        <h2 style={{ color: '#2196f3' }}>{cls.name}</h2>
-                        <p>
+                        <h2 style={{ color: '#2196f3', marginTop: 0 }}>{cls.name}</h2>
+                        <p style={{ margin: '5px 0' }}>
                             Năm học: <b>{cls.school_year}</b>
                         </p>
-                        <div style={{ marginTop: 10 }}>
+
+                        {}
+                        <p style={{ margin: '5px 0', fontSize: '0.9em', color: '#666' }}>
+                            Ngày bắt đầu:{' '}
+                            {cls.start_date
+                                ? new Date(cls.start_date).toLocaleDateString('vi-VN')
+                                : '(Chưa đặt)'}
+                        </p>
+
+                        <div
+                            style={{
+                                marginTop: 15,
+                                display: 'flex',
+                                gap: 10,
+                                justifyContent: 'flex-end',
+                            }}
+                        >
+                            {}
                             <button
                                 style={{
-                                    backgroundColor: 'red',
+                                    backgroundColor: '#ff9800',
                                     color: 'white',
                                     border: 'none',
-                                    padding: '5px 10px',
+                                    padding: '6px 12px',
                                     borderRadius: 4,
+                                    cursor: 'pointer',
+                                }}
+                                onClick={(e) => handleOpenEdit(cls, e)}
+                            >
+                                Sửa
+                            </button>
+
+                            {}
+                            <button
+                                style={{
+                                    backgroundColor: '#f44336',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '6px 12px',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
                                 }}
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -107,6 +192,7 @@ const ClassManagementPage: React.FC = () => {
                 ))}
             </div>
 
+            {}
             {showModal && (
                 <div
                     className="modal-overlay"
@@ -120,39 +206,121 @@ const ClassManagementPage: React.FC = () => {
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
+                        zIndex: 1000,
                     }}
                 >
                     <div
                         className="modal-content"
                         style={{ background: 'white', padding: 30, borderRadius: 8, width: 400 }}
                     >
-                        <h3>Thêm Lớp Mới</h3>
-                        <div style={{ marginBottom: 10 }}>
-                            <label>Tên Lớp (VD: 12A1):</label>
+                        <h3 style={{ marginTop: 0 }}>
+                            {isEditing ? 'Cập Nhật Lớp' : 'Thêm Lớp Mới'}
+                        </h3>
+
+                        <div style={{ marginBottom: 15 }}>
+                            <label
+                                style={{ fontWeight: 'bold', display: 'block', marginBottom: 5 }}
+                            >
+                                Tên Lớp (VD: 12A1):
+                            </label>
                             <input
                                 type="text"
                                 className="form-control"
-                                value={newClassName}
-                                onChange={(e) => setNewClassName(e.target.value)}
-                                style={{ width: '100%', padding: 8, marginTop: 5 }}
+                                value={className}
+                                onChange={(e) => setClassName(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: 8,
+                                    border: '1px solid #ccc',
+                                    borderRadius: 4,
+                                    boxSizing: 'border-box',
+                                }}
                             />
                         </div>
-                        <div style={{ marginBottom: 20 }}>
-                            <label>Năm Học:</label>
+
+                        <div style={{ marginBottom: 15 }}>
+                            <label
+                                style={{ fontWeight: 'bold', display: 'block', marginBottom: 5 }}
+                            >
+                                Năm Học:
+                            </label>
                             <select
                                 className="form-control"
-                                value={newSchoolYear}
-                                onChange={(e) => setNewSchoolYear(e.target.value)}
-                                style={{ width: '100%', padding: 8, marginTop: 5 }}
+                                value={schoolYear}
+                                onChange={(e) => setSchoolYear(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: 8,
+                                    border: '1px solid #ccc',
+                                    borderRadius: 4,
+                                    boxSizing: 'border-box',
+                                }}
                             >
                                 <option>2023-2024</option>
                                 <option>2024-2025</option>
                                 <option>2025-2026</option>
                             </select>
                         </div>
+
+                        {}
+                        <div style={{ marginBottom: 20 }}>
+                            <label
+                                style={{ fontWeight: 'bold', display: 'block', marginBottom: 5 }}
+                            >
+                                Ngày Khai Giảng (Tuần 1):
+                            </label>
+                            <input
+                                type="date"
+                                className="form-control"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: 8,
+                                    border: '1px solid #ccc',
+                                    borderRadius: 4,
+                                    boxSizing: 'border-box',
+                                }}
+                            />
+                            <small
+                                style={{
+                                    color: '#666',
+                                    display: 'block',
+                                    marginTop: 5,
+                                    fontStyle: 'italic',
+                                    fontSize: '0.85em',
+                                }}
+                            >
+                                * Tuần 1 sẽ bắt đầu từ ngày này. <br />
+                                Ví dụ: Chọn Thứ 5 (05/09), Tuần 1 là từ Thứ 5 đến Chủ Nhật (08/09).
+                            </small>
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                            <button onClick={() => setShowModal(false)}>Hủy</button>
-                            <button className="btn-submit" onClick={handleCreateClass}>
+                            <button
+                                onClick={() => setShowModal(false)}
+                                style={{
+                                    padding: '8px 15px',
+                                    cursor: 'pointer',
+                                    background: '#eee',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                }}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                className="btn-submit"
+                                onClick={handleSaveClass}
+                                style={{
+                                    padding: '8px 15px',
+                                    cursor: 'pointer',
+                                    background: '#2196f3',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: 4,
+                                }}
+                            >
                                 Lưu
                             </button>
                         </div>

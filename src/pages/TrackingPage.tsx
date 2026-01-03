@@ -5,42 +5,13 @@ import DailyTrackingTable from '../components/tracking/DailyTrackingTable';
 import HistoryLogTable from '../components/tracking/HistoryLogTable';
 import { Student, ViolationType, DailyLogPayload } from '../types/trackingTypes';
 import { useAuth } from '../contexts/AuthContext';
+import { useClass } from '../contexts/ClassContext'; // [MỚI] Import Context
+import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils'; // [MỚI] Import Utils
 import '../assets/styles/TrackingPage.css';
-
-const getSafeDateString = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-const getWeekNumber = (d: Date) => {
-    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-};
-
-const getWeekDates = (weekNo: number, year: number) => {
-    const simple = new Date(year, 0, 1 + (weekNo - 1) * 7);
-    const dow = simple.getDay();
-    const weekStart = simple;
-
-    if (dow <= 4) weekStart.setDate(simple.getDate() - simple.getDay() + 1);
-    else weekStart.setDate(simple.getDate() + 8 - simple.getDay());
-
-    const dates = [];
-    for (let i = 0; i < 6; i++) {
-        const d = new Date(weekStart);
-        d.setDate(weekStart.getDate() + i);
-
-        dates.push(getSafeDateString(d));
-    }
-    return dates;
-};
 
 const TrackingPage: React.FC = () => {
     const { user } = useAuth();
+    const { selectedClass } = useClass(); // [MỚI] Lấy thông tin lớp
     const navigate = useNavigate();
 
     const [students, setStudents] = useState<Student[]>([]);
@@ -48,20 +19,31 @@ const TrackingPage: React.FC = () => {
     const [existingLogs, setExistingLogs] = useState<DailyLogPayload[]>([]);
 
     const currentYear = new Date().getFullYear();
-    const [currentRealWeek] = useState(getWeekNumber(new Date()));
-    const [selectedWeek, setSelectedWeek] = useState(getWeekNumber(new Date()));
 
+    // [MỚI] Tính tuần hiện tại dựa trên ngày bắt đầu của lớp
+    const currentRealWeek = useMemo(() => {
+        return getWeekNumberFromStart(new Date(), selectedClass?.start_date);
+    }, [selectedClass]);
+
+    const [selectedWeek, setSelectedWeek] = useState(1);
     const [activeDayIndex, setActiveDayIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-
     const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
 
     const selectedClassId = localStorage.getItem('selectedClassId');
     const selectedClassName = localStorage.getItem('selectedClassName');
 
+    // [MỚI] Cập nhật selectedWeek khi currentRealWeek thay đổi (khi load xong class)
+    useEffect(() => {
+        if (currentRealWeek > 0) {
+            setSelectedWeek(currentRealWeek);
+        }
+    }, [currentRealWeek]);
+
+    // [MỚI] Lấy danh sách ngày trong tuần dựa trên selectedWeek và start_date
     const weekDates = useMemo(
-        () => getWeekDates(selectedWeek, currentYear),
-        [selectedWeek, currentYear]
+        () => getWeekDatesFromStart(selectedWeek, selectedClass?.start_date),
+        [selectedWeek, selectedClass]
     );
 
     const currentSelectedDate = activeDayIndex < 6 ? weekDates[activeDayIndex] : undefined;
@@ -250,6 +232,21 @@ const TrackingPage: React.FC = () => {
                         <span className="week-number">TUẦN {selectedWeek}</span>
                         {selectedWeek === currentRealWeek && (
                             <span className="badge-current">Tuần hiện tại</span>
+                        )}
+                        {/* [MỚI] Hiển thị khoảng thời gian của tuần */}
+                        {weekDates.length > 0 && (
+                            <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '4px' }}>
+                                {new Date(weekDates[0]).getDate()}/
+                                {new Date(weekDates[0]).getMonth() + 1}
+                                {' - '}
+                                {new Date(
+                                    weekDates[6] || weekDates[weekDates.length - 1]
+                                ).getDate()}
+                                /
+                                {new Date(
+                                    weekDates[6] || weekDates[weekDates.length - 1]
+                                ).getMonth() + 1}
+                            </div>
                         )}
                     </div>
 

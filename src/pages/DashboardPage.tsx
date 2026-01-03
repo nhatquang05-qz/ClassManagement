@@ -105,7 +105,6 @@ const DashboardPage: React.FC = () => {
                         user?.role === 'vice_group_leader' ||
                         user?.role === 'monitor' ||
                         user?.role === 'admin' ||
-                        user?.role === 'teacher' ||
                         user?.role === 'student') && (
                         <Link
                             to="/tracking"

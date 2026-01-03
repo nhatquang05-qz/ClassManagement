@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 interface ClassInfo {
     id: number;
     name: string;
     school_year: string;
+    start_date?: string;
 }
 
 interface ClassContextType {

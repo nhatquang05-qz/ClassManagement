@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { getMyClasses, createClass, deleteClass } = require('../controllers/classController');
 
-const authenticateToken = require('../middleware/authMiddleware');
+const {
+    getClasses,
+    createClass,
+    deleteClass,
+    updateClass,
+} = require('../controllers/classController');
 
-router.get('/', authenticateToken, getMyClasses);
-router.post('/', authenticateToken, createClass);
-router.delete('/:id', authenticateToken, deleteClass);
+const verifyToken = require('../middleware/authMiddleware');
+
+router.get('/', verifyToken, getClasses);
+router.post('/', verifyToken, createClass);
+router.put('/:id', verifyToken, updateClass);
+router.delete('/:id', verifyToken, deleteClass);
 
 module.exports = router;
