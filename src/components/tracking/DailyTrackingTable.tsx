@@ -154,6 +154,27 @@ const DailyTrackingTable: React.FC<Props> = ({
         }
 
         
+        if (colKey === 'Vắng (P)') {
+            const exists = logs.find(l => 
+                l.student_id === student.id && 
+                l.violation_type_id === violationId && 
+                compareDates(l.log_date, activeDate)
+            );
+
+            
+            if (exists) {
+                setLogs(prev => prev.filter(l => !(
+                    l.student_id === student.id && 
+                    l.violation_type_id === violationId && 
+                    compareDates(l.log_date, activeDate)
+                )));
+                return;
+            }
+
+            
+        }
+
+        
         const { quantity } = getCellData(student.id, violationId);
         
         
