@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import '../assets/styles/ReportPage.css';
 import { useAuth } from '../contexts/AuthContext';
-import { useClass } from '../contexts/ClassContext'; 
+import { useClass } from '../contexts/ClassContext';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
-import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils'; 
+import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils';
 
 import api from '../utils/api';
 import {
@@ -40,24 +40,21 @@ interface ViolationType {
 
 const ReportPage = () => {
     const navigate = useNavigate();
-    const { selectedClass } = useClass(); 
+    const { selectedClass } = useClass();
 
-    
-    const [fetchedStartDate, setFetchedStartDate] = useState<string | undefined>(selectedClass?.start_date);
-    
-    
+    const [fetchedStartDate, setFetchedStartDate] = useState<string | undefined>(
+        selectedClass?.start_date
+    );
+
     const classStartDate = fetchedStartDate || selectedClass?.start_date;
 
-    
     const currentRealWeek = useMemo(() => {
         if (!classStartDate) return 1;
         return getWeekNumberFromStart(new Date(), classStartDate);
     }, [classStartDate]);
 
-    
     const [selectedWeek, setSelectedWeek] = useState<number>(1);
-    
-    
+
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
@@ -70,7 +67,6 @@ const ReportPage = () => {
     const [availableGroups, setAvailableGroups] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
 
-    
     useEffect(() => {
         const fetchClassInfo = async () => {
             const selectedClassId = selectedClass?.id || localStorage.getItem('selectedClassId');
@@ -81,37 +77,34 @@ const ReportPage = () => {
                         setFetchedStartDate(res.data.start_date);
                     }
                 } catch (error) {
-                    console.error("Lỗi lấy thông tin lớp:", error);
+                    console.error('Lỗi lấy thông tin lớp:', error);
                 }
             }
         };
         fetchClassInfo();
     }, [selectedClass]);
 
-    
     useEffect(() => {
         if (currentRealWeek > 0) {
             setSelectedWeek(currentRealWeek);
         }
     }, [currentRealWeek]);
 
-    
     useEffect(() => {
         if (classStartDate && selectedWeek > 0) {
             const dates = getWeekDatesFromStart(selectedWeek, classStartDate);
-            
+
             if (dates && dates.length > 0) {
-                setStartDate(dates[0]); 
-                setEndDate(dates[6]);   
+                setStartDate(dates[0]);
+                setEndDate(dates[6]);
             }
         }
     }, [selectedWeek, classStartDate]);
 
-    
     const weekOptions = useMemo(() => {
         if (!classStartDate) return [];
         const options = [];
-        
+
         for (let i = 1; i <= 45; i++) {
             const dates = getWeekDatesFromStart(i, classStartDate);
             if (dates && dates.length > 0) {
@@ -128,8 +121,6 @@ const ReportPage = () => {
         const val = parseInt(e.target.value);
         setSelectedWeek(val);
     };
-
-    
 
     useEffect(() => {
         const fetchViolations = async () => {
@@ -198,14 +189,11 @@ const ReportPage = () => {
         }
     };
 
-    
     useEffect(() => {
         if (startDate && endDate) {
             fetchReport();
         }
     }, [startDate, endDate]);
-
-    
 
     const chartGroupStats = useMemo(() => {
         const stats: Record<
@@ -303,7 +291,7 @@ const ReportPage = () => {
                     <label>Chọn tuần:</label>
                     {}
                     {!classStartDate && (
-                        <span style={{color: 'red', fontSize: '12px', display: 'block'}}>
+                        <span style={{ color: 'red', fontSize: '12px', display: 'block' }}>
                             (Lớp chưa cấu hình ngày bắt đầu)
                         </span>
                     )}

@@ -17,14 +17,17 @@ const TrackingPage: React.FC = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [violationTypes, setViolationTypes] = useState<ViolationType[]>([]);
     const [existingLogs, setExistingLogs] = useState<DailyLogPayload[]>([]);
-    
-    const [fetchedStartDate, setFetchedStartDate] = useState<string | undefined>(selectedClass?.start_date);
+
+    const [fetchedStartDate, setFetchedStartDate] = useState<string | undefined>(
+        selectedClass?.start_date
+    );
 
     const currentYear = new Date().getFullYear();
 
-    const selectedClassId = selectedClass?.id?.toString() || localStorage.getItem('selectedClassId');
+    const selectedClassId =
+        selectedClass?.id?.toString() || localStorage.getItem('selectedClassId');
     const selectedClassName = selectedClass?.name || localStorage.getItem('selectedClassName');
-    
+
     const classStartDate = fetchedStartDate || selectedClass?.start_date;
 
     const currentRealWeek = useMemo(() => {
@@ -32,9 +35,16 @@ const TrackingPage: React.FC = () => {
     }, [classStartDate]);
 
     const [selectedWeek, setSelectedWeek] = useState(1);
-    const [activeDayIndex, setActiveDayIndex] = useState(0); 
+    const [activeDayIndex, setActiveDayIndex] = useState(0);
     const [loading, setLoading] = useState(true);
     const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
+
+    const targetGroupNumber = useMemo(() => {
+        if (user?.role === 'group_leader') {
+            return user.monitoring_group ? user.monitoring_group : user.group_number;
+        }
+        return undefined;
+    }, [user]);
 
     useEffect(() => {
         if (currentRealWeek > 0) {
@@ -47,13 +57,9 @@ const TrackingPage: React.FC = () => {
         [selectedWeek, classStartDate]
     );
 
-    
-    
-    const currentSelectedDate = (activeDayIndex < 7 && weekDates.length > 0) 
-        ? weekDates[activeDayIndex] 
-        : undefined;
+    const currentSelectedDate =
+        activeDayIndex < 7 && weekDates.length > 0 ? weekDates[activeDayIndex] : undefined;
 
-    
     const viewMode = activeDayIndex < 7 ? 'day' : 'week';
 
     const canEdit = useMemo(() => {
@@ -70,7 +76,9 @@ const TrackingPage: React.FC = () => {
 
     const uniqueGroups = useMemo(() => {
         const groups = new Set(students.map((s) => s.group_number));
-        return Array.from(groups).filter((g) => g != null).sort((a, b) => a - b);
+        return Array.from(groups)
+            .filter((g) => g != null)
+            .sort((a, b) => a - b);
     }, [students]);
 
     useEffect(() => {
@@ -85,7 +93,7 @@ const TrackingPage: React.FC = () => {
             setFetchedStartDate(selectedClass.start_date);
         }
     }, [selectedClass]);
-    
+
     useEffect(() => {
         const fetchBaseData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
@@ -102,7 +110,8 @@ const TrackingPage: React.FC = () => {
                     api.get('/users', {
                         params: {
                             class_id: selectedClassId || undefined,
-                            group_number: user?.role === 'group_leader' ? user.group_number : undefined,
+                            group_number:
+                                user?.role === 'group_leader' ? targetGroupNumber : undefined,
                         },
                     }),
                 ]);
@@ -113,12 +122,12 @@ const TrackingPage: React.FC = () => {
             }
         };
         fetchBaseData();
-    }, [selectedClassId, user]);
+    }, [selectedClassId, user, targetGroupNumber]);
 
     useEffect(() => {
         const fetchWeekData = async () => {
             if (!selectedClassId && user?.role !== 'student') return;
-            
+
             if (!weekDates || weekDates.length === 0) return;
 
             setLoading(true);
@@ -126,11 +135,12 @@ const TrackingPage: React.FC = () => {
                 const params: any = {
                     week: selectedWeek,
                     class_id: selectedClassId,
-                    from_date: weekDates[0], 
-                    to_date: weekDates[6],   
+                    from_date: weekDates[0],
+                    to_date: weekDates[6],
                 };
-                if (user?.role === 'group_leader' && user.group_number) {
-                    params.group_number = user.group_number;
+
+                if (user?.role === 'group_leader' && targetGroupNumber) {
+                    params.group_number = targetGroupNumber;
                 }
                 const res = await api.get('/reports/weekly', { params });
                 setExistingLogs(res.data);
@@ -141,16 +151,17 @@ const TrackingPage: React.FC = () => {
             }
         };
         fetchWeekData();
-    }, [selectedWeek, selectedClassId, weekDates, user]); 
+    }, [selectedWeek, selectedClassId, weekDates, user, targetGroupNumber]);
 
     const groupTotalScore = useMemo(() => {
         let total = 0;
         const displayedIds = displayedStudents.map((s) => s.id);
         existingLogs.forEach((log) => {
             if (displayedIds.includes(log.student_id)) {
-                const points = log.points !== undefined 
-                    ? log.points 
-                    : violationTypes.find((v) => v.id === log.violation_type_id)?.points || 0;
+                const points =
+                    log.points !== undefined
+                        ? log.points
+                        : violationTypes.find((v) => v.id === log.violation_type_id)?.points || 0;
                 total += points * (log.quantity || 1);
             }
         });
@@ -182,14 +193,15 @@ const TrackingPage: React.FC = () => {
                 class_id: selectedClassId,
             });
             alert('Lưu thành công!');
-            
-            const params: any = { 
-                week: selectedWeek, 
+
+            const params: any = {
+                week: selectedWeek,
                 class_id: selectedClassId,
                 from_date: weekDates[0],
-                to_date: weekDates[6] 
+                to_date: weekDates[6],
             };
-            if (user?.role === 'group_leader') params.group_number = user.group_number;
+
+            if (user?.role === 'group_leader') params.group_number = targetGroupNumber;
             const res = await api.get('/reports/weekly', { params });
             setExistingLogs(res.data);
         } catch (error: any) {
@@ -203,14 +215,15 @@ const TrackingPage: React.FC = () => {
         if (!window.confirm('Bạn có chắc chắn muốn xóa?')) return;
         try {
             await api.delete(`/reports/${logId}`);
-            
-            const params: any = { 
-                week: selectedWeek, 
+
+            const params: any = {
+                week: selectedWeek,
                 class_id: selectedClassId,
                 from_date: weekDates[0],
-                to_date: weekDates[6] 
+                to_date: weekDates[6],
             };
-            if (user?.role === 'group_leader') params.group_number = user.group_number;
+
+            if (user?.role === 'group_leader') params.group_number = targetGroupNumber;
             const res = await api.get('/reports/weekly', { params });
             setExistingLogs(res.data);
         } catch (error: any) {
@@ -219,7 +232,9 @@ const TrackingPage: React.FC = () => {
     };
 
     const getScoreLabel = () => {
-        if (user?.role === 'group_leader') return `Tổng điểm Tổ ${user.group_number}`;
+        if (user?.role === 'group_leader') {
+            return `Tổng điểm Tổ ${targetGroupNumber} (Đang giám sát)`;
+        }
         if (activeGroupTab === 'all') return 'Tổng điểm Lớp';
         return `Tổng điểm Tổ ${activeGroupTab}`;
     };
@@ -228,24 +243,37 @@ const TrackingPage: React.FC = () => {
         <div className="tracking-page">
             <div className="tracking-header-modern">
                 <div className="header-top">
-                    <button onClick={() => navigate(-1)} className="btn-back-modern">← Quay lại</button>
+                    <button onClick={() => navigate(-1)} className="btn-back-modern">
+                        ← Quay lại
+                    </button>
                     <h1 className="page-title">
                         SỔ THEO DÕI {selectedClassName ? `- ${selectedClassName}` : ''}
                     </h1>
                 </div>
 
                 <div className="week-control-area">
-                    <button className="btn-nav" disabled={selectedWeek <= 1} onClick={() => setSelectedWeek((p) => p - 1)}>❮</button>
+                    <button
+                        className="btn-nav"
+                        disabled={selectedWeek <= 1}
+                        onClick={() => setSelectedWeek((p) => p - 1)}
+                    >
+                        ❮
+                    </button>
                     <div className="week-display">
                         <span className="week-number">TUẦN {selectedWeek}</span>
-                        {selectedWeek === currentRealWeek && <span className="badge-current">Hiện tại</span>}
+                        {selectedWeek === currentRealWeek && (
+                            <span className="badge-current">Hiện tại</span>
+                        )}
                         {weekDates.length > 0 && (
                             <div style={{ fontSize: '0.9rem', color: '#4b5563', marginTop: '4px' }}>
-                                {new Date(weekDates[0]).toLocaleDateString('vi-VN')} - {new Date(weekDates[6]).toLocaleDateString('vi-VN')}
+                                {new Date(weekDates[0]).toLocaleDateString('vi-VN')} -{' '}
+                                {new Date(weekDates[6]).toLocaleDateString('vi-VN')}
                             </div>
                         )}
                     </div>
-                    <button className="btn-nav" onClick={() => setSelectedWeek((p) => p + 1)}>❯</button>
+                    <button className="btn-nav" onClick={() => setSelectedWeek((p) => p + 1)}>
+                        ❯
+                    </button>
                 </div>
 
                 <div className="info-bar">
@@ -253,7 +281,9 @@ const TrackingPage: React.FC = () => {
                         <div className="info-icon score-icon">📊</div>
                         <div className="info-content">
                             <span className="info-label">{getScoreLabel()}</span>
-                            <span className={`info-value score-value ${groupTotalScore >= 0 ? 'positive' : 'negative'}`}>
+                            <span
+                                className={`info-value score-value ${groupTotalScore >= 0 ? 'positive' : 'negative'}`}
+                            >
                                 {groupTotalScore > 0 ? `+${groupTotalScore}` : groupTotalScore}
                             </span>
                         </div>
@@ -263,17 +293,38 @@ const TrackingPage: React.FC = () => {
 
             {(user?.role === 'teacher' || user?.role === 'admin') && (
                 <div className="group-filter-tabs">
-                    <button className={`group-tab ${activeGroupTab === 'all' ? 'active' : ''}`} onClick={() => setActiveGroupTab('all')}>Toàn bộ lớp</button>
+                    <button
+                        className={`group-tab ${activeGroupTab === 'all' ? 'active' : ''}`}
+                        onClick={() => setActiveGroupTab('all')}
+                    >
+                        Toàn bộ lớp
+                    </button>
                     {uniqueGroups.map((gNum) => (
-                        <button key={gNum} className={`group-tab ${activeGroupTab === String(gNum) ? 'active' : ''}`} onClick={() => setActiveGroupTab(String(gNum))}>Tổ {gNum}</button>
+                        <button
+                            key={gNum}
+                            className={`group-tab ${activeGroupTab === String(gNum) ? 'active' : ''}`}
+                            onClick={() => setActiveGroupTab(String(gNum))}
+                        >
+                            Tổ {gNum}
+                        </button>
                     ))}
                 </div>
             )}
 
             <div className="page-content">
                 {!classStartDate && (
-                    <div style={{textAlign: 'center', padding: '10px', background: '#fff3cd', color: '#856404', marginBottom: '20px', borderRadius: '4px'}}>
-                        ⚠ Lưu ý: Lớp học chưa được cấu hình "Ngày bắt đầu năm học". Số tuần có thể không chính xác.
+                    <div
+                        style={{
+                            textAlign: 'center',
+                            padding: '10px',
+                            background: '#fff3cd',
+                            color: '#856404',
+                            marginBottom: '20px',
+                            borderRadius: '4px',
+                        }}
+                    >
+                        ⚠ Lưu ý: Lớp học chưa được cấu hình "Ngày bắt đầu năm học". Số tuần có thể
+                        không chính xác.
                     </div>
                 )}
 
@@ -296,7 +347,7 @@ const TrackingPage: React.FC = () => {
                             logs={existingLogs}
                             onDelete={handleDeleteLog}
                             activeDate={currentSelectedDate}
-                            viewMode={viewMode} 
+                            viewMode={viewMode}
                         />
                     </>
                 )}

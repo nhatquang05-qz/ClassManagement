@@ -9,29 +9,22 @@ interface Props {
 }
 
 const EditLogModal: React.FC<Props> = ({ data, onClose, onSave }) => {
-    
     const [addQuantity, setAddQuantity] = useState(1);
     const [note, setNote] = useState('');
-    
-    
+
     const quantityInputRef = useRef<HTMLInputElement>(null);
     const noteInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        
-        
         if (!data.isAbsence && quantityInputRef.current) {
             quantityInputRef.current.focus();
             quantityInputRef.current.select();
-        } 
-        
-        else if (data.isAbsence && noteInputRef.current) {
+        } else if (data.isAbsence && noteInputRef.current) {
             noteInputRef.current.focus();
         }
     }, [data.isAbsence]);
 
     const handleSave = () => {
-        
         const finalQuantity = data.isAbsence ? 1 : addQuantity;
         onSave(finalQuantity, note);
     };
@@ -80,12 +73,20 @@ const EditLogModal: React.FC<Props> = ({ data, onClose, onSave }) => {
 
                     <div className="trk-form-group">
                         {}
-                        <label>{data.isAbsence ? 'Lý do nghỉ (bắt buộc/tùy chọn):' : 'Ghi chú (nếu có):'}</label>
+                        <label>
+                            {data.isAbsence
+                                ? 'Lý do nghỉ (bắt buộc/tùy chọn):'
+                                : 'Ghi chú (nếu có):'}
+                        </label>
                         <input
                             ref={noteInputRef}
                             type="text"
                             className="trk-form-control"
-                            placeholder={data.isAbsence ? "Ví dụ: Bệnh, việc gia đình..." : "Ví dụ: Tiết 2, Bài số 3..."}
+                            placeholder={
+                                data.isAbsence
+                                    ? 'Ví dụ: Bệnh, việc gia đình...'
+                                    : 'Ví dụ: Tiết 2, Bài số 3...'
+                            }
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                             onKeyDown={handleKeyDown}

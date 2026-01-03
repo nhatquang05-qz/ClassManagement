@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import '../../assets/styles/TrackingTable.css';
-import { Student, ViolationType, DailyLogPayload, EditingCellData } from '../../types/trackingTypes';
+import {
+    Student,
+    ViolationType,
+    DailyLogPayload,
+    EditingCellData,
+} from '../../types/trackingTypes';
 import EditLogModal from './EditLogModal';
 
 interface Props {
@@ -52,9 +57,8 @@ const DailyTrackingTable: React.FC<Props> = ({
     const [logs, setLogs] = useState<DailyLogPayload[]>([]);
     const [editingCell, setEditingCell] = useState<EditingCellData | null>(null);
 
-    const activeDate = (activeDayIndex < 6 && weekDates.length > activeDayIndex) 
-        ? weekDates[activeDayIndex] 
-        : '';
+    const activeDate =
+        activeDayIndex < 6 && weekDates.length > activeDayIndex ? weekDates[activeDayIndex] : '';
 
     useEffect(() => {
         if (initialData) setLogs(initialData);
@@ -62,7 +66,9 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const violationMap = useMemo(() => {
         const map: Record<string, ViolationType> = {};
-        violationTypes.forEach((v) => { map[v.name.toLowerCase()] = v; });
+        violationTypes.forEach((v) => {
+            map[v.name.toLowerCase()] = v;
+        });
         return map;
     }, [violationTypes]);
 
@@ -74,37 +80,42 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const compareDates = (d1: string, d2: string) => {
         if (!d1 || !d2) return false;
-        const date1 = new Date(d1); date1.setHours(0,0,0,0);
-        const date2 = new Date(d2); date2.setHours(0,0,0,0);
+        const date1 = new Date(d1);
+        date1.setHours(0, 0, 0, 0);
+        const date2 = new Date(d2);
+        date2.setHours(0, 0, 0, 0);
         return date1.getTime() === date2.getTime();
     };
 
     const getCellData = (studentId: number, violationId: number) => {
-        if (activeDayIndex === 6) { 
-            const relevantLogs = logs.filter(l => l.student_id === studentId && l.violation_type_id === violationId);
-            const totalQty = relevantLogs.reduce((sum, l) => sum + (l.quantity || 0), 0);
-            return { quantity: totalQty, hasNote: false };
-        } else { 
-            const relevantLogs = logs.filter(l => 
-                l.student_id === studentId && 
-                l.violation_type_id === violationId && 
-                compareDates(l.log_date, activeDate) 
+        if (activeDayIndex === 6) {
+            const relevantLogs = logs.filter(
+                (l) => l.student_id === studentId && l.violation_type_id === violationId
             );
             const totalQty = relevantLogs.reduce((sum, l) => sum + (l.quantity || 0), 0);
-            const hasNote = relevantLogs.some(l => l.note && l.note.trim() !== '');
+            return { quantity: totalQty, hasNote: false };
+        } else {
+            const relevantLogs = logs.filter(
+                (l) =>
+                    l.student_id === studentId &&
+                    l.violation_type_id === violationId &&
+                    compareDates(l.log_date, activeDate)
+            );
+            const totalQty = relevantLogs.reduce((sum, l) => sum + (l.quantity || 0), 0);
+            const hasNote = relevantLogs.some((l) => l.note && l.note.trim() !== '');
             return { quantity: totalQty, hasNote };
         }
     };
 
     const calculateStudentScore = (studentId: number) => {
         let total = 0;
-        const studentLogs = logs.filter(l => {
+        const studentLogs = logs.filter((l) => {
             if (l.student_id !== studentId) return false;
             if (activeDayIndex !== 6 && !compareDates(l.log_date, activeDate)) return false;
             return true;
         });
-        studentLogs.forEach(log => {
-            const v = violationTypes.find(type => type.id === log.violation_type_id);
+        studentLogs.forEach((log) => {
+            const v = violationTypes.find((type) => type.id === log.violation_type_id);
             const points = log.points !== undefined ? log.points : v?.points || 0;
             total += points * (log.quantity || 1);
         });
@@ -113,114 +124,126 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const handleCellClick = (student: Student, colKey: string, subGroup: string | null) => {
         if (isReadOnly || activeDayIndex === 6) return;
-        
+
         if (!activeDate) return;
 
         const violationId = getViolationIdByKey(colKey);
         if (!violationId) return;
 
-        const violationType = violationTypes.find(v => v.id === violationId);
+        const violationType = violationTypes.find((v) => v.id === violationId);
 
-        
         if (colKey === 'Vắng (K)') {
-            setLogs(prev => {
+            setLogs((prev) => {
                 const absenceP_ID = getViolationIdByKey('Vắng (P)');
                 const absenceK_ID = getViolationIdByKey('Vắng (K)');
-                
-                let newLogs = prev.filter(l => {
-                    const isTarget = l.student_id === student.id && compareDates(l.log_date, activeDate);
+
+                let newLogs = prev.filter((l) => {
+                    const isTarget =
+                        l.student_id === student.id && compareDates(l.log_date, activeDate);
                     if (!isTarget) return true;
-                    if (l.violation_type_id === absenceP_ID || l.violation_type_id === absenceK_ID) {
-                        return false; 
+                    if (
+                        l.violation_type_id === absenceP_ID ||
+                        l.violation_type_id === absenceK_ID
+                    ) {
+                        return false;
                     }
                     return true;
                 });
 
-                const exists = prev.find(l => 
-                    l.student_id === student.id && 
-                    l.violation_type_id === violationId && 
-                    compareDates(l.log_date, activeDate)
+                const exists = prev.find(
+                    (l) =>
+                        l.student_id === student.id &&
+                        l.violation_type_id === violationId &&
+                        compareDates(l.log_date, activeDate)
                 );
 
                 if (!exists) {
                     newLogs.push({
-                        student_id: student.id, violation_type_id: violationId,
-                        quantity: 1, log_date: activeDate, note: ''
+                        student_id: student.id,
+                        violation_type_id: violationId,
+                        quantity: 1,
+                        log_date: activeDate,
+                        note: '',
                     });
                 }
                 return newLogs;
             });
-            return; 
+            return;
         }
 
-        
         if (colKey === 'Vắng (P)') {
-            const exists = logs.find(l => 
-                l.student_id === student.id && 
-                l.violation_type_id === violationId && 
-                compareDates(l.log_date, activeDate)
+            const exists = logs.find(
+                (l) =>
+                    l.student_id === student.id &&
+                    l.violation_type_id === violationId &&
+                    compareDates(l.log_date, activeDate)
             );
 
-            
             if (exists) {
-                setLogs(prev => prev.filter(l => !(
-                    l.student_id === student.id && 
-                    l.violation_type_id === violationId && 
-                    compareDates(l.log_date, activeDate)
-                )));
+                setLogs((prev) =>
+                    prev.filter(
+                        (l) =>
+                            !(
+                                l.student_id === student.id &&
+                                l.violation_type_id === violationId &&
+                                compareDates(l.log_date, activeDate)
+                            )
+                    )
+                );
                 return;
             }
-
-            
         }
 
-        
         const { quantity } = getCellData(student.id, violationId);
-        
-        
-        const isAbsenceP = (colKey === 'Vắng (P)');
+
+        const isAbsenceP = colKey === 'Vắng (P)';
 
         setEditingCell({
-            studentId: student.id, 
-            violationId: violationId, 
+            studentId: student.id,
+            violationId: violationId,
             violationName: colKey,
-            studentName: student.full_name, 
-            isAbsence: isAbsenceP, 
+            studentName: student.full_name,
+            isAbsence: isAbsenceP,
             isBonus: (violationType?.points || 0) > 0,
-            currentQuantity: quantity, 
-            currentNote: ''
+            currentQuantity: quantity,
+            currentNote: '',
         });
     };
 
     const handleSaveModal = (quantityToAdd: number, note: string) => {
         if (!editingCell || !activeDate) return;
-        
-        setLogs(prev => {
-            let newLogs = prev.filter(l => !(
-                l.student_id === editingCell.studentId && 
-                l.violation_type_id === editingCell.violationId && 
-                compareDates(l.log_date, activeDate)
-            ));
+
+        setLogs((prev) => {
+            let newLogs = prev.filter(
+                (l) =>
+                    !(
+                        l.student_id === editingCell.studentId &&
+                        l.violation_type_id === editingCell.violationId &&
+                        compareDates(l.log_date, activeDate)
+                    )
+            );
 
             if (editingCell.isAbsence) {
                 const absenceK_ID = getViolationIdByKey('Vắng (K)');
-                newLogs = newLogs.filter(l => !(
-                    l.student_id === editingCell.studentId && 
-                    l.violation_type_id === absenceK_ID &&
-                    compareDates(l.log_date, activeDate)
-                ));
+                newLogs = newLogs.filter(
+                    (l) =>
+                        !(
+                            l.student_id === editingCell.studentId &&
+                            l.violation_type_id === absenceK_ID &&
+                            compareDates(l.log_date, activeDate)
+                        )
+                );
             }
 
-            
             const finalQuantity = editingCell.isAbsence ? 1 : quantityToAdd;
 
             if (finalQuantity > 0) {
                 newLogs.push({
-                    student_id: editingCell.studentId, 
+                    student_id: editingCell.studentId,
                     violation_type_id: editingCell.violationId,
-                    quantity: finalQuantity, 
-                    log_date: activeDate, 
-                    note: note
+                    quantity: finalQuantity,
+                    log_date: activeDate,
+                    note: note,
                 });
             }
             return newLogs;
@@ -230,7 +253,7 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const getPointDisplay = (key: string) => {
         const id = getViolationIdByKey(key);
-        const violation = violationTypes.find(v => v.id === id);
+        const violation = violationTypes.find((v) => v.id === id);
         if (!violation) return '';
         return violation.points > 0 ? `+${violation.points}` : violation.points;
     };
@@ -248,7 +271,7 @@ const DailyTrackingTable: React.FC<Props> = ({
             alert('Lỗi: Ngày không hợp lệ. Hãy thử tải lại trang.');
             return;
         }
-        const logsForToday = logs.filter(l => compareDates(l.log_date, activeDate));
+        const logsForToday = logs.filter((l) => compareDates(l.log_date, activeDate));
         onSubmit(logsForToday, activeDate);
     };
 
@@ -270,42 +293,154 @@ const DailyTrackingTable: React.FC<Props> = ({
                 <table className="trk-table">
                     <thead>
                         <tr>
-                            <th rowSpan={4} className="trk-sticky-col trk-stt-col" style={{ left: 0 }}>STT</th>
-                            <th rowSpan={4} className="trk-sticky-col trk-name-col" style={{ left: '40px' }}>Họ và tên</th>
-                            <th rowSpan={4} className="trk-total-col">Tổng</th>
-                            <th colSpan={4} className="trk-group-header">GIỜ GIẤC</th>
-                            <th colSpan={3} className="trk-group-header">HỌC TẬP</th>
-                            <th colSpan={4} className="trk-group-header">NỀ NẾP</th>
-                            <th colSpan={3} className="trk-group-header">MẮC THÁI ĐỘ SAI</th>
-                            <th colSpan={3} className="trk-group-header">ĐIỂM TRẢ BÀI</th>
-                            <th colSpan={1} className="trk-group-header">PHÁT BIỂU</th>
-                            <th colSpan={2} className="trk-group-header">PHONG TRÀO</th>
+                            <th
+                                rowSpan={4}
+                                className="trk-sticky-col trk-stt-col"
+                                style={{ left: 0 }}
+                            >
+                                STT
+                            </th>
+                            <th
+                                rowSpan={4}
+                                className="trk-sticky-col trk-name-col"
+                                style={{ left: '40px' }}
+                            >
+                                Họ và tên
+                            </th>
+                            <th rowSpan={4} className="trk-total-col">
+                                Tổng
+                            </th>
+                            <th colSpan={4} className="trk-group-header">
+                                GIỜ GIẤC
+                            </th>
+                            <th colSpan={3} className="trk-group-header">
+                                HỌC TẬP
+                            </th>
+                            <th colSpan={4} className="trk-group-header">
+                                NỀ NẾP
+                            </th>
+                            <th colSpan={3} className="trk-group-header">
+                                MẮC THÁI ĐỘ SAI
+                            </th>
+                            <th colSpan={3} className="trk-group-header">
+                                ĐIỂM TRẢ BÀI
+                            </th>
+                            <th colSpan={1} className="trk-group-header">
+                                PHÁT BIỂU
+                            </th>
+                            <th colSpan={2} className="trk-group-header">
+                                PHONG TRÀO
+                            </th>
                         </tr>
                         <tr>
-                            <th colSpan={2} className="trk-sub-group-header">Vắng</th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Trễ</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Bỏ tiết</span></div></th>
-                            <th colSpan={3} className="trk-sub-group-header">KHÔNG</th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Trực nhật</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Giữ vệ sinh</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Đồng phục</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Giữ trật tự</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Đánh nhau</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Nói tục</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Vô lễ</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>1-4</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>5-7</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>8-10</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Tham gia</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Tham gia</span></div></th>
-                            <th rowSpan={2} className="trk-th-rotate"><div><span>Không tham gia</span></div></th>
+                            <th colSpan={2} className="trk-sub-group-header">
+                                Vắng
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Trễ</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Bỏ tiết</span>
+                                </div>
+                            </th>
+                            <th colSpan={3} className="trk-sub-group-header">
+                                KHÔNG
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Trực nhật</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Giữ vệ sinh</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Đồng phục</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Giữ trật tự</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Đánh nhau</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Nói tục</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Vô lễ</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>1-4</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>5-7</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>8-10</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Tham gia</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Tham gia</span>
+                                </div>
+                            </th>
+                            <th rowSpan={2} className="trk-th-rotate">
+                                <div>
+                                    <span>Không tham gia</span>
+                                </div>
+                            </th>
                         </tr>
                         <tr>
-                            <th className="trk-th-rotate"><div><span>P</span></div></th>
-                            <th className="trk-th-rotate"><div><span>K</span></div></th>
-                            <th className="trk-th-rotate"><div><span>Làm BT</span></div></th>
-                            <th className="trk-th-rotate"><div><span>Soạn bài</span></div></th>
-                            <th className="trk-th-rotate"><div><span>Thuộc bài</span></div></th>
+                            <th className="trk-th-rotate">
+                                <div>
+                                    <span>P</span>
+                                </div>
+                            </th>
+                            <th className="trk-th-rotate">
+                                <div>
+                                    <span>K</span>
+                                </div>
+                            </th>
+                            <th className="trk-th-rotate">
+                                <div>
+                                    <span>Làm BT</span>
+                                </div>
+                            </th>
+                            <th className="trk-th-rotate">
+                                <div>
+                                    <span>Soạn bài</span>
+                                </div>
+                            </th>
+                            <th className="trk-th-rotate">
+                                <div>
+                                    <span>Thuộc bài</span>
+                                </div>
+                            </th>
                         </tr>
                         <tr className="trk-points-row">
                             {COLUMNS_CONFIG.map((col, index) => (
@@ -318,28 +453,66 @@ const DailyTrackingTable: React.FC<Props> = ({
                             const totalScore = calculateStudentScore(student.id);
                             return (
                                 <tr key={student.id}>
-                                    <td className="trk-sticky-col trk-stt-col" style={{ left: 0 }}>{index + 1}</td>
-                                    <td className="trk-sticky-col trk-name-col" style={{ left: '40px' }}><span className="name">{student.full_name}</span></td>
-                                    <td className="text-center font-bold" style={{ color: totalScore < 0 ? 'red' : 'blue' }}>{totalScore > 0 ? `+${totalScore}` : totalScore}</td>
+                                    <td className="trk-sticky-col trk-stt-col" style={{ left: 0 }}>
+                                        {index + 1}
+                                    </td>
+                                    <td
+                                        className="trk-sticky-col trk-name-col"
+                                        style={{ left: '40px' }}
+                                    >
+                                        <span className="name">{student.full_name}</span>
+                                    </td>
+                                    <td
+                                        className="text-center font-bold"
+                                        style={{ color: totalScore < 0 ? 'red' : 'blue' }}
+                                    >
+                                        {totalScore > 0 ? `+${totalScore}` : totalScore}
+                                    </td>
                                     {COLUMNS_CONFIG.map((col, colIndex) => {
                                         const violationId = getViolationIdByKey(col.key);
-                                        if (!violationId) return <td key={colIndex} className="trk-checkbox-cell trk-disabled"></td>;
-                                        
-                                        const { quantity, hasNote } = getCellData(student.id, violationId);
-                                        const isBonus = (violationTypes.find((v) => v.id === violationId)?.points || 0) > 0;
+                                        if (!violationId)
+                                            return (
+                                                <td
+                                                    key={colIndex}
+                                                    className="trk-checkbox-cell trk-disabled"
+                                                ></td>
+                                            );
+
+                                        const { quantity, hasNote } = getCellData(
+                                            student.id,
+                                            violationId
+                                        );
+                                        const isBonus =
+                                            (violationTypes.find((v) => v.id === violationId)
+                                                ?.points || 0) > 0;
 
                                         return (
-                                            <td key={`${student.id}-${colIndex}`}
+                                            <td
+                                                key={`${student.id}-${colIndex}`}
                                                 className={`trk-checkbox-cell ${isBonus ? 'trk-bonus-cell' : ''} ${quantity > 0 ? 'trk-has-data' : ''} ${activeDayIndex === 6 ? 'trk-readonly-cell' : ''}`}
-                                                onClick={() => handleCellClick(student, col.key, col.subGroup)}
+                                                onClick={() =>
+                                                    handleCellClick(student, col.key, col.subGroup)
+                                                }
                                             >
                                                 <div className="trk-cell-content">
-                                                    {quantity > 0 && (
-                                                        col.subGroup === 'Vắng' ? 
-                                                            <input type="checkbox" checked={true} readOnly style={{ pointerEvents: 'none' }} /> :
-                                                            <span className="trk-quantity-badge">{quantity}</span>
+                                                    {quantity > 0 &&
+                                                        (col.subGroup === 'Vắng' ? (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={true}
+                                                                readOnly
+                                                                style={{ pointerEvents: 'none' }}
+                                                            />
+                                                        ) : (
+                                                            <span className="trk-quantity-badge">
+                                                                {quantity}
+                                                            </span>
+                                                        ))}
+                                                    {hasNote && activeDayIndex !== 6 && (
+                                                        <span className="trk-note-indicator">
+                                                            📝
+                                                        </span>
                                                     )}
-                                                    {hasNote && activeDayIndex !== 6 && <span className="trk-note-indicator">📝</span>}
                                                 </div>
                                             </td>
                                         );
@@ -360,7 +533,11 @@ const DailyTrackingTable: React.FC<Props> = ({
             )}
 
             {editingCell && (
-                <EditLogModal data={editingCell} onClose={() => setEditingCell(null)} onSave={handleSaveModal} />
+                <EditLogModal
+                    data={editingCell}
+                    onClose={() => setEditingCell(null)}
+                    onSave={handleSaveModal}
+                />
             )}
         </div>
     );

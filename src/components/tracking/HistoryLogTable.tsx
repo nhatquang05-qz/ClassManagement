@@ -6,16 +6,15 @@ interface Props {
     logs: DailyLogPayload[];
     onDelete: (id: number) => void;
     activeDate?: string | null;
-    viewMode?: 'day' | 'week'; 
+    viewMode?: 'day' | 'week';
 }
 
-const HistoryLogTable: React.FC<Props> = ({ 
-    logs = [], 
-    onDelete, 
-    activeDate, 
-    viewMode = 'week' 
+const HistoryLogTable: React.FC<Props> = ({
+    logs = [],
+    onDelete,
+    activeDate,
+    viewMode = 'week',
 }) => {
-    
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('all');
 
@@ -30,15 +29,15 @@ const HistoryLogTable: React.FC<Props> = ({
         if (isNaN(current.getTime())) return null;
 
         current.setHours(0, 0, 0, 0);
-        const day = current.getDay(); 
+        const day = current.getDay();
         const distanceToMonday = day === 0 ? 6 : day - 1;
-        
+
         const startOfWeek = new Date(current);
         startOfWeek.setDate(current.getDate() - distanceToMonday);
         startOfWeek.setHours(0, 0, 0, 0);
 
         const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); 
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23, 59, 59, 999);
 
         return { start: startOfWeek, end: endOfWeek };
@@ -50,19 +49,20 @@ const HistoryLogTable: React.FC<Props> = ({
         const lowerSearch = searchTerm.toLowerCase().trim();
 
         return logs.filter((log) => {
-            
             if (activeDate && log.log_date) {
                 if (viewMode === 'day') {
                     if (log.log_date.slice(0, 10) !== activeDate.slice(0, 10)) {
                         return false;
                     }
                 } else {
-                    
                     const range = getWeekRange(activeDate);
                     if (range) {
                         const logDate = new Date(log.log_date);
                         logDate.setHours(0, 0, 0, 0);
-                        if (logDate.getTime() < range.start.getTime() || logDate.getTime() > range.end.getTime()) {
+                        if (
+                            logDate.getTime() < range.start.getTime() ||
+                            logDate.getTime() > range.end.getTime()
+                        ) {
                             return false;
                         }
                     }
@@ -84,21 +84,25 @@ const HistoryLogTable: React.FC<Props> = ({
     const formatTime = (dateStr?: string) => {
         if (!dateStr) return '-';
         const d = new Date(dateStr);
-        return isNaN(d.getTime()) ? dateStr : d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        return isNaN(d.getTime())
+            ? dateStr
+            : d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
     };
 
     const formatDateOnly = (dateStr?: string) => {
         if (!dateStr) return '';
         try {
-            const datePart = dateStr.slice(0, 10); 
+            const datePart = dateStr.slice(0, 10);
             const [year, month, day] = datePart.split('-');
             return `${day}/${month}`;
-        } catch (e) { return dateStr; }
+        } catch (e) {
+            return dateStr;
+        }
     };
 
     const getDisplayTitle = () => {
         if (!activeDate) return 'Cả Tuần';
-        
+
         if (viewMode === 'day') {
             return `Ngày ${formatDateOnly(activeDate)}`;
         }
@@ -111,7 +115,7 @@ const HistoryLogTable: React.FC<Props> = ({
             const endStr = `${e.getDate().toString().padStart(2, '0')}/${(e.getMonth() + 1).toString().padStart(2, '0')}`;
             return `Tuần từ ${startStr} đến ${endStr}`;
         }
-        
+
         return 'Cả Tuần';
     };
 
@@ -119,8 +123,15 @@ const HistoryLogTable: React.FC<Props> = ({
         <div className="trk-history-container">
             <div className="trk-history-header">
                 <h3 className="history-title">
-                    📋 Nhật Ký Hoạt Động 
-                    <span style={{ fontWeight: 'normal', fontSize: '0.9em', marginLeft: '10px', color: '#666' }}>
+                    📋 Nhật Ký Hoạt Động
+                    <span
+                        style={{
+                            fontWeight: 'normal',
+                            fontSize: '0.9em',
+                            marginLeft: '10px',
+                            color: '#666',
+                        }}
+                    >
                         ({getDisplayTitle()})
                     </span>
                 </h3>
@@ -167,32 +178,46 @@ const HistoryLogTable: React.FC<Props> = ({
                         {filteredLogs.length === 0 ? (
                             <tr>
                                 <td colSpan={9} className="trk-history-empty">
-                                    {viewMode === 'day' 
+                                    {viewMode === 'day'
                                         ? `Chưa có ghi nhận nào trong ngày ${formatDateOnly(activeDate || undefined)}.`
-                                        : "Chưa có dữ liệu nào trong tuần này."}
+                                        : 'Chưa có dữ liệu nào trong tuần này.'}
                                 </td>
                             </tr>
                         ) : (
                             filteredLogs.map((log, index) => {
                                 const totalPoints = (log.points || 0) * log.quantity;
                                 const isBonus = totalPoints > 0;
-                                const canDelete = !!log.id; 
+                                const canDelete = !!log.id;
 
                                 return (
                                     <tr key={log.id || index} className="history-row">
                                         <td style={{ fontSize: '12px', color: '#666' }}>
-                                            {formatTime(log.created_at)} <br/>
+                                            {formatTime(log.created_at)} <br />
                                             {formatDateOnly(log.created_at)}
                                         </td>
-                                        <td style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>
+                                        <td
+                                            style={{
+                                                fontSize: '13px',
+                                                fontWeight: 'bold',
+                                                color: '#555',
+                                            }}
+                                        >
                                             {formatDateOnly(log.log_date)}
                                         </td>
-                                        <td style={{ fontWeight: 'bold', textAlign: 'left', color: '#2c3e50' }}>
+                                        <td
+                                            style={{
+                                                fontWeight: 'bold',
+                                                textAlign: 'left',
+                                                color: '#2c3e50',
+                                            }}
+                                        >
                                             {log.student_name}
                                         </td>
                                         <td style={{ textAlign: 'left' }}>
-                                            <span className={`badge-violation ${isBonus ? 'positive' : 'negative'}`}>
-                                                 {log.violation_name}
+                                            <span
+                                                className={`badge-violation ${isBonus ? 'positive' : 'negative'}`}
+                                            >
+                                                {log.violation_name}
                                             </span>
                                         </td>
                                         <td style={{ fontSize: '12px' }}>{log.category}</td>
@@ -213,7 +238,7 @@ const HistoryLogTable: React.FC<Props> = ({
                                                 color: '#666',
                                                 fontSize: '12px',
                                                 maxWidth: '200px',
-                                                whiteSpace: 'normal' 
+                                                whiteSpace: 'normal',
                                             }}
                                         >
                                             {log.note || ''}

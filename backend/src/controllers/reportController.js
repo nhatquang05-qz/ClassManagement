@@ -1,5 +1,3 @@
-
-
 const db = require('../config/dbConfig');
 
 const formatDate = (date) => {
@@ -98,12 +96,10 @@ const getWeeklyReport = async (req, res) => {
 
         const params = [];
 
-        
         if (from_date && to_date) {
             query += ` AND dl.log_date BETWEEN ? AND ?`;
             params.push(from_date, to_date);
         } else {
-            
             query += ` AND dl.week_number = ?`;
             params.push(week);
         }
@@ -132,7 +128,7 @@ const deleteReport = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { id } = req.params;
-        const reporter_id = req.user.id; 
+        const reporter_id = req.user.id;
 
         const [oldLog] = await connection.query(
             `
@@ -152,9 +148,9 @@ const deleteReport = async (req, res) => {
         const [user] = await connection.query('SELECT role_id FROM users WHERE id = ?', [
             reporter_id,
         ]);
-        
+
         const userRoleId = user[0]?.role_id;
-        const isManager = userRoleId === 1 || userRoleId === 2; 
+        const isManager = userRoleId === 1 || userRoleId === 2;
 
         if (!isManager && oldLog[0].reporter_id !== reporter_id) {
             return res.status(403).json({ message: 'Bạn không có quyền xóa dòng này' });

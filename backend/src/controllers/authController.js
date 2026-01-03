@@ -12,9 +12,9 @@ const login = async (req, res) => {
     try {
         const [users] = await db.query(
             `SELECT u.*, r.name as role_name, r.display_name as role_display 
-       FROM users u 
-       JOIN roles r ON u.role_id = r.id 
-       WHERE u.username = ?`,
+             FROM users u 
+             JOIN roles r ON u.role_id = r.id 
+             WHERE u.username = ?`,
             [username]
         );
 
@@ -50,6 +50,7 @@ const login = async (req, res) => {
                 role: user.role_name,
                 role_display: user.role_display,
                 group_number: user.group_number,
+                monitoring_group: user.monitoring_group,
                 class_id: user.class_id,
                 must_change_password: user.must_change_password,
             },
@@ -88,7 +89,7 @@ const getMe = async (req, res) => {
         const userId = req.user.id;
 
         const [users] = await db.query(
-            `SELECT u.id, u.username, u.full_name, u.role_id, u.class_id, u.group_number, 
+            `SELECT u.id, u.username, u.full_name, u.role_id, u.class_id, u.group_number, u.monitoring_group,
                     r.name as role, r.display_name as role_display 
              FROM users u 
              JOIN roles r ON u.role_id = r.id 

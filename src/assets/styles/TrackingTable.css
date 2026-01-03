@@ -44,29 +44,23 @@
     opacity: 0.9;
 }
 
-
 .trk-table-wrapper {
-    
-    
-    
-    overflow-x: auto; 
-    overflow-y: visible; 
-    
-    
-    max-height: none; 
+    overflow-x: auto;
+    overflow-y: visible;
+
+    max-height: none;
 
     position: relative;
     margin-bottom: 20px;
     border: 1px solid #e0e0e0;
     background: #fff;
-    
-    
+
     padding-bottom: 5px;
 }
 
 .trk-table {
     width: 100%;
-    border-collapse: separate; 
+    border-collapse: separate;
     border-spacing: 0;
     font-size: 13px;
     min-width: max-content;
@@ -83,34 +77,28 @@
     box-sizing: border-box;
 }
 
-
 .trk-table thead th {
     position: sticky;
-    top: 0; 
-    z-index: 20; 
-    background: #f8f9fa; 
+    top: 0;
+    z-index: 20;
+    background: #f8f9fa;
     border-bottom: 1px solid #ccc;
-    box-shadow: 0 1px 0 #ccc; 
+    box-shadow: 0 1px 0 #ccc;
 }
-
 
 .trk-sticky-col {
     position: sticky;
     left: 0;
     background: #fff;
-    z-index: 10; 
-    border-right: 2px solid #ccc !important; 
+    z-index: 10;
+    border-right: 2px solid #ccc !important;
 }
-
-
 
 .trk-table thead th.trk-sticky-col {
-    z-index: 30 !important; 
+    z-index: 30 !important;
     background: #e9ecef !important;
-    border-right: 2px solid #ccc !important; 
+    border-right: 2px solid #ccc !important;
 }
-
-
 
 .trk-name-col {
     min-width: 180px;
@@ -225,7 +213,6 @@
     background-color: #1976d2;
 }
 
-
 .trk-modal-overlay {
     position: fixed;
     top: 0;
@@ -337,7 +324,6 @@
     cursor: pointer;
     font-weight: 500;
 }
-
 
 .trk-history-container {
     margin-top: 30px;
@@ -462,13 +448,11 @@
     transform: scale(1.1);
 }
 
-
 @media (max-width: 768px) {
     .trk-container {
         padding: 10px;
     }
 
-    
     .trk-day-tabs {
         overflow-x: auto;
         white-space: nowrap;
@@ -485,7 +469,6 @@
         flex-shrink: 0;
     }
 
-    
     .trk-table {
         font-size: 12px;
     }
@@ -500,13 +483,11 @@
         min-width: 60px;
     }
 
-    
     .trk-btn-submit {
         width: 100%;
         padding: 12px;
     }
 
-    
     .trk-history-header {
         flex-direction: column;
         align-items: flex-start;
