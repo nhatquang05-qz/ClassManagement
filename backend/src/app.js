@@ -13,7 +13,15 @@ const verifyToken = require('./middleware/authMiddleware');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: '*', 
+    credentials: true 
+}));
+
+app.get('/ping', (req, res) => {
+    res.status(200).send('Pong!'); 
+});
+
 app.use(express.json());
 
 app.use('/api/classes', classRoutes);
