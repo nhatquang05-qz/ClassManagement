@@ -31,7 +31,7 @@ const HistoryLogTable: React.FC<Props> = ({
 
         current.setHours(0, 0, 0, 0);
         const day = current.getDay();
-        
+
         const distanceToMonday = day === 0 ? 6 : day - 1;
 
         const startOfWeek = new Date(current);
@@ -51,18 +51,12 @@ const HistoryLogTable: React.FC<Props> = ({
         const lowerSearch = searchTerm.toLowerCase().trim();
 
         return logs.filter((log) => {
-            
             if (activeDate && log.log_date) {
                 if (viewMode === 'day') {
-                    
                     if (log.log_date.slice(0, 10) !== activeDate.slice(0, 10)) {
                         return false;
                     }
                 } else {
-                    
-                    
-                    
-                    
                     const range = getWeekRange(activeDate);
                     if (range) {
                         const logDate = new Date(log.log_date);
@@ -77,10 +71,8 @@ const HistoryLogTable: React.FC<Props> = ({
                 }
             }
 
-            
             if (filterCategory !== 'all' && log.category !== filterCategory) return false;
 
-            
             if (lowerSearch) {
                 const matchName = log.student_name?.toLowerCase().includes(lowerSearch);
                 const matchViolation = log.violation_name?.toLowerCase().includes(lowerSearch);
@@ -134,7 +126,7 @@ const HistoryLogTable: React.FC<Props> = ({
         <div className="trk-history-container">
             <div className="trk-history-header">
                 <h3 className="history-title">
-                    <FaClipboardList style={{ marginRight: '8px', color: '#3498db' }} /> 
+                    <FaClipboardList style={{ marginRight: '8px', color: '#3498db' }} />
                     Nhật Ký Hoạt Động
                     <span
                         style={{
@@ -160,7 +152,7 @@ const HistoryLogTable: React.FC<Props> = ({
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                
+
                 <div className="filter-box-wrapper">
                     <FaFilter className="filter-icon-inside" />
                     <select

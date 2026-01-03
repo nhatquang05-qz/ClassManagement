@@ -236,9 +236,6 @@
     }
 }
 
-
-
-
 .daily-note-header h3 {
     margin: 0;
     font-size: 1.1rem;
@@ -247,7 +244,6 @@
     align-items: center;
     gap: 8px;
 }
-
 
 .daily-note-input:focus {
     outline: none;
@@ -269,11 +265,13 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
-
-
 
 .daily-note-section {
     background: white;

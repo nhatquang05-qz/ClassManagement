@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-    FaArrowLeft, 
-    FaChevronLeft, 
-    FaChevronRight, 
-    FaChartBar, 
-    FaSave, 
-    FaStickyNote 
+import {
+    FaArrowLeft,
+    FaChevronLeft,
+    FaChevronRight,
+    FaChartBar,
+    FaSave,
+    FaStickyNote,
 } from 'react-icons/fa';
 import api from '../utils/api';
 import DailyTrackingTable from '../components/tracking/DailyTrackingTable';
@@ -47,7 +47,6 @@ const TrackingPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [activeGroupTab, setActiveGroupTab] = useState<string>('all');
 
-    
     const [dailyNote, setDailyNote] = useState('');
     const [isNoteSaving, setIsNoteSaving] = useState(false);
 
@@ -69,13 +68,9 @@ const TrackingPage: React.FC = () => {
         [selectedWeek, classStartDate]
     );
 
-    
     const currentSelectedDate =
         weekDates.length > 0 ? weekDates[activeDayIndex < 6 ? activeDayIndex : 0] : undefined;
 
-    
-    
-    
     const viewMode = activeDayIndex === 6 ? 'week' : 'day';
 
     const canEdit = useMemo(() => {
@@ -185,8 +180,8 @@ const TrackingPage: React.FC = () => {
                     params: {
                         class_id: selectedClassId,
                         date: currentSelectedDate,
-                        group_number: currentNoteGroup
-                    }
+                        group_number: currentNoteGroup,
+                    },
                 });
                 setDailyNote(res.data.content || '');
             } catch (error) {
@@ -204,7 +199,7 @@ const TrackingPage: React.FC = () => {
                 class_id: selectedClassId,
                 date: currentSelectedDate,
                 group_number: currentNoteGroup,
-                content: dailyNote
+                content: dailyNote,
             });
             alert('Đã lưu ghi chú thành công!');
         } catch (error) {
@@ -338,7 +333,9 @@ const TrackingPage: React.FC = () => {
                         </div>
                         <div className="info-content">
                             <span className="info-label">{getScoreLabel()}</span>
-                            <span className={`info-value score-value ${groupTotalScore >= 0 ? 'positive' : 'negative'}`}>
+                            <span
+                                className={`info-value score-value ${groupTotalScore >= 0 ? 'positive' : 'negative'}`}
+                            >
                                 {groupTotalScore > 0 ? `+${groupTotalScore}` : groupTotalScore}
                             </span>
                         </div>
@@ -368,7 +365,17 @@ const TrackingPage: React.FC = () => {
 
             <div className="page-content">
                 {!classStartDate && (
-                    <div className="alert-warning" style={{marginBottom: 20, padding: 10, background: '#fff3cd', color: '#856404', borderRadius: 4, textAlign: 'center'}}>
+                    <div
+                        className="alert-warning"
+                        style={{
+                            marginBottom: 20,
+                            padding: 10,
+                            background: '#fff3cd',
+                            color: '#856404',
+                            borderRadius: 4,
+                            textAlign: 'center',
+                        }}
+                    >
                         ⚠ Lưu ý: Lớp học chưa được cấu hình "Ngày bắt đầu năm học".
                     </div>
                 )}
@@ -393,17 +400,24 @@ const TrackingPage: React.FC = () => {
                             <div className="daily-note-section">
                                 <div className="daily-note-header">
                                     <h3 className="note-title">
-                                        <FaStickyNote style={{ marginRight: '8px', color: '#f39c12' }} />
-                                        Ghi chú {currentNoteGroup ? `Tổ ${currentNoteGroup}` : 'Chung'} 
-                                        {' - '}{new Date(currentSelectedDate || '').toLocaleDateString('vi-VN')}
+                                        <FaStickyNote
+                                            style={{ marginRight: '8px', color: '#f39c12' }}
+                                        />
+                                        Ghi chú{' '}
+                                        {currentNoteGroup ? `Tổ ${currentNoteGroup}` : 'Chung'}
+                                        {' - '}
+                                        {new Date(currentSelectedDate || '').toLocaleDateString(
+                                            'vi-VN'
+                                        )}
                                     </h3>
                                     {canEdit && (
-                                        <button 
-                                            className="btn-save-note" 
+                                        <button
+                                            className="btn-save-note"
                                             onClick={handleSaveNote}
                                             disabled={isNoteSaving}
                                         >
-                                            <FaSave /> {isNoteSaving ? 'Đang lưu...' : 'Lưu ghi chú'}
+                                            <FaSave />{' '}
+                                            {isNoteSaving ? 'Đang lưu...' : 'Lưu ghi chú'}
                                         </button>
                                     )}
                                 </div>

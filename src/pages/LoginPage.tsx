@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useClass } from '../contexts/ClassContext';
-import { FaInfoCircle, FaUser, FaKey, FaQuestionCircle } from 'react-icons/fa'; 
+import { FaInfoCircle, FaUser, FaKey, FaQuestionCircle } from 'react-icons/fa';
 import api from '../utils/api';
 import '../assets/styles/AuthPage.css';
 
@@ -207,7 +207,9 @@ const LoginPage = () => {
                         Hướng dẫn đăng nhập
                     </h4>
 
-                    <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'flex-start' }}>
+                    <div
+                        style={{ marginBottom: '10px', display: 'flex', alignItems: 'flex-start' }}
+                    >
                         <FaUser
                             style={{
                                 marginRight: '10px',
@@ -229,7 +231,9 @@ const LoginPage = () => {
                     </div>
 
                     <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
-                        <FaKey style={{ marginRight: '10px', color: '#27ae60', minWidth: '16px' }} />
+                        <FaKey
+                            style={{ marginRight: '10px', color: '#27ae60', minWidth: '16px' }}
+                        />
                         <div>
                             <strong>Mật khẩu mặc định lần đầu đăng nhập:</strong>{' '}
                             <code

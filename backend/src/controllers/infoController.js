@@ -1,12 +1,34 @@
 const db = require('../config/dbConfig');
-const cloudinary = require('../config/cloudinary');
+const cloudinary = require('../config/cloudinaryConfig');
 const streamifier = require('streamifier');
 
-
-const uploadFromBuffer = (buffer) => {
+const uploadFromBuffer = (file) => {
     return new Promise((resolve, reject) => {
+        const isImage = file.mimetype.startsWith('image/');
+        const isPdf = file.mimetype === 'application/pdf';
+
+        let resourceType = 'raw';
+        if (isImage || isPdf) {
+            resourceType = 'image';
+        }
+
+        const originalName = file.originalname;
+        const extension = originalName.split('.').pop();
+        const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.'));
+        const customPublicId = `${nameWithoutExt}_${Date.now()}`;
+
+        const uploadOptions = {
+            folder: 'class_management_docs',
+            resource_type: resourceType,
+            public_id: customPublicId,
+        };
+
+        if (resourceType === 'raw') {
+            uploadOptions.public_id = `${customPublicId}.${extension}`;
+        }
+
         const cld_upload_stream = cloudinary.uploader.upload_stream(
-            { folder: 'class_management_docs', resource_type: 'auto' },
+            uploadOptions,
             (error, result) => {
                 if (result) {
                     resolve(result);
@@ -15,7 +37,7 @@ const uploadFromBuffer = (buffer) => {
                 }
             }
         );
-        streamifier.createReadStream(buffer).pipe(cld_upload_stream);
+        streamifier.createReadStream(file.buffer).pipe(cld_upload_stream);
     });
 };
 
@@ -55,10 +77,11 @@ const createAnnouncement = async (req, res) => {
         let file_type = null;
 
         if (req.file) {
-            const result = await uploadFromBuffer(req.file.buffer);
+            const result = await uploadFromBuffer(req.file);
             file_url = result.secure_url;
             file_name = req.file.originalname;
-            file_type = result.format || req.file.mimetype.split('/')[1];
+
+            file_type = result.format || req.file.originalname.split('.').pop();
         }
 
         await connection.query(
@@ -78,7 +101,6 @@ const createAnnouncement = async (req, res) => {
 const deleteAnnouncement = async (req, res) => {
     try {
         const { id } = req.params;
-        
         await db.query('DELETE FROM announcements WHERE id = ?', [id]);
         res.json({ message: 'Đã xóa thông báo' });
     } catch (error) {

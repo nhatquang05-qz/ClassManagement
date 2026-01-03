@@ -327,7 +327,7 @@ const saveDailyNote = async (req, res) => {
     const connection = await db.getConnection();
     try {
         const { class_id, date, group_number, content } = req.body;
-        
+
         if (!class_id || !date) {
             return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' });
         }
@@ -341,7 +341,7 @@ const saveDailyNote = async (req, res) => {
         `;
 
         await connection.query(query, [class_id, finalGroupNumber, date, content]);
-        
+
         res.json({ message: 'Đã lưu ghi chú' });
     } catch (error) {
         console.error('Lỗi lưu ghi chú:', error);
@@ -359,5 +359,5 @@ module.exports = {
     deleteReport,
     getDetailedReport,
     saveDailyNote,
-    getDailyNote
+    getDailyNote,
 };

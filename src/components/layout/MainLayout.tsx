@@ -19,6 +19,7 @@ import {
     FaChevronRight,
     FaExchangeAlt,
     FaLock,
+    FaBullhorn,
 } from 'react-icons/fa';
 
 const MainLayout: React.FC = () => {
@@ -102,7 +103,6 @@ const MainLayout: React.FC = () => {
                     )}
                 </div>
 
-                {}
                 {isSidebarOpen &&
                     (user?.role === 'teacher' ||
                         user?.role === 'admin' ||
@@ -124,7 +124,6 @@ const MainLayout: React.FC = () => {
                                 </>
                             ) : (
                                 <span style={{ color: 'var(--danger-color)', cursor: 'pointer' }}>
-                                    {}
                                     {user?.role === 'group_leader' || user?.role === 'monitor'
                                         ? 'Đang tải lớp...'
                                         : '+ Chọn lớp học...'}
@@ -153,6 +152,34 @@ const MainLayout: React.FC = () => {
                             </Link>
                         </li>
 
+                        {}
+                        <li>
+                            {isClassLocked ? (
+                                <div
+                                    className="nav-item"
+                                    style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                    title="Vui lòng chọn lớp trước"
+                                >
+                                    <span className="icon">
+                                        <FaBullhorn />
+                                    </span>
+                                    {isSidebarOpen && (
+                                        <span className="label">Thông tin lớp học</span>
+                                    )}
+                                </div>
+                            ) : (
+                                <Link to="/info" className={`nav-item ${isActive('/info')}`}>
+                                    <span className="icon">
+                                        <FaBullhorn />
+                                    </span>
+                                    {isSidebarOpen && (
+                                        <span className="label">Thông tin lớp học</span>
+                                    )}
+                                </Link>
+                            )}
+                        </li>
+                        {}
+
                         {user?.role !== 'admin' && user?.role !== 'teacher' && (
                             <li>
                                 <Link
@@ -162,9 +189,7 @@ const MainLayout: React.FC = () => {
                                     <span className="icon">
                                         <FaUser />
                                     </span>
-                                    {isSidebarOpen && (
-                                        <span className="label">Cá nhân</span>
-                                    )}
+                                    {isSidebarOpen && <span className="label">Cá nhân</span>}
                                 </Link>
                             </li>
                         )}

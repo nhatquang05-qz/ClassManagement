@@ -10,6 +10,7 @@ import MyRecordPage from './pages/MyRecordPage';
 import StudentManagerPage from './pages/StudentManagerPage';
 import ReportPage from './pages/ReportPage';
 import MainLayout from './components/layout/MainLayout';
+import ClassInfoPage from './pages/ClassInfoPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     const { isAuthenticated, isLoading } = useAuth();
@@ -38,6 +39,7 @@ function App() {
                             <Route path="/my-record" element={<MyRecordPage />} />
                             <Route path="/students" element={<StudentManagerPage />} />
                             <Route path="/report" element={<ReportPage />} />
+                            <Route path="/info" element={<ClassInfoPage />} />
                         </Route>
                     </Routes>
                 </ClassProvider>
