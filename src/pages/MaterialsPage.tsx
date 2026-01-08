@@ -28,6 +28,7 @@ import {
     FaArrowsAlt,
     FaShareAlt,
     FaUndo,
+    FaInfoCircle,
 } from 'react-icons/fa';
 
 interface Material {
@@ -47,11 +48,13 @@ interface ToastMessage {
     title: string;
     message: string;
 }
+
 interface ClipboardItem {
     action: 'copy' | 'cut';
     item: Material;
     sourceParentId: number | null;
 }
+
 type HistoryAction =
     | { type: 'delete'; data: Material }
     | { type: 'move'; id: number; oldParentId: number | null; newParentId: number | null }
@@ -68,21 +71,25 @@ type HistoryAction =
 
 const MaterialsPage: React.FC = () => {
     const { user } = useAuth();
-
     const navigate = useNavigate();
     const { folderId } = useParams<{ folderId: string }>();
 
     const [materials, setMaterials] = useState<Material[]>([]);
     const [breadcrumbsList, setBreadcrumbsList] = useState<{ id: number; title: string }[]>([]);
     const [loading, setLoading] = useState(false);
+
     const [searchTerm, setSearchTerm] = useState('');
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
     const [selectedItem, setSelectedItem] = useState<Material | null>(null);
     const [clipboard, setClipboard] = useState<ClipboardItem | null>(null);
     const [historyStack, setHistoryStack] = useState<HistoryAction[]>([]);
+
     const [draggedItem, setDraggedItem] = useState<Material | null>(null);
     const [dragOverFolderId, setDragOverFolderId] = useState<number | null>(null);
+
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [modalType, setModalType] = useState<'folder' | 'file' | 'link' | 'video'>('folder');
     const [formData, setFormData] = useState({
@@ -92,6 +99,7 @@ const MaterialsPage: React.FC = () => {
         url: '',
         file: null as File | null,
     });
+
     const [contextMenu, setContextMenu] = useState<{
         x: number;
         y: number;
@@ -105,9 +113,7 @@ const MaterialsPage: React.FC = () => {
         setLoading(true);
         try {
             const parentId = folderId ? parseInt(folderId) : null;
-
             const listPromise = api.get(`/materials`, { params: { parentId } });
-
             let detailPromise = null;
             if (parentId) {
                 detailPromise = api.get(`/materials/detail/${parentId}`);
@@ -127,7 +133,6 @@ const MaterialsPage: React.FC = () => {
             }
         } catch (error: any) {
             if (error.response?.status === 401) navigate('/login');
-            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -149,12 +154,19 @@ const MaterialsPage: React.FC = () => {
     };
     const removeToast = (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
+    const handleViewDetail = (item: Material) => {
+        setSelectedItem(item);
+        setContextMenu(null);
+        setIsDetailModalOpen(true);
+    };
+
     const handleUndo = async () => {
         if (historyStack.length === 0) return;
         const action = historyStack[historyStack.length - 1];
         const newStack = historyStack.slice(0, -1);
         setHistoryStack(newStack);
-        const toastId = addToast('loading', 'Đang hoàn tác...', 'Đang khôi phục...');
+
+        const toastId = addToast('loading', 'Đang hoàn tác...', '...');
         try {
             switch (action.type) {
                 case 'delete':
@@ -167,7 +179,6 @@ const MaterialsPage: React.FC = () => {
                         action.data.parent_id ? action.data.parent_id.toString() : ''
                     );
                     if (action.data.url) restoreData.append('url', action.data.url);
-
                     await api.post(`/materials`, restoreData);
                     break;
                 case 'move':
@@ -224,7 +235,7 @@ const MaterialsPage: React.FC = () => {
     const handleCreate = async () => {
         if (!formData.title) return alert('Vui lòng nhập tên');
         setIsModalOpen(false);
-        const toastId = addToast('loading', 'Đang xử lý...', 'Processing...');
+        const toastId = addToast('loading', 'Đang xử lý...', '...');
         try {
             if (modalMode === 'create') {
                 const data = new FormData();
@@ -234,7 +245,6 @@ const MaterialsPage: React.FC = () => {
                 data.append('parentId', folderId ? folderId : '');
                 if (formData.url) data.append('url', formData.url);
                 if (formData.file) data.append('file', formData.file);
-
                 await api.post(`/materials`, data, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
@@ -469,37 +479,51 @@ const MaterialsPage: React.FC = () => {
                         }}
                     />
                 </div>
-                {canEdit && (
-                    <div className="mat-actions-group">
-                        {historyStack.length > 0 && (
+
+                <div className="mat-actions-group">
+                    {}
+                    {selectedItem && (
+                        <button
+                            className="btn-mat-create outline"
+                            onClick={() => handleViewDetail(selectedItem)}
+                            title="Xem chi tiết"
+                        >
+                            <FaInfoCircle />
+                        </button>
+                    )}
+
+                    {canEdit && (
+                        <>
+                            {historyStack.length > 0 && (
+                                <button
+                                    className="btn-mat-create outline"
+                                    onClick={handleUndo}
+                                    title="Hoàn tác (Ctrl+Z)"
+                                >
+                                    <FaUndo />
+                                </button>
+                            )}
+                            <button
+                                className="btn-mat-create"
+                                onClick={() => openCreateModal('folder')}
+                            >
+                                <FaFolder /> Thư mục
+                            </button>
                             <button
                                 className="btn-mat-create outline"
-                                onClick={handleUndo}
-                                title="Hoàn tác (Ctrl+Z)"
+                                onClick={() => openCreateModal('file')}
                             >
-                                <FaUndo />
+                                <FaCloudUploadAlt /> Upload
                             </button>
-                        )}
-                        <button
-                            className="btn-mat-create"
-                            onClick={() => openCreateModal('folder')}
-                        >
-                            <FaFolder /> Thư mục
-                        </button>
-                        <button
-                            className="btn-mat-create outline"
-                            onClick={() => openCreateModal('file')}
-                        >
-                            <FaCloudUploadAlt /> Upload
-                        </button>
-                        <button
-                            className="btn-mat-create outline"
-                            onClick={() => openCreateModal('link')}
-                        >
-                            <FaLink /> Link
-                        </button>
-                    </div>
-                )}
+                            <button
+                                className="btn-mat-create outline"
+                                onClick={() => openCreateModal('link')}
+                            >
+                                <FaLink /> Link
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="mat-breadcrumb-bar" onClick={(e) => e.stopPropagation()}>
@@ -552,9 +576,6 @@ const MaterialsPage: React.FC = () => {
                             <div className="mat-card-icon">{getIcon(item)}</div>
                             <div className="mat-card-info">
                                 <div className="mat-card-title">{item.title}</div>
-                                {item.description && (
-                                    <div className="mat-card-meta">{item.description}</div>
-                                )}
                             </div>
                             {canEdit && (
                                 <div className="mat-card-actions">
@@ -588,6 +609,13 @@ const MaterialsPage: React.FC = () => {
                                 onClick={() => handleItemDoubleClick(contextMenu.item!)}
                             >
                                 <FaFolder /> Mở
+                            </div>
+                            {}
+                            <div
+                                className="context-menu-item"
+                                onClick={() => handleViewDetail(contextMenu.item!)}
+                            >
+                                <FaInfoCircle /> Chi tiết / Mô tả
                             </div>
                             <div
                                 className="context-menu-item"
@@ -644,6 +672,7 @@ const MaterialsPage: React.FC = () => {
                 </div>
             )}
 
+            {}
             {isModalOpen && (
                 <div className="mat-modal-overlay" onClick={(e) => e.stopPropagation()}>
                     <div className="mat-modal-container">
@@ -713,6 +742,123 @@ const MaterialsPage: React.FC = () => {
                             </button>
                             <button className="btn-submit" onClick={handleCreate}>
                                 Lưu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {}
+            {isDetailModalOpen && selectedItem && (
+                <div className="mat-modal-overlay" onClick={() => setIsDetailModalOpen(false)}>
+                    <div
+                        className="mat-modal-container"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ maxWidth: '450px' }}
+                    >
+                        <div className="mat-modal-header">
+                            <h3>Thông tin chi tiết</h3>
+                            <button
+                                className="close-btn"
+                                onClick={() => setIsDetailModalOpen(false)}
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <div className="mat-modal-body">
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '15px',
+                                    marginBottom: '20px',
+                                }}
+                            >
+                                <div style={{ fontSize: '3rem' }}>{getIcon(selectedItem)}</div>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '1.1rem' }}>
+                                        {selectedItem.title}
+                                    </h4>
+                                    <p
+                                        style={{
+                                            margin: '5px 0',
+                                            color: '#666',
+                                            fontSize: '0.9rem',
+                                        }}
+                                    >
+                                        {new Date(selectedItem.created_at || '').toLocaleString(
+                                            'vi-VN'
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Loại:</label>
+                                <div
+                                    style={{
+                                        padding: '8px',
+                                        background: '#f5f5f5',
+                                        borderRadius: '4px',
+                                    }}
+                                >
+                                    {selectedItem.type === 'folder'
+                                        ? 'Thư mục'
+                                        : selectedItem.type.toUpperCase()}
+                                    {selectedItem.file_mime ? ` (${selectedItem.file_mime})` : ''}
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>Mô tả:</label>
+                                <div
+                                    style={{
+                                        padding: '10px',
+                                        background: '#f9f9f9',
+                                        borderRadius: '4px',
+                                        minHeight: '60px',
+                                        whiteSpace: 'pre-wrap',
+                                        border: '1px solid #eee',
+                                    }}
+                                >
+                                    {selectedItem.description || '(Không có mô tả)'}
+                                </div>
+                            </div>
+
+                            {selectedItem.url && (
+                                <div className="form-group">
+                                    <label>Đường dẫn:</label>
+                                    <a
+                                        href={selectedItem.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'block',
+                                            padding: '8px',
+                                            background: '#e3f2fd',
+                                            borderRadius: '4px',
+                                            wordBreak: 'break-all',
+                                            color: '#1976d2',
+                                            textDecoration: 'none',
+                                        }}
+                                    >
+                                        {selectedItem.url}
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                        <div className="mat-modal-footer">
+                            <button
+                                className="btn-cancel"
+                                onClick={() => setIsDetailModalOpen(false)}
+                            >
+                                Đóng
+                            </button>
+                            <button
+                                className="btn-submit"
+                                onClick={() => handleItemDoubleClick(selectedItem)}
+                            >
+                                Mở
                             </button>
                         </div>
                     </div>

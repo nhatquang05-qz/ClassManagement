@@ -2,15 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const authController = require('./controllers/authController');
 const dashboardController = require('./controllers/dashboardController');
-const reportController = require('./controllers/reportController');
-const userController = require('./controllers/userController');
 const violationController = require('./controllers/violationController');
 const classRoutes = require('./routes/classRoutes');
 const userRoutes = require('./routes/userRoutes');
 const infoRoutes = require('./routes/infoRoutes');
 const reportRoutes = require('./routes/reportRoutes');
-const verifyToken = require('./middleware/authMiddleware');
 const materialRoutes = require('./routes/materialRoutes');
+
+const verifyToken = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -30,6 +29,7 @@ app.use(express.json());
 
 app.use('/api/classes', classRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/materials', materialRoutes);
 
 app.post('/api/auth/login', authController.login);
 app.post('/api/auth/change-password', verifyToken, authController.changePassword);
@@ -38,12 +38,13 @@ app.get('/api/auth/me', verifyToken, authController.getMe);
 app.get('/api/dashboard/rankings', dashboardController.getGroupRankings);
 
 app.use('/api/reports', reportRoutes);
-app.use('/api/materials', materialRoutes);
+app.use('/api/info', infoRoutes);
+
 app.get('/api/violations', violationController.getAllViolations);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
-app.use('/api/info', infoRoutes);
+
 module.exports = app;
