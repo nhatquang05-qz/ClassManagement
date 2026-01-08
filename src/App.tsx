@@ -11,6 +11,7 @@ import StudentManagerPage from './pages/StudentManagerPage';
 import ReportPage from './pages/ReportPage';
 import MainLayout from './components/layout/MainLayout';
 import ClassInfoPage from './pages/ClassInfoPage';
+import MaterialsPage from './pages/MaterialsPage';
 
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
     const { isAuthenticated, isLoading } = useAuth();
@@ -40,6 +41,7 @@ function App() {
                             <Route path="/students" element={<StudentManagerPage />} />
                             <Route path="/report" element={<ReportPage />} />
                             <Route path="/info" element={<ClassInfoPage />} />
+                            <Route path="materials" element={<MaterialsPage />} />
                         </Route>
                     </Routes>
                 </ClassProvider>

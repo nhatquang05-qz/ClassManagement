@@ -5,7 +5,7 @@ import { useClass } from '../../contexts/ClassContext';
 import api from '../../utils/api';
 import '../../assets/styles/MainLayout.css';
 import ClassManagerModal from '../classes/ClassManagerModal';
-
+import { FaBook } from 'react-icons/fa';
 import {
     FaHome,
     FaTrophy,
@@ -152,7 +152,6 @@ const MainLayout: React.FC = () => {
                             </Link>
                         </li>
 
-                        {}
                         <li>
                             {isClassLocked ? (
                                 <div
@@ -178,7 +177,35 @@ const MainLayout: React.FC = () => {
                                 </Link>
                             )}
                         </li>
-                        {}
+
+                        <li>
+                            {isClassLocked ? (
+                                <div
+                                    className="nav-item"
+                                    style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                    title="Vui lòng chọn lớp trước"
+                                >
+                                    <span className="icon">
+                                        <FaBook />
+                                    </span>
+                                    {isSidebarOpen && (
+                                        <span className="label">Tài liệu học tập</span>
+                                    )}
+                                </div>
+                            ) : (
+                                <Link
+                                    to="/materials"
+                                    className={`nav-item ${isActive('/materials')}`}
+                                >
+                                    <span className="icon">
+                                        <FaBook />
+                                    </span>
+                                    {isSidebarOpen && (
+                                        <span className="label">Tài liệu học tập</span>
+                                    )}
+                                </Link>
+                            )}
+                        </li>
 
                         {user?.role !== 'admin' && user?.role !== 'teacher' && (
                             <li>
