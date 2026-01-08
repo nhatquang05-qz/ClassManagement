@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useClass } from '../contexts/ClassContext';
+
 import api from '../utils/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import '../assets/styles/MaterialsPage.css';
@@ -47,13 +47,11 @@ interface ToastMessage {
     title: string;
     message: string;
 }
-
 interface ClipboardItem {
     action: 'copy' | 'cut';
     item: Material;
     sourceParentId: number | null;
 }
-
 type HistoryAction =
     | { type: 'delete'; data: Material }
     | { type: 'move'; id: number; oldParentId: number | null; newParentId: number | null }
@@ -70,24 +68,20 @@ type HistoryAction =
 
 const MaterialsPage: React.FC = () => {
     const { user } = useAuth();
-    const { selectedClass } = useClass();
+
     const navigate = useNavigate();
     const { folderId } = useParams<{ folderId: string }>();
 
     const [materials, setMaterials] = useState<Material[]>([]);
     const [breadcrumbsList, setBreadcrumbsList] = useState<{ id: number; title: string }[]>([]);
     const [loading, setLoading] = useState(false);
-
     const [searchTerm, setSearchTerm] = useState('');
     const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
     const [selectedItem, setSelectedItem] = useState<Material | null>(null);
     const [clipboard, setClipboard] = useState<ClipboardItem | null>(null);
     const [historyStack, setHistoryStack] = useState<HistoryAction[]>([]);
-
     const [draggedItem, setDraggedItem] = useState<Material | null>(null);
     const [dragOverFolderId, setDragOverFolderId] = useState<number | null>(null);
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [modalType, setModalType] = useState<'folder' | 'file' | 'link' | 'video'>('folder');
@@ -103,17 +97,17 @@ const MaterialsPage: React.FC = () => {
         y: number;
         item: Material | null;
     } | null>(null);
-
     const contextMenuRef = useRef<HTMLDivElement>(null);
-    const isTeacherOrAdmin =
-        user?.role === 'teacher' || user?.role === 'admin' || user?.role === 'group_leader';
+
+    const canEdit = user?.role === 'teacher' || user?.role === 'admin';
 
     const fetchMaterials = useCallback(async () => {
-        if (!selectedClass) return;
         setLoading(true);
         try {
             const parentId = folderId ? parseInt(folderId) : null;
-            const listPromise = api.get(`/materials/${selectedClass.id}`, { params: { parentId } });
+
+            const listPromise = api.get(`/materials`, { params: { parentId } });
+
             let detailPromise = null;
             if (parentId) {
                 detailPromise = api.get(`/materials/detail/${parentId}`);
@@ -133,10 +127,11 @@ const MaterialsPage: React.FC = () => {
             }
         } catch (error: any) {
             if (error.response?.status === 401) navigate('/login');
+            console.error(error);
         } finally {
             setLoading(false);
         }
-    }, [selectedClass, folderId, navigate]);
+    }, [folderId, navigate]);
 
     useEffect(() => {
         fetchMaterials();
@@ -159,9 +154,7 @@ const MaterialsPage: React.FC = () => {
         const action = historyStack[historyStack.length - 1];
         const newStack = historyStack.slice(0, -1);
         setHistoryStack(newStack);
-
-        const toastId = addToast('loading', 'Đang hoàn tác...', 'Đang khôi phục trạng thái cũ...');
-
+        const toastId = addToast('loading', 'Đang hoàn tác...', 'Đang khôi phục...');
         try {
             switch (action.type) {
                 case 'delete':
@@ -175,73 +168,63 @@ const MaterialsPage: React.FC = () => {
                     );
                     if (action.data.url) restoreData.append('url', action.data.url);
 
-                    await api.post(`/materials/${selectedClass?.id}`, restoreData);
+                    await api.post(`/materials`, restoreData);
                     break;
-
                 case 'move':
                     await api.put(`/materials/move/${action.id}`, {
                         newParentId: action.oldParentId,
                     });
                     break;
-
                 case 'rename':
                     await api.put(`/materials/${action.id}`, {
                         title: action.oldTitle,
                         description: action.oldDesc,
                     });
                     break;
-
                 case 'create':
                 case 'copy':
                     const idToDelete = action.type === 'create' ? action.id : action.newId;
                     await api.delete(`/materials/${idToDelete}`);
                     break;
             }
-            updateToast(toastId, 'success', 'Đã hoàn tác', 'Thao tác đã được khôi phục');
+            updateToast(toastId, 'success', 'Đã hoàn tác', 'Xong');
             fetchMaterials();
         } catch (error) {
-            updateToast(toastId, 'error', 'Lỗi hoàn tác', 'Không thể khôi phục');
+            updateToast(toastId, 'error', 'Lỗi', 'Không thể hoàn tác');
         }
     };
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
-
             if (e.ctrlKey && e.key === 'z') {
                 e.preventDefault();
                 handleUndo();
             } else if (e.ctrlKey && e.key === 'c') {
                 e.preventDefault();
-                if (selectedItem && isTeacherOrAdmin) handleCopyCut('copy', selectedItem);
+                if (selectedItem && canEdit) handleCopyCut('copy', selectedItem);
             } else if (e.ctrlKey && e.key === 'x') {
                 e.preventDefault();
-                if (selectedItem && isTeacherOrAdmin) handleCopyCut('cut', selectedItem);
+                if (selectedItem && canEdit) handleCopyCut('cut', selectedItem);
             } else if (e.ctrlKey && e.key === 'v') {
                 e.preventDefault();
-                if (clipboard && isTeacherOrAdmin) handlePaste();
+                if (clipboard && canEdit) handlePaste();
             } else if (e.key === 'Delete') {
                 e.preventDefault();
-                if (selectedItem && isTeacherOrAdmin) handleDelete(selectedItem);
+                if (selectedItem && canEdit) handleDelete(selectedItem);
             } else if (e.key === 'F2') {
                 e.preventDefault();
-                if (selectedItem && isTeacherOrAdmin) openEditModal(selectedItem);
+                if (selectedItem && canEdit) openEditModal(selectedItem);
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedItem, clipboard, historyStack, isTeacherOrAdmin]);
+    }, [selectedItem, clipboard, historyStack, canEdit]);
 
     const handleCreate = async () => {
         if (!formData.title) return alert('Vui lòng nhập tên');
         setIsModalOpen(false);
-        const toastId = addToast(
-            'loading',
-            'Đang xử lý...',
-            modalMode === 'create' ? 'Đang tạo mới...' : 'Đang cập nhật...'
-        );
-
+        const toastId = addToast('loading', 'Đang xử lý...', 'Processing...');
         try {
             if (modalMode === 'create') {
                 const data = new FormData();
@@ -252,7 +235,7 @@ const MaterialsPage: React.FC = () => {
                 if (formData.url) data.append('url', formData.url);
                 if (formData.file) data.append('file', formData.file);
 
-                await api.post(`/materials/${selectedClass?.id}`, data, {
+                await api.post(`/materials`, data, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
                 updateToast(toastId, 'success', 'Thành công', 'Đã tạo mới');
@@ -262,7 +245,6 @@ const MaterialsPage: React.FC = () => {
                     title: formData.title,
                     description: formData.description,
                 });
-
                 if (oldItem) {
                     setHistoryStack((prev) => [
                         ...prev,
@@ -299,25 +281,18 @@ const MaterialsPage: React.FC = () => {
 
     const handleCopyCut = (action: 'copy' | 'cut', item: Material) => {
         setClipboard({ action, item, sourceParentId: item.parent_id });
-        addToast('success', 'Đã lưu', `${action === 'copy' ? 'Sao chép' : 'Cắt'} "${item.title}"`);
+        addToast('success', 'Đã lưu', `${action} "${item.title}"`);
         setContextMenu(null);
     };
 
     const handlePaste = async () => {
         if (!clipboard) return;
         const targetParentId = folderId ? parseInt(folderId) : null;
-
         if (clipboard.action === 'cut' && clipboard.sourceParentId === targetParentId) {
-            addToast('error', 'Lỗi', 'Tệp đã ở trong thư mục này');
+            addToast('error', 'Lỗi', 'Tệp đã ở đây');
             return;
         }
-
-        const toastId = addToast(
-            'loading',
-            'Đang xử lý...',
-            `${clipboard.action === 'copy' ? 'Đang sao chép' : 'Đang di chuyển'}...`
-        );
-
+        const toastId = addToast('loading', 'Processing...', '...');
         try {
             if (clipboard.action === 'copy') {
                 await api.post(`/materials/copy/${clipboard.item.id}`, { targetParentId });
@@ -339,31 +314,27 @@ const MaterialsPage: React.FC = () => {
             updateToast(toastId, 'success', 'Thành công', 'Hoàn tất');
             fetchMaterials();
         } catch (error: any) {
-            updateToast(toastId, 'error', 'Lỗi', error.response?.data?.message || 'Lỗi xử lý');
+            updateToast(toastId, 'error', 'Lỗi', error.response?.data?.message);
         }
     };
 
     const handleDragStart = (e: React.DragEvent, item: Material) => {
-        if (!isTeacherOrAdmin) return;
+        if (!canEdit) return;
         setDraggedItem(item);
         setSelectedItem(item);
         e.dataTransfer.effectAllowed = 'move';
     };
-
     const handleDragOver = (e: React.DragEvent, targetItem: Material) => {
         e.preventDefault();
-        if (!isTeacherOrAdmin || !draggedItem) return;
-
+        if (!canEdit || !draggedItem) return;
         if (targetItem.type !== 'folder') {
             e.dataTransfer.dropEffect = 'none';
             return;
         }
         if (draggedItem.id === targetItem.id) return;
-
         setDragOverFolderId(targetItem.id);
         e.dataTransfer.dropEffect = 'move';
     };
-
     const handleDrop = async (e: React.DragEvent, targetItem: Material) => {
         e.preventDefault();
         setDragOverFolderId(null);
@@ -371,12 +342,7 @@ const MaterialsPage: React.FC = () => {
             setDraggedItem(null);
             return;
         }
-
-        const toastId = addToast(
-            'loading',
-            'Đang di chuyển...',
-            `Đang chuyển vào "${targetItem.title}"`
-        );
+        const toastId = addToast('loading', 'Moving...', '...');
         try {
             await api.put(`/materials/move/${draggedItem.id}`, { newParentId: targetItem.id });
             setHistoryStack((prev) => [
@@ -388,17 +354,12 @@ const MaterialsPage: React.FC = () => {
                     newParentId: targetItem.id,
                 },
             ]);
-            updateToast(toastId, 'success', 'Thành công', 'Đã di chuyển');
+            updateToast(toastId, 'success', 'Thành công', 'Moved');
             fetchMaterials();
-        } catch (error: any) {
-            updateToast(toastId, 'error', 'Lỗi', error.response?.data?.message || 'Lỗi di chuyển');
+        } catch (error) {
+            updateToast(toastId, 'error', 'Lỗi', 'Failed');
         }
         setDraggedItem(null);
-    };
-
-    const handleDragEnd = () => {
-        setDraggedItem(null);
-        setDragOverFolderId(null);
     };
 
     const openMaterial = (item: Material) => {
@@ -414,10 +375,9 @@ const MaterialsPage: React.FC = () => {
             link.click();
             document.body.removeChild(link);
         } else {
-            alert('File này không có đường dẫn (Lỗi upload)');
+            alert('Lỗi file');
         }
     };
-
     const handleItemClick = (e: React.MouseEvent, item: Material) => {
         e.stopPropagation();
         if (window.innerWidth < 768) {
@@ -426,16 +386,11 @@ const MaterialsPage: React.FC = () => {
             setSelectedItem(item);
         }
     };
-
-    const handleItemDoubleClick = (item: Material) => {
-        openMaterial(item);
-    };
-
+    const handleItemDoubleClick = (item: Material) => openMaterial(item);
     const handleBackgroundClick = () => {
         setSelectedItem(null);
         setContextMenu(null);
     };
-
     const openCreateModal = (type: any) => {
         setModalMode('create');
         setModalType(type);
@@ -455,7 +410,6 @@ const MaterialsPage: React.FC = () => {
         setIsModalOpen(true);
         setContextMenu(null);
     };
-
     const getIcon = (item: Material) => {
         if (item.type === 'folder') return <FaFolder className="mat-icon folder" />;
         if (item.type === 'video') return <FaVideo className="mat-icon video" />;
@@ -475,7 +429,7 @@ const MaterialsPage: React.FC = () => {
             className="materials-container"
             onClick={handleBackgroundClick}
             onContextMenu={(e) => {
-                if (isTeacherOrAdmin && clipboard) {
+                if (canEdit && clipboard) {
                     e.preventDefault();
                     setContextMenu({ x: e.clientX, y: e.clientY, item: null });
                 }
@@ -503,19 +457,19 @@ const MaterialsPage: React.FC = () => {
                     <FaSearch className="search-icon" />
                     <input
                         type="text"
-                        placeholder="Tìm kiếm..."
+                        placeholder="Tìm kiếm tài liệu..."
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
                             if (e.target.value.length > 0)
-                                api.get(
-                                    `/materials/${selectedClass?.id}/search?q=${e.target.value}`
-                                ).then((res) => setMaterials(res.data));
+                                api.get(`/materials/search?q=${e.target.value}`).then((res) =>
+                                    setMaterials(res.data)
+                                );
                             else fetchMaterials();
                         }}
                     />
                 </div>
-                {isTeacherOrAdmin && (
+                {canEdit && (
                     <div className="mat-actions-group">
                         {historyStack.length > 0 && (
                             <button
@@ -572,7 +526,6 @@ const MaterialsPage: React.FC = () => {
                 {materials.map((item) => {
                     const isCut = clipboard?.action === 'cut' && clipboard.item.id === item.id;
                     const isSelected = selectedItem?.id === item.id;
-
                     return (
                         <div
                             key={item.id}
@@ -585,12 +538,15 @@ const MaterialsPage: React.FC = () => {
                                 setSelectedItem(item);
                                 setContextMenu({ x: e.clientX, y: e.clientY, item });
                             }}
-                            draggable={isTeacherOrAdmin}
+                            draggable={canEdit}
                             onDragStart={(e) => handleDragStart(e, item)}
                             onDragOver={(e) => handleDragOver(e, item)}
                             onDragLeave={() => setDragOverFolderId(null)}
-                            onDragEnd={handleDragEnd}
                             onDrop={(e) => handleDrop(e, item)}
+                            onDragEnd={() => {
+                                setDraggedItem(null);
+                                setDragOverFolderId(null);
+                            }}
                             title={item.description || item.title}
                         >
                             <div className="mat-card-icon">{getIcon(item)}</div>
@@ -600,7 +556,7 @@ const MaterialsPage: React.FC = () => {
                                     <div className="mat-card-meta">{item.description}</div>
                                 )}
                             </div>
-                            {isTeacherOrAdmin && (
+                            {canEdit && (
                                 <div className="mat-card-actions">
                                     <button
                                         className="action-btn"
@@ -642,22 +598,21 @@ const MaterialsPage: React.FC = () => {
                                             : contextMenu.item?.url || '';
                                     if (link) {
                                         navigator.clipboard.writeText(link);
-                                        addToast('success', 'Đã copy', 'Link đã lưu vào clipboard');
+                                        addToast('success', 'Đã copy', 'Link');
                                     }
                                     setContextMenu(null);
                                 }}
                             >
                                 <FaShareAlt /> Copy Link
                             </div>
-                            {isTeacherOrAdmin && (
+                            {canEdit && (
                                 <>
                                     <div className="context-separator"></div>
                                     <div
                                         className="context-menu-item"
                                         onClick={() => openEditModal(contextMenu.item!)}
                                     >
-                                        <FaEdit /> Đổi tên / Mô tả{' '}
-                                        <span className="shortcut">F2</span>
+                                        <FaEdit /> Đổi tên <span className="shortcut">F2</span>
                                     </div>
                                     <div
                                         className="context-menu-item"
@@ -681,9 +636,9 @@ const MaterialsPage: React.FC = () => {
                                 </>
                             )}
                         </>
-                    ) : clipboard && isTeacherOrAdmin ? (
+                    ) : clipboard && canEdit ? (
                         <div className="context-menu-item" onClick={handlePaste}>
-                            <FaPaste /> Dán tại đây <span className="shortcut">Ctrl+V</span>
+                            <FaPaste /> Dán <span className="shortcut">Ctrl+V</span>
                         </div>
                     ) : null}
                 </div>
@@ -693,16 +648,14 @@ const MaterialsPage: React.FC = () => {
                 <div className="mat-modal-overlay" onClick={(e) => e.stopPropagation()}>
                     <div className="mat-modal-container">
                         <div className="mat-modal-header">
-                            <h3>{modalMode === 'create' ? 'Tạo mới' : 'Chỉnh sửa'}</h3>
+                            <h3>{modalMode === 'create' ? 'Tạo mới' : 'Sửa'}</h3>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}>
                                 <FaTimes />
                             </button>
                         </div>
                         <div className="mat-modal-body">
                             <div className="form-group">
-                                <label>
-                                    Tiêu đề <span className="required">*</span>
-                                </label>
+                                <label>Tên *</label>
                                 <input
                                     type="text"
                                     className="mat-input"
@@ -759,7 +712,7 @@ const MaterialsPage: React.FC = () => {
                                 Hủy
                             </button>
                             <button className="btn-submit" onClick={handleCreate}>
-                                Xác nhận
+                                Lưu
                             </button>
                         </div>
                     </div>

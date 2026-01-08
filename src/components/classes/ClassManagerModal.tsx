@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import { useClass } from '../../contexts/ClassContext';
-import { FaPlus, FaEdit, FaTimes, FaCheck } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTimes, FaCheck, FaTrash, FaSave, FaArrowLeft } from 'react-icons/fa';
 import '../../assets/styles/ClassManagerModal.css';
 
 interface ClassItem {
@@ -20,7 +20,6 @@ const ClassManagerModal: React.FC<ClassManagerModalProps> = ({ isOpen, onClose }
     const [classes, setClasses] = useState<ClassItem[]>([]);
     const { selectedClass, setSelectedClass } = useClass();
 
-    const [isEditingMode, setIsEditingMode] = useState(false);
     const [showForm, setShowForm] = useState(false);
     const [isEditForm, setIsEditForm] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -51,6 +50,26 @@ const ClassManagerModal: React.FC<ClassManagerModalProps> = ({ isOpen, onClose }
         localStorage.setItem('currentClass', JSON.stringify(cls));
         onClose();
         window.location.reload();
+    };
+
+    const handleDelete = async (e: React.MouseEvent, id: number) => {
+        e.stopPropagation();
+        if (!window.confirm('Bạn có chắc chắn muốn xóa lớp này? Mọi dữ liệu liên quan sẽ bị mất.'))
+            return;
+
+        try {
+            await api.delete(`/classes/${id}`);
+            fetchClasses();
+
+            if (selectedClass?.id === id) {
+                localStorage.removeItem('selectedClassId');
+                localStorage.removeItem('selectedClassName');
+                localStorage.removeItem('currentClass');
+                setSelectedClass(null);
+            }
+        } catch (error) {
+            alert('Lỗi khi xóa lớp');
+        }
     };
 
     const resetForm = () => {
@@ -92,113 +111,131 @@ const ClassManagerModal: React.FC<ClassManagerModalProps> = ({ isOpen, onClose }
             }
             resetForm();
             fetchClasses();
-        } catch (error) {
-            alert('Lỗi lưu dữ liệu');
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Lỗi lưu dữ liệu');
         }
     };
 
     if (!isOpen) return null;
 
     return (
-        <div className="cm-overlay">
-            <div className="cm-box">
+        <div className="cm-overlay" onClick={onClose}>
+            <div className="cm-modal" onClick={(e) => e.stopPropagation()}>
                 {}
                 <div className="cm-header">
-                    <h2 className="cm-title">
+                    <h2>
                         {showForm
                             ? isEditForm
                                 ? 'Cập Nhật Lớp'
                                 : 'Thêm Lớp Mới'
-                            : 'Chọn Lớp Làm Việc'}
+                            : 'Quản Lý Lớp Học'}
                     </h2>
-                    <button className="cm-close-btn" onClick={onClose} title="Đóng">
+                    <button className="cm-close-btn" onClick={onClose}>
                         <FaTimes />
                     </button>
                 </div>
 
                 {}
-                {showForm ? (
-                    <div>
-                        <div className="cm-form-group">
-                            <label className="cm-label">Tên Lớp</label>
-                            <input
-                                className="form-control"
-                                value={className}
-                                onChange={(e) => setClassName(e.target.value)}
-                                placeholder="Ví dụ: 12A1"
-                            />
-                        </div>
-                        <div className="cm-form-group">
-                            <label className="cm-label">Niên Khóa</label>
-                            <input
-                                className="form-control"
-                                value={schoolYear}
-                                onChange={(e) => setSchoolYear(e.target.value)}
-                                placeholder="Ví dụ: 2024-2025"
-                            />
-                        </div>
-                        <div className="cm-form-group">
-                            <label className="cm-label">Ngày Khai Giảng (Tuần 1)</label>
-                            <input
-                                type="date"
-                                className="form-control"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="cm-footer">
-                            <button className="btn btn-outline" onClick={() => setShowForm(false)}>
-                                Quay lại
-                            </button>
-                            <button className="btn btn-primary" onClick={handleSave}>
-                                Lưu thông tin
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                        <div className="cm-controls">
-                            <button className="btn btn-primary btn-sm" onClick={openCreateForm}>
-                                <FaPlus /> Thêm Lớp
-                            </button>
-                            <button
-                                className={`btn btn-sm ${isEditingMode ? 'btn-primary' : 'btn-outline'}`}
-                                onClick={() => setIsEditingMode(!isEditingMode)}
-                            >
-                                {isEditingMode ? 'Xong' : 'Chỉnh sửa'}
-                            </button>
-                        </div>
-
-                        <div className="cm-grid-list">
-                            {classes.map((cls) => (
-                                <div
-                                    key={cls.id}
-                                    className={`cm-item ${selectedClass?.id === cls.id ? 'selected' : ''}`}
-                                    onClick={() => !isEditingMode && handleSelectClass(cls)}
+                <div className="cm-body">
+                    {showForm ? (
+                        <div className="cm-form">
+                            <div className="cm-form-group">
+                                <label>Tên Lớp</label>
+                                <input
+                                    className="cm-input"
+                                    value={className}
+                                    onChange={(e) => setClassName(e.target.value)}
+                                    placeholder="VD: 10A1"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="cm-form-group">
+                                <label>Niên Khóa</label>
+                                <input
+                                    className="cm-input"
+                                    value={schoolYear}
+                                    onChange={(e) => setSchoolYear(e.target.value)}
+                                    placeholder="VD: 2024-2025"
+                                />
+                            </div>
+                            <div className="cm-form-group">
+                                <label>Ngày Khai Giảng</label>
+                                <input
+                                    type="date"
+                                    className="cm-input"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="cm-form-actions">
+                                <button
+                                    className="cm-btn cancel"
+                                    onClick={() => setShowForm(false)}
                                 >
-                                    <div className="cm-item-name">{cls.name}</div>
-                                    <div className="cm-item-info">{cls.school_year}</div>
-
-                                    {selectedClass?.id === cls.id && (
-                                        <div className="cm-check-icon">
-                                            <FaCheck />
-                                        </div>
-                                    )}
-
-                                    {isEditingMode && (
-                                        <button
-                                            className="cm-item-edit-btn"
-                                            onClick={(e) => openEditForm(e, cls)}
-                                            title="Sửa thông tin lớp"
-                                        >
-                                            <FaEdit /> Sửa
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                                    <FaArrowLeft /> Quay lại
+                                </button>
+                                <button className="cm-btn submit" onClick={handleSave}>
+                                    <FaSave /> Lưu lại
+                                </button>
+                            </div>
                         </div>
-                    </>
-                )}
+                    ) : (
+                        <>
+                            <div className="cm-controls">
+                                <button
+                                    className="cm-btn primary full-width"
+                                    onClick={openCreateForm}
+                                >
+                                    <FaPlus /> Thêm Lớp Mới
+                                </button>
+                            </div>
+
+                            <div className="cm-list">
+                                {classes.length === 0 ? (
+                                    <p className="cm-empty">Chưa có lớp nào. Hãy tạo mới.</p>
+                                ) : (
+                                    classes.map((cls) => (
+                                        <div
+                                            key={cls.id}
+                                            className={`cm-item ${selectedClass?.id === cls.id ? 'active' : ''}`}
+                                            onClick={() => handleSelectClass(cls)}
+                                            title="Bấm để chọn lớp này làm việc"
+                                        >
+                                            <div className="cm-item-content">
+                                                <div className="cm-item-title">
+                                                    {cls.name}
+                                                    {selectedClass?.id === cls.id && (
+                                                        <FaCheck className="cm-check-icon" />
+                                                    )}
+                                                </div>
+                                                <div className="cm-item-subtitle">
+                                                    {cls.school_year}
+                                                </div>
+                                            </div>
+
+                                            <div className="cm-item-actions">
+                                                <button
+                                                    className="cm-action-btn edit"
+                                                    onClick={(e) => openEditForm(e, cls)}
+                                                    title="Sửa"
+                                                >
+                                                    <FaEdit />
+                                                </button>
+                                                <button
+                                                    className="cm-action-btn delete"
+                                                    onClick={(e) => handleDelete(e, cls.id)}
+                                                    title="Xóa"
+                                                >
+                                                    <FaTrash />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

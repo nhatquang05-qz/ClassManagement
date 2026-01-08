@@ -1,7 +1,12 @@
 const db = require('../config/dbConfig');
+const bcrypt = require('bcryptjs');
 
 const getClasses = async (req, res) => {
     try {
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
         const teacherId = req.user.id;
         const role = req.user.role;
 
@@ -40,7 +45,11 @@ const getClassById = async (req, res) => {
 };
 
 const createClass = async (req, res) => {
+    let connection;
     try {
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
         const { name, school_year, start_date } = req.body;
         const teacherId = req.user.id;
 
@@ -48,14 +57,59 @@ const createClass = async (req, res) => {
             return res.status(400).json({ message: 'Thiếu tên lớp hoặc năm học' });
         }
 
-        await db.query(
+        const [existingClass] = await connection.query(
+            'SELECT id FROM classes WHERE name = ? AND school_year = ?',
+            [name, school_year]
+        );
+
+        if (existingClass.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Lớp học này đã tồn tại trong niên khóa này!' });
+        }
+
+        const years = school_year.split('-');
+        let suffix = '';
+        if (years.length === 2) {
+            suffix = years[0].slice(-2) + years[1].slice(-2);
+        } else {
+            suffix = school_year.slice(-2);
+        }
+
+        const generatedUsername = (name.replace(/\s/g, '') + suffix).toUpperCase();
+
+        const [existingUser] = await connection.query('SELECT id FROM users WHERE username = ?', [
+            generatedUsername,
+        ]);
+        if (existingUser.length > 0) {
+            await connection.rollback();
+            return res
+                .status(400)
+                .json({ message: `Tài khoản lớp ${generatedUsername} đã tồn tại!` });
+        }
+
+        const [result] = await connection.query(
             'INSERT INTO classes (name, school_year, teacher_id, start_date) VALUES (?, ?, ?, ?)',
             [name, school_year, teacherId, start_date || null]
         );
-        res.status(201).json({ message: 'Tạo lớp thành công' });
+        const newClassId = result.insertId;
+
+        const hashedPassword = await bcrypt.hash('123456', 10);
+        await connection.query(
+            'INSERT INTO users (username, password, full_name, role_id, class_id) VALUES (?, ?, ?, ?, ?)',
+            [generatedUsername, hashedPassword, `Lớp ${name}`, 6, newClassId]
+        );
+
+        await connection.commit();
+        res.status(201).json({
+            message: 'Tạo lớp và tài khoản lớp thành công',
+            username: generatedUsername,
+        });
     } catch (error) {
+        if (connection) await connection.rollback();
         console.error(error);
         res.status(500).json({ message: 'Lỗi tạo lớp' });
+    } finally {
+        if (connection) connection.release();
     }
 };
 
@@ -93,12 +147,38 @@ const updateClass = async (req, res) => {
 };
 
 const deleteClass = async (req, res) => {
+    let connection;
     try {
         const { id } = req.params;
-        await db.query('DELETE FROM classes WHERE id = ?', [id]);
-        res.json({ message: 'Xóa lớp thành công' });
+        connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        await connection.query('DELETE FROM announcements WHERE class_id = ?', [id]);
+
+        await connection.query('DELETE FROM daily_notes WHERE class_id = ?', [id]);
+
+        const [users] = await connection.query('SELECT id FROM users WHERE class_id = ?', [id]);
+        const userIds = users.map((u) => u.id);
+
+        if (userIds.length > 0) {
+            await connection.query(
+                `DELETE FROM daily_logs WHERE student_id IN (?) OR reporter_id IN (?)`,
+                [userIds, userIds]
+            );
+
+            await connection.query('DELETE FROM users WHERE class_id = ?', [id]);
+        }
+
+        await connection.query('DELETE FROM classes WHERE id = ?', [id]);
+
+        await connection.commit();
+        res.json({ message: 'Xóa lớp và toàn bộ dữ liệu liên quan thành công' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi xóa lớp' });
+        if (connection) await connection.rollback();
+        console.error('Lỗi xóa lớp:', error);
+        res.status(500).json({ message: 'Lỗi khi xóa lớp' });
+    } finally {
+        if (connection) connection.release();
     }
 };
 
