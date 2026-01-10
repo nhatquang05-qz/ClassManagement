@@ -13,7 +13,7 @@ import TrackingPage from './pages/TrackingPage';
 import ReportPage from './pages/ReportPage';
 import StudentManagerPage from './pages/StudentManagerPage';
 import MaterialsPage from './pages/MaterialsPage';
-
+import ExamResultPage from './pages/ExamResultPage';
 import TeacherExamPage from './pages/TeacherExamPage';
 import StudentExamPage from './pages/StudentExamPage';
 import ExamTakingPage from './pages/ExamTakingPage';
@@ -53,7 +53,7 @@ const App: React.FC = () => {
                             {}
                             <Route path="materials" element={<MaterialsPage />} />
                             <Route path="materials/:folderId" element={<MaterialsPage />} />
-
+                            <Route path="exam-review/:submissionId" element={<ExamResultPage />} />
                             {}
 
                             {}

@@ -4,31 +4,25 @@ import api from '../utils/api';
 import { FaClock, FaArrowUp, FaArrowDown, FaTimes } from 'react-icons/fa';
 import '../assets/styles/ExamTakingPage.css';
 
-// --- Components Con (Matching & Ordering) ---
-
+// --- COMPONENTS CON (Giữ nguyên logic Matching/Ordering) ---
 const MatchingQuestion = ({ data, value, onChange }: any) => {
     const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
     const pairs = value || {};
 
     const handleLeftClick = (text: string) => {
-        if (pairs[text]) return; // Đã nối rồi thì thôi
-        setSelectedLeft(text);
+        if (!pairs[text]) setSelectedLeft(text);
     };
-
     const handleRightClick = (rightText: string) => {
         if (selectedLeft) {
-            const newPairs = { ...pairs, [selectedLeft]: rightText };
-            onChange(newPairs);
+            onChange({ ...pairs, [selectedLeft]: rightText });
             setSelectedLeft(null);
         }
     };
-
     const removePair = (leftText: string) => {
-        const newPairs = { ...pairs };
-        delete newPairs[leftText];
-        onChange(newPairs);
+        const n = { ...pairs };
+        delete n[leftText];
+        onChange(n);
     };
-
     const isRightMatched = (text: string) => Object.values(pairs).includes(text);
 
     return (
@@ -55,14 +49,13 @@ const MatchingQuestion = ({ data, value, onChange }: any) => {
                     </div>
                 ))}
             </div>
-
             <div className="matched-results">
                 <strong>Đã nối:</strong>
                 <div className="pair-tags">
-                    {Object.entries(pairs).map(([left, right]: any) => (
-                        <span key={left} className="pair-tag">
-                            {left} ↔ {right}
-                            <button onClick={() => removePair(left)}>
+                    {Object.entries(pairs).map(([l, r]: any) => (
+                        <span key={l} className="pair-tag">
+                            {l} ↔ {r}{' '}
+                            <button onClick={() => removePair(l)}>
                                 <FaTimes />
                             </button>
                         </span>
@@ -74,32 +67,24 @@ const MatchingQuestion = ({ data, value, onChange }: any) => {
 };
 
 const OrderingQuestion = ({ data, value, onChange }: any) => {
-    // value là mảng các items đã sắp xếp
     const [items, setItems] = useState<any[]>([]);
-
     useEffect(() => {
-        if (value && value.length > 0) {
-            setItems(value);
-        } else if (data.items) {
-            // Khởi tạo ban đầu
-            setItems([...data.items]);
-        }
+        if (value && value.length > 0) setItems(value);
+        else if (data.items) setItems([...data.items]);
     }, [data, value]);
 
     const moveItem = (index: number, direction: 'up' | 'down') => {
         const newItems = [...items];
-        if (direction === 'up' && index > 0) {
+        if (direction === 'up' && index > 0)
             [newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
-        } else if (direction === 'down' && index < newItems.length - 1) {
+        else if (direction === 'down' && index < newItems.length - 1)
             [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
-        }
         setItems(newItems);
         onChange(newItems);
     };
 
     return (
         <div className="ordering-container">
-            <p style={{ fontSize: '0.9rem', marginBottom: 10 }}>Sắp xếp thứ tự đúng:</p>
             {items.map((item: any, index: number) => (
                 <div key={index} className="order-item">
                     <div className="order-actions">
@@ -127,12 +112,6 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
     const { type, content, media_url, content_data, points } = question;
     const data = typeof content_data === 'string' ? JSON.parse(content_data) : content_data;
 
-    // Map type từ DB
-    const isMultipleChoice = type === 'multiple_choice';
-    const isFillBlank = type === 'fill_in_blank';
-    const isMatching = type === 'matching';
-    const isOrdering = type === 'ordering';
-
     return (
         <div
             className="question-card"
@@ -151,21 +130,17 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
                     ({points} điểm)
                 </span>
             </div>
-
             {media_url && (
                 <div style={{ marginBottom: 15, textAlign: 'center' }}>
                     {question.media_type === 'audio' ? (
                         <audio controls src={media_url} style={{ width: '100%' }} />
                     ) : (
-                        <img
-                            src={media_url}
-                            style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 4 }}
-                        />
+                        <img src={media_url} style={{ maxWidth: '100%', maxHeight: 300 }} />
                     )}
                 </div>
             )}
 
-            {isMultipleChoice && (
+            {type === 'multiple_choice' && (
                 <div className="mc-options">
                     {data.options?.map((opt: any) => (
                         <label
@@ -183,8 +158,7 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
                     ))}
                 </div>
             )}
-
-            {isFillBlank && (
+            {(type === 'fill_in_blank' || type === 'fill_blank') && (
                 <div className="fill-blank-area">
                     <input
                         type="text"
@@ -195,24 +169,23 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
                     />
                 </div>
             )}
-
-            {isMatching && <MatchingQuestion data={data} value={answer} onChange={onAnswer} />}
-
-            {isOrdering && <OrderingQuestion data={data} value={answer} onChange={onAnswer} />}
+            {type === 'matching' && (
+                <MatchingQuestion data={data} value={answer} onChange={onAnswer} />
+            )}
+            {(type === 'ordering' || type === 'reorder') && (
+                <OrderingQuestion data={data} value={answer} onChange={onAnswer} />
+            )}
         </div>
     );
 };
 
-// --- Main Page ---
-
+// --- COMPONENT CHÍNH ---
 const ExamTakingPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [exam, setExam] = useState<any>(null);
     const [answers, setAnswers] = useState<any>({});
     const [loading, setLoading] = useState(true);
-
-    // Timer State
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [submissionId, setSubmissionId] = useState<number | null>(null);
     const timerRef = useRef<any>(null);
@@ -243,20 +216,18 @@ const ExamTakingPage = () => {
             }
         };
         initExam();
-
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
     }, [id, navigate]);
 
-    // Countdown Effect
     useEffect(() => {
         if (timeLeft !== null && timeLeft > 0) {
             timerRef.current = setInterval(() => {
                 setTimeLeft((prev) => {
                     if (prev && prev <= 1) {
                         clearInterval(timerRef.current);
-                        handleSubmit(true); // Auto submit
+                        handleSubmit(true);
                         return 0;
                     }
                     return prev ? prev - 1 : 0;
@@ -265,36 +236,37 @@ const ExamTakingPage = () => {
         }
     }, [timeLeft]);
 
-    const formatTime = (seconds: number) => {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
-
     const handleSubmit = async (force = false) => {
         if (!force && !window.confirm('Nộp bài ngay?')) return;
-
         try {
             const res = await api.post('/exams/submit', {
                 submissionId: submissionId,
                 answers: answers,
             });
             alert(`Nộp bài thành công! Điểm: ${res.data.score}/${res.data.total}`);
-            navigate('/student-exams');
+            navigate(`/exam-review/${submissionId}`); // Chuyển trang xem lại kết quả ngay
         } catch (err) {
-            alert('Lỗi nộp bài. Vui lòng thử lại.');
+            alert('Lỗi nộp bài.');
         }
     };
 
+    const formatTime = (s: number) => {
+        const h = Math.floor(s / 3600),
+            m = Math.floor((s % 3600) / 60),
+            sec = s % 60;
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    };
+
+    // [FIX] TRÁNH TRẮNG MÀN HÌNH
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Đang tải dữ liệu...</div>;
+    if (!exam)
+        return <div style={{ padding: 40, textAlign: 'center' }}>Không tìm thấy đề thi.</div>;
 
     return (
         <div className="exam-taking-page">
             <div className="exam-header">
                 <div>
                     <h3 style={{ margin: 0 }}>{exam.title}</h3>
-                    <small style={{ color: '#666' }}>Thời gian: {exam.duration_minutes} phút</small>
                 </div>
                 <div className={`timer-badge ${timeLeft && timeLeft < 300 ? 'warning' : ''}`}>
                     <FaClock /> {timeLeft !== null ? formatTime(timeLeft) : '--:--:--'}
@@ -303,7 +275,6 @@ const ExamTakingPage = () => {
                     Nộp bài
                 </button>
             </div>
-
             <div className="exam-body-container">
                 {exam.sections?.map((sec: any) => (
                     <div key={sec.id} className="section-block">
@@ -316,7 +287,6 @@ const ExamTakingPage = () => {
                                 <audio controls src={sec.media_url} style={{ width: '100%' }} />
                             </div>
                         )}
-
                         {sec.questions?.map((q: any) => (
                             <QuestionRenderer
                                 key={q.id}
