@@ -8,7 +8,7 @@ const userRoutes = require('./routes/userRoutes');
 const infoRoutes = require('./routes/infoRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const materialRoutes = require('./routes/materialRoutes');
-
+const examRoutes = require('./routes/examRoutes');
 const verifyToken = require('./middleware/authMiddleware');
 
 const app = express();
@@ -46,5 +46,5 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
-
+app.use('/api/exams', examRoutes);
 module.exports = app;
