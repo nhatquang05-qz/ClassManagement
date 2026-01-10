@@ -9,5 +9,6 @@ router.get('/class/:classId', verifyToken, examController.getExamsByClass);
 router.post('/start', verifyToken, examController.startExam);
 router.post('/submit', verifyToken, examController.submitExam);
 router.get('/review/:submissionId', verifyToken, examController.getSubmissionDetail);
+router.get('/:id/submissions', verifyToken, examController.getExamSubmissions);
 
 module.exports = router;

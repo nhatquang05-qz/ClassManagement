@@ -1,6 +1,5 @@
 const db = require('../config/dbConfig');
 
-// 1. TẠO ĐỀ THI
 const createExam = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -68,7 +67,6 @@ const createExam = async (req, res) => {
     }
 };
 
-// 2. LẤY DANH SÁCH (Kèm thống kê lịch sử)
 const getExamsByClass = async (req, res) => {
     try {
         const { classId } = req.params;
@@ -86,7 +84,6 @@ const getExamsByClass = async (req, res) => {
     }
 };
 
-// 3. START EXAM
 const startExam = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -107,7 +104,6 @@ const startExam = async (req, res) => {
         if (existing.length > 0) {
             const last = existing[0];
             if (!last.submitted_at) {
-                // Resume
                 return res.json({
                     submissionId: last.id,
                     startedAt: last.started_at,
@@ -140,7 +136,6 @@ const startExam = async (req, res) => {
     }
 };
 
-// 4. SUBMIT EXAM
 const submitExam = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -177,7 +172,6 @@ const submitExam = async (req, res) => {
                 )
                     isCorrect = true;
                 else if (q.type === 'matching') {
-                    // Logic Matching đơn giản: Đúng hết cặp mới tính điểm
                     const correctPairs = correctData.pairs || [];
                     let matchCount = 0;
                     correctPairs.forEach((p) => {
@@ -185,7 +179,6 @@ const submitExam = async (req, res) => {
                     });
                     if (matchCount === correctPairs.length && matchCount > 0) isCorrect = true;
                 } else if (q.type === 'ordering') {
-                    // Logic Ordering: So sánh thứ tự text
                     const correctItems = correctData.items || [];
                     let orderMatch = true;
                     if (Array.isArray(userAns) && userAns.length === correctItems.length) {
@@ -229,7 +222,6 @@ const submitExam = async (req, res) => {
     }
 };
 
-// 5. GET SUBMISSION DETAIL (REVIEW)
 const getSubmissionDetail = async (req, res) => {
     try {
         const { submissionId } = req.params;
@@ -256,7 +248,6 @@ const getSubmissionDetail = async (req, res) => {
             if (!sectionsMap.has(row.s_id))
                 sectionsMap.set(row.s_id, { title: row.s_title, questions: [] });
 
-            // Ẩn đáp án nếu giáo viên không cho xem
             const contentData = row.content_data;
             if (sub.view_answer_mode === 'never') {
                 delete contentData.correct_ids;
@@ -277,7 +268,6 @@ const getSubmissionDetail = async (req, res) => {
 };
 
 const getExamById = async (req, res) => {
-    // ... Logic cũ
     try {
         const { id } = req.params;
         const [exams] = await db.execute(`SELECT * FROM exams WHERE id = ?`, [id]);
@@ -304,7 +294,6 @@ const getExamById = async (req, res) => {
                     questions: [],
                 });
             if (row.q_id) {
-                // Với màn hình thi: Xoá đáp án đúng
                 const safeData = { ...row.content_data };
                 delete safeData.correct_ids;
                 delete safeData.correct_answer;
@@ -324,6 +313,26 @@ const getExamById = async (req, res) => {
     }
 };
 
+const getExamSubmissions = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const query = `
+            SELECT es.*, u.full_name as student_name
+            FROM exam_submissions es
+            JOIN users u ON es.student_id = u.id
+            WHERE es.exam_id = ? AND es.submitted_at IS NOT NULL
+            ORDER BY es.score DESC, es.submitted_at ASC
+        `;
+
+        const [submissions] = await db.execute(query, [id]);
+        res.json(submissions);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi lấy danh sách bài nộp' });
+    }
+};
+
 module.exports = {
     createExam,
     getExamsByClass,
@@ -331,4 +340,5 @@ module.exports = {
     submitExam,
     getSubmissionDetail,
     getExamById,
+    getExamSubmissions,
 };

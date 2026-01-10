@@ -11,7 +11,8 @@ import {
 } from 'react-icons/fa';
 import { useClass } from '../../../contexts/ClassContext';
 import api from '../../../utils/api';
-import '../../../assets/styles/ExamManager.css';
+
+import '../../../assets/styles/ExamBuilder.css';
 
 interface Option {
     id: string;
@@ -135,7 +136,6 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
 
         if (qCount > 0 && totalP > 0) {
             const avgPoints = parseFloat((totalP / qCount).toFixed(2));
-
             section.questions.forEach((q, index) => {
                 if (index === qCount - 1) {
                     const sumOthers = avgPoints * (qCount - 1);
@@ -151,7 +151,6 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
     const handleSectionPointsChange = (secIdx: number, value: number) => {
         let newSections = [...sections];
         newSections[secIdx].section_points = value;
-
         newSections = distributePoints(newSections, secIdx);
         setSections(newSections);
     };
@@ -188,7 +187,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
 
         newSections[secIdx].questions.push(newQ);
 
-        if (newSections[secIdx].section_points && newSections[secIdx].section_points > 0) {
+        if (newSections[secIdx].section_points && newSections[secIdx].section_points! > 0) {
             newSections = distributePoints(newSections, secIdx);
         }
 
@@ -199,7 +198,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         let newSections = [...sections];
         newSections[secIdx].questions.splice(qIdx, 1);
 
-        if (newSections[secIdx].section_points && newSections[secIdx].section_points > 0) {
+        if (newSections[secIdx].section_points && newSections[secIdx].section_points! > 0) {
             newSections = distributePoints(newSections, secIdx);
         }
         setSections(newSections);
@@ -303,27 +302,21 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
 
     return (
         <div className="exam-builder-container">
-            <div className="builder-header sticky-header">
-                <button onClick={onBack} className="btn-back">
+            <div className="exam-builder-header">
+                <button onClick={onBack} className="exam-builder-btn exam-builder-btn-back">
                     <FaArrowLeft /> Quay lại
                 </button>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <h3>{settings.title || 'Đề thi mới'}</h3>
-                    <span
-                        style={{
-                            fontSize: '1rem',
-                            color: totalScore > 0 ? '#28a745' : '#666',
-                            fontWeight: 'bold',
-                            border: '1px solid #ccc',
-                            padding: '2px 10px',
-                            borderRadius: 10,
-                            background: '#fff',
-                        }}
-                    >
+                    <span className="exam-builder-total-score">
                         <FaCalculator style={{ marginRight: 5 }} /> Tổng điểm: {totalScore}
                     </span>
                 </div>
-                <button className="btn-primary" onClick={handleSave} disabled={loading}>
+                <button
+                    className="exam-builder-btn exam-builder-btn-primary"
+                    onClick={handleSave}
+                    disabled={loading}
+                >
                     {loading ? (
                         'Đang xử lý...'
                     ) : (
@@ -334,20 +327,22 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                 </button>
             </div>
 
-            <div className="builder-body">
+            <div className="exam-builder-body">
                 {}
-                <div className="builder-settings">
+                <div className="exam-builder-sidebar">
                     <h4>Cấu hình</h4>
-                    <div className="form-group">
+                    <div className="exam-builder-form-group">
                         <label>Tên bài thi</label>
                         <input
+                            className="exam-builder-input"
                             value={settings.title}
                             onChange={(e) => setSettings({ ...settings, title: e.target.value })}
                         />
                     </div>
-                    <div className="form-group">
+                    <div className="exam-builder-form-group">
                         <label>Thời gian (phút)</label>
                         <input
+                            className="exam-builder-input"
                             type="number"
                             value={settings.duration}
                             onChange={(e) =>
@@ -355,10 +350,11 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                             }
                         />
                     </div>
-                    <div className="form-group">
+                    <div className="exam-builder-form-group">
                         <label>Lượt làm</label>
-                        <div className="flex-center">
+                        <div className="exam-builder-flex-center">
                             <input
+                                className="exam-builder-input"
                                 type="number"
                                 value={settings.max_attempts}
                                 disabled={settings.is_unlimited_attempts}
@@ -368,7 +364,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                         max_attempts: Number(e.target.value),
                                     })
                                 }
-                                style={{ width: 60, marginRight: 10 }}
+                                style={{ width: 60 }}
                             />
                             <label>
                                 <input
@@ -385,9 +381,10 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                             </label>
                         </div>
                     </div>
-                    <div className="form-group">
+                    <div className="exam-builder-form-group">
                         <label>Mở</label>
                         <input
+                            className="exam-builder-input"
                             type="datetime-local"
                             value={settings.start_time}
                             onChange={(e) =>
@@ -395,17 +392,19 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                             }
                         />
                     </div>
-                    <div className="form-group">
+                    <div className="exam-builder-form-group">
                         <label>Đóng</label>
                         <input
+                            className="exam-builder-input"
                             type="datetime-local"
                             value={settings.end_time}
                             onChange={(e) => setSettings({ ...settings, end_time: e.target.value })}
                         />
                     </div>
-                    <div className="form-group">
+                    <div className="exam-builder-form-group">
                         <label>Xem đáp án</label>
                         <select
+                            className="exam-builder-select"
                             value={settings.view_answer_mode}
                             onChange={(e) =>
                                 setSettings({ ...settings, view_answer_mode: e.target.value })
@@ -416,7 +415,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                             <option value="never">Không</option>
                         </select>
                     </div>
-                    <div className="form-group">
+                    <div className="exam-builder-form-group">
                         <label>
                             <input
                                 type="checkbox"
@@ -431,27 +430,19 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                 </div>
 
                 {}
-                <div className="builder-content">
+                <div className="exam-builder-content">
                     {sections.map((sec, secIdx) => (
-                        <div key={sec.id} className="section-card">
-                            <div className="section-header">
+                        <div key={sec.id} className="exam-builder-section">
+                            <div className="exam-builder-section-header">
                                 <input
-                                    className="section-title-input"
+                                    className="exam-builder-section-title"
                                     value={sec.title}
                                     onChange={(e) => updateSection(secIdx, 'title', e.target.value)}
                                     placeholder="Tiêu đề phần"
                                 />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     {}
-                                    <div
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            background: '#f0f2f5',
-                                            padding: '5px 10px',
-                                            borderRadius: 4,
-                                        }}
-                                    >
+                                    <div className="exam-builder-section-points">
                                         <label
                                             style={{
                                                 marginRight: 5,
@@ -468,6 +459,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                 textAlign: 'center',
                                                 fontWeight: 'bold',
                                                 border: '1px solid #ccc',
+                                                borderRadius: 4,
                                             }}
                                             value={sec.section_points || ''}
                                             placeholder="0"
@@ -479,7 +471,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                             }
                                         />
                                         <span
-                                            title="Hệ thống sẽ tự động chia đều điểm này cho các câu hỏi bên dưới"
+                                            title="Tự động chia đều cho các câu hỏi"
                                             style={{
                                                 marginLeft: 5,
                                                 cursor: 'help',
@@ -490,7 +482,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                         </span>
                                     </div>
                                     <button
-                                        className="btn-icon-danger"
+                                        className="exam-builder-btn-icon-danger"
                                         onClick={() => {
                                             if (window.confirm('Xoá phần này?'))
                                                 setSections(
@@ -502,17 +494,17 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                     </button>
                                 </div>
                             </div>
-                            <div className="section-meta">
+                            <div className="exam-builder-form-group">
                                 <textarea
-                                    className="section-desc-input"
+                                    className="exam-builder-textarea"
                                     placeholder="Mô tả/Đoạn văn..."
                                     value={sec.description}
                                     onChange={(e) =>
                                         updateSection(secIdx, 'description', e.target.value)
                                     }
                                 />
-                                <div className="media-control">
-                                    <label className="btn-upload">
+                                <div style={{ marginTop: '0.5rem' }}>
+                                    <label className="exam-builder-btn-upload">
                                         {loading ? (
                                             'Đang tải...'
                                         ) : (
@@ -535,28 +527,20 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                         />
                                     </label>
                                     {sec.media_url && sec.media_type === 'audio' && (
-                                        <div className="audio-preview">
+                                        <div className="exam-builder-media-preview">
                                             <audio controls src={sec.media_url} />
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="questions-container">
+                            <div>
                                 {sec.questions.map((q, qIdx) => (
-                                    <div key={q.id} className="question-card">
-                                        <div className="q-header-row">
-                                            <span className="q-type-badge">
-                                                {q.type === 'fill_blank'
-                                                    ? 'Điền từ'
-                                                    : q.type === 'multiple_choice'
-                                                      ? 'Trắc nghiệm'
-                                                      : q.type === 'matching'
-                                                        ? 'Nối'
-                                                        : 'Sắp xếp'}
-                                            </span>
+                                    <div key={q.id} className="exam-builder-question">
+                                        <div className="exam-builder-q-header">
+                                            <span className="exam-builder-q-badge">{q.type}</span>
 
-                                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            <div className="exam-builder-q-points-wrapper">
                                                 <label
                                                     style={{ marginRight: 5, fontSize: '0.8rem' }}
                                                 >
@@ -564,7 +548,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                 </label>
                                                 <input
                                                     type="number"
-                                                    className="q-points-input"
+                                                    className="exam-builder-q-points-input"
                                                     value={q.points}
                                                     onChange={(e) =>
                                                         updateQuestion(
@@ -578,16 +562,16 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                             </div>
 
                                             <button
-                                                className="btn-icon-danger"
+                                                className="exam-builder-btn-icon-danger"
                                                 onClick={() => deleteQuestion(secIdx, qIdx)}
                                             >
                                                 <FaTrash />
                                             </button>
                                         </div>
 
-                                        <div className="q-body">
+                                        <div className="exam-builder-q-body">
                                             <input
-                                                className="q-content-input"
+                                                className="exam-builder-q-content-input"
                                                 value={q.content}
                                                 onChange={(e) =>
                                                     updateQuestion(
@@ -599,8 +583,8 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                 }
                                                 placeholder="Nội dung câu hỏi..."
                                             />
-                                            <label className="btn-icon-upload" title="Thêm ảnh">
-                                                <FaImage />
+                                            <label className="exam-builder-btn-upload">
+                                                <FaImage /> Thêm ảnh
                                                 <input
                                                     type="file"
                                                     hidden
@@ -620,14 +604,17 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                 <img
                                                     src={q.media_url}
                                                     alt="Question"
-                                                    className="q-media-preview"
+                                                    className="exam-builder-media-preview"
                                                 />
                                             )}
 
                                             {q.type === 'multiple_choice' && (
-                                                <div className="q-options-list">
+                                                <div className="exam-builder-q-options-list">
                                                     {q.options?.map((opt, i) => (
-                                                        <div key={opt.id} className="option-row">
+                                                        <div
+                                                            key={opt.id}
+                                                            className="exam-builder-option-row"
+                                                        >
                                                             <input
                                                                 type="radio"
                                                                 checked={opt.isCorrect}
@@ -645,6 +632,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                                 }}
                                                             />
                                                             <input
+                                                                className="exam-builder-option-input"
                                                                 value={opt.text}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -658,6 +646,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                                 }
                                                             />
                                                             <button
+                                                                className="exam-builder-btn-icon-danger"
                                                                 onClick={() => {
                                                                     const ns = [...sections];
                                                                     ns[secIdx].questions[
@@ -671,6 +660,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                         </div>
                                                     ))}
                                                     <button
+                                                        className="exam-builder-btn-dashed"
                                                         onClick={() => {
                                                             const ns = [...sections];
                                                             ns[secIdx].questions[
@@ -689,6 +679,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                             )}
                                             {q.type === 'fill_blank' && (
                                                 <input
+                                                    className="exam-builder-input"
                                                     value={q.correctAnswer}
                                                     onChange={(e) =>
                                                         updateQuestion(
@@ -704,8 +695,12 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                             {q.type === 'matching' && (
                                                 <div>
                                                     {q.pairs?.map((p, i) => (
-                                                        <div key={p.id} className="pair-row">
+                                                        <div
+                                                            key={p.id}
+                                                            className="exam-builder-pair-row"
+                                                        >
                                                             <input
+                                                                className="exam-builder-option-input"
                                                                 value={p.left}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -719,6 +714,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                                 }
                                                             />
                                                             <input
+                                                                className="exam-builder-option-input"
                                                                 value={p.right}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -734,6 +730,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                         </div>
                                                     ))}
                                                     <button
+                                                        className="exam-builder-btn-dashed"
                                                         onClick={() => {
                                                             const ns = [...sections];
                                                             ns[secIdx].questions[qIdx].pairs?.push({
@@ -751,9 +748,13 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                             {q.type === 'reorder' && (
                                                 <div>
                                                     {q.orderItems?.map((o, i) => (
-                                                        <div key={o.id} className="reorder-row">
+                                                        <div
+                                                            key={o.id}
+                                                            className="exam-builder-reorder-row"
+                                                        >
                                                             <span>{i + 1}</span>
                                                             <input
+                                                                className="exam-builder-option-input"
                                                                 value={o.text}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -769,6 +770,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                         </div>
                                                     ))}
                                                     <button
+                                                        className="exam-builder-btn-dashed"
                                                         onClick={() => {
                                                             const ns = [...sections];
                                                             ns[secIdx].questions[
@@ -789,7 +791,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                     </div>
                                 ))}
                             </div>
-                            <div className="section-toolbar">
+                            <div className="exam-builder-section-toolbar">
                                 <button onClick={() => addQuestion(secIdx, 'multiple_choice')}>
                                     + Trắc nghiệm
                                 </button>
@@ -806,7 +808,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                         </div>
                     ))}
                     <button
-                        className="btn-add-section-large"
+                        className="exam-builder-btn exam-builder-btn-add-section"
                         onClick={() =>
                             setSections([
                                 ...sections,

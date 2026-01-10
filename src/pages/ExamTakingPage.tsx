@@ -4,7 +4,6 @@ import api from '../utils/api';
 import { FaClock, FaArrowUp, FaArrowDown, FaTimes } from 'react-icons/fa';
 import '../assets/styles/ExamTakingPage.css';
 
-// --- COMPONENTS CON (Giữ nguyên logic Matching/Ordering) ---
 const MatchingQuestion = ({ data, value, onChange }: any) => {
     const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
     const pairs = value || {};
@@ -179,7 +178,6 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
     );
 };
 
-// --- COMPONENT CHÍNH ---
 const ExamTakingPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -193,15 +191,12 @@ const ExamTakingPage = () => {
     useEffect(() => {
         const initExam = async () => {
             try {
-                // 1. Lấy đề thi
                 const resExam = await api.get(`/exams/${id}`);
                 setExam(resExam.data);
 
-                // 2. Gọi Start để lấy thời gian Server
                 const resStart = await api.post('/exams/start', { examId: id });
                 setSubmissionId(resStart.data.submissionId);
 
-                // 3. Tính thời gian còn lại
                 const startedAt = new Date(resStart.data.startedAt).getTime();
                 const durationMs = resStart.data.durationMinutes * 60 * 1000;
                 const now = new Date().getTime();
@@ -244,7 +239,7 @@ const ExamTakingPage = () => {
                 answers: answers,
             });
             alert(`Nộp bài thành công! Điểm: ${res.data.score}/${res.data.total}`);
-            navigate(`/exam-review/${submissionId}`); // Chuyển trang xem lại kết quả ngay
+            navigate(`/exam-review/${submissionId}`);
         } catch (err) {
             alert('Lỗi nộp bài.');
         }
@@ -257,7 +252,6 @@ const ExamTakingPage = () => {
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     };
 
-    // [FIX] TRÁNH TRẮNG MÀN HÌNH
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Đang tải dữ liệu...</div>;
     if (!exam)
         return <div style={{ padding: 40, textAlign: 'center' }}>Không tìm thấy đề thi.</div>;

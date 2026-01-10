@@ -1,0 +1,124 @@
+.exam-list-container {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    min-height: 400px;
+}
+
+.exam-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.exam-list-header h2 {
+    font-size: 1.5rem;
+    color: #333;
+    margin: 0;
+}
+
+.exam-list-btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.exam-list-btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.exam-list-table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.exam-list-table th {
+    background: #e9ecef;
+    text-align: left;
+    padding: 1rem;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.exam-list-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+    color: #212529;
+}
+
+.exam-list-table tr:last-child td {
+    border-bottom: none;
+}
+
+.exam-list-title {
+    font-weight: 600;
+    color: #333;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.exam-list-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.exam-list-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.exam-list-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.exam-list-btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exam-list-btn-view {
+    color: #007bff;
+}
+.exam-list-btn-view:hover {
+    background-color: #e7f1ff;
+}
+
+.exam-list-btn-delete {
+    color: #dc3545;
+}
+.exam-list-btn-delete:hover {
+    background-color: #ffeef0;
+}
+
+.exam-list-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+}
