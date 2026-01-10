@@ -7,12 +7,12 @@ import {
     FaImage,
     FaPlus,
     FaCalculator,
+    FaMagic,
 } from 'react-icons/fa';
 import { useClass } from '../../../contexts/ClassContext';
 import api from '../../../utils/api';
 import '../../../assets/styles/ExamManager.css';
 
-// --- Interfaces ---
 interface Option {
     id: string;
     text: string;
@@ -33,7 +33,7 @@ interface Question {
     id: string;
     type: 'multiple_choice' | 'fill_blank' | 'matching' | 'reorder';
     content: string;
-    points: number; // Điểm số
+    points: number;
     media_url?: string;
     media_type?: 'image' | 'audio';
     options?: Option[];
@@ -48,6 +48,7 @@ interface Section {
     description: string;
     media_url?: string;
     media_type?: 'image' | 'audio';
+    section_points?: number;
     questions: Question[];
 }
 
@@ -55,7 +56,6 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
     const { selectedClass } = useClass();
     const [loading, setLoading] = useState(false);
 
-    // --- Settings State ---
     const [settings, setSettings] = useState({
         title: '',
         description: '',
@@ -69,10 +69,9 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
     });
 
     const [sections, setSections] = useState<Section[]>([
-        { id: 'sec-1', title: 'Phần 1', description: '', questions: [] },
+        { id: 'sec-1', title: 'Phần 1', description: '', section_points: 0, questions: [] },
     ]);
 
-    // [NEW] Tính tổng điểm tự động
     const totalScore = useMemo(() => {
         return sections.reduce(
             (acc, sec) =>
@@ -87,7 +86,6 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         }
     }, [selectedClass]);
 
-    // --- Upload Handler ---
     const handleFileUpload = async (file: File): Promise<string | null> => {
         const formData = new FormData();
         formData.append('file', file);
@@ -130,7 +128,34 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         setLoading(false);
     };
 
-    // --- State Update Handlers ---
+    const distributePoints = (currentSections: Section[], secIdx: number) => {
+        const section = currentSections[secIdx];
+        const totalP = Number(section.section_points) || 0;
+        const qCount = section.questions.length;
+
+        if (qCount > 0 && totalP > 0) {
+            const avgPoints = parseFloat((totalP / qCount).toFixed(2));
+
+            section.questions.forEach((q, index) => {
+                if (index === qCount - 1) {
+                    const sumOthers = avgPoints * (qCount - 1);
+                    q.points = parseFloat((totalP - sumOthers).toFixed(2));
+                } else {
+                    q.points = avgPoints;
+                }
+            });
+        }
+        return currentSections;
+    };
+
+    const handleSectionPointsChange = (secIdx: number, value: number) => {
+        let newSections = [...sections];
+        newSections[secIdx].section_points = value;
+
+        newSections = distributePoints(newSections, secIdx);
+        setSections(newSections);
+    };
+
     const updateSection = (idx: number, field: keyof Section, value: any) => {
         const newSections = [...sections];
         (newSections[idx] as any)[field] = value;
@@ -138,12 +163,12 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
     };
 
     const addQuestion = (secIdx: number, type: Question['type']) => {
-        const newSections = [...sections];
+        let newSections = [...sections];
         const newQ: Question = {
             id: `q-${Date.now()}`,
             type,
             content: '',
-            points: 1, // Mặc định 1 điểm
+            points: 0,
             options:
                 type === 'multiple_choice'
                     ? [
@@ -160,7 +185,23 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                     ? [{ id: `ord-${Date.now()}-1`, text: '', order: 1 }]
                     : undefined,
         };
+
         newSections[secIdx].questions.push(newQ);
+
+        if (newSections[secIdx].section_points && newSections[secIdx].section_points > 0) {
+            newSections = distributePoints(newSections, secIdx);
+        }
+
+        setSections(newSections);
+    };
+
+    const deleteQuestion = (secIdx: number, qIdx: number) => {
+        let newSections = [...sections];
+        newSections[secIdx].questions.splice(qIdx, 1);
+
+        if (newSections[secIdx].section_points && newSections[secIdx].section_points > 0) {
+            newSections = distributePoints(newSections, secIdx);
+        }
         setSections(newSections);
     };
 
@@ -184,7 +225,6 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         setSections(newSections);
     };
 
-    // --- Save Handler ---
     const handleSave = async () => {
         if (!settings.title) return alert('Vui lòng nhập tên đề thi!');
         if (!selectedClass) return alert('Lỗi: Không tìm thấy ID lớp học.');
@@ -228,7 +268,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                     return {
                         type: mapQuestionType(q.type),
                         content: q.content || '',
-                        points: Number(q.points) || 0, // Đảm bảo gửi điểm số
+                        points: Number(q.points) || 0,
                         media_url: q.media_url || null,
                         content_data: content_data,
                     };
@@ -271,9 +311,13 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                     <h3>{settings.title || 'Đề thi mới'}</h3>
                     <span
                         style={{
-                            fontSize: '0.9rem',
+                            fontSize: '1rem',
                             color: totalScore > 0 ? '#28a745' : '#666',
                             fontWeight: 'bold',
+                            border: '1px solid #ccc',
+                            padding: '2px 10px',
+                            borderRadius: 10,
+                            background: '#fff',
                         }}
                     >
                         <FaCalculator style={{ marginRight: 5 }} /> Tổng điểm: {totalScore}
@@ -291,7 +335,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
             </div>
 
             <div className="builder-body">
-                {/* SETTINGS SIDEBAR */}
+                {}
                 <div className="builder-settings">
                     <h4>Cấu hình</h4>
                     <div className="form-group">
@@ -301,7 +345,6 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                             onChange={(e) => setSettings({ ...settings, title: e.target.value })}
                         />
                     </div>
-                    {/* ... Các input settings khác giữ nguyên như cũ ... */}
                     <div className="form-group">
                         <label>Thời gian (phút)</label>
                         <input
@@ -373,9 +416,21 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                             <option value="never">Không</option>
                         </select>
                     </div>
+                    <div className="form-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={settings.is_shuffled}
+                                onChange={(e) =>
+                                    setSettings({ ...settings, is_shuffled: e.target.checked })
+                                }
+                            />{' '}
+                            Trộn câu hỏi
+                        </label>
+                    </div>
                 </div>
 
-                {/* QUESTIONS AREA */}
+                {}
                 <div className="builder-content">
                     {sections.map((sec, secIdx) => (
                         <div key={sec.id} className="section-card">
@@ -386,15 +441,66 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                     onChange={(e) => updateSection(secIdx, 'title', e.target.value)}
                                     placeholder="Tiêu đề phần"
                                 />
-                                <button
-                                    className="btn-icon-danger"
-                                    onClick={() => {
-                                        if (window.confirm('Xoá phần này?'))
-                                            setSections(sections.filter((_, i) => i !== secIdx));
-                                    }}
-                                >
-                                    <FaTrash />
-                                </button>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    {}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            background: '#f0f2f5',
+                                            padding: '5px 10px',
+                                            borderRadius: 4,
+                                        }}
+                                    >
+                                        <label
+                                            style={{
+                                                marginRight: 5,
+                                                fontSize: '0.85rem',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            Điểm phần này:
+                                        </label>
+                                        <input
+                                            type="number"
+                                            style={{
+                                                width: 60,
+                                                textAlign: 'center',
+                                                fontWeight: 'bold',
+                                                border: '1px solid #ccc',
+                                            }}
+                                            value={sec.section_points || ''}
+                                            placeholder="0"
+                                            onChange={(e) =>
+                                                handleSectionPointsChange(
+                                                    secIdx,
+                                                    Number(e.target.value)
+                                                )
+                                            }
+                                        />
+                                        <span
+                                            title="Hệ thống sẽ tự động chia đều điểm này cho các câu hỏi bên dưới"
+                                            style={{
+                                                marginLeft: 5,
+                                                cursor: 'help',
+                                                color: '#007bff',
+                                            }}
+                                        >
+                                            <FaMagic />
+                                        </span>
+                                    </div>
+                                    <button
+                                        className="btn-icon-danger"
+                                        onClick={() => {
+                                            if (window.confirm('Xoá phần này?'))
+                                                setSections(
+                                                    sections.filter((_, i) => i !== secIdx)
+                                                );
+                                        }}
+                                    >
+                                        <FaTrash />
+                                    </button>
+                                </div>
                             </div>
                             <div className="section-meta">
                                 <textarea
@@ -405,16 +511,51 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                         updateSection(secIdx, 'description', e.target.value)
                                     }
                                 />
-                                {/* ... Media upload logic giữ nguyên ... */}
+                                <div className="media-control">
+                                    <label className="btn-upload">
+                                        {loading ? (
+                                            'Đang tải...'
+                                        ) : (
+                                            <>
+                                                <FaMicrophone /> Audio chung
+                                            </>
+                                        )}
+                                        <input
+                                            type="file"
+                                            hidden
+                                            accept="audio/*"
+                                            onChange={(e) => {
+                                                if (e.target.files?.[0])
+                                                    handleMediaUpload(
+                                                        e.target.files[0],
+                                                        'section',
+                                                        secIdx
+                                                    );
+                                            }}
+                                        />
+                                    </label>
+                                    {sec.media_url && sec.media_type === 'audio' && (
+                                        <div className="audio-preview">
+                                            <audio controls src={sec.media_url} />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="questions-container">
                                 {sec.questions.map((q, qIdx) => (
                                     <div key={q.id} className="question-card">
                                         <div className="q-header-row">
-                                            <span className="q-type-badge">{q.type}</span>
+                                            <span className="q-type-badge">
+                                                {q.type === 'fill_blank'
+                                                    ? 'Điền từ'
+                                                    : q.type === 'multiple_choice'
+                                                      ? 'Trắc nghiệm'
+                                                      : q.type === 'matching'
+                                                        ? 'Nối'
+                                                        : 'Sắp xếp'}
+                                            </span>
 
-                                            {/* [IMPORTANT] INPUT CHỈNH ĐIỂM */}
                                             <div style={{ display: 'flex', alignItems: 'center' }}>
                                                 <label
                                                     style={{ marginRight: 5, fontSize: '0.8rem' }}
@@ -438,17 +579,12 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
 
                                             <button
                                                 className="btn-icon-danger"
-                                                onClick={() => {
-                                                    const newSecs = [...sections];
-                                                    newSecs[secIdx].questions.splice(qIdx, 1);
-                                                    setSections(newSecs);
-                                                }}
+                                                onClick={() => deleteQuestion(secIdx, qIdx)}
                                             >
                                                 <FaTrash />
                                             </button>
                                         </div>
 
-                                        {/* ... Phần Content câu hỏi giữ nguyên ... */}
                                         <div className="q-body">
                                             <input
                                                 className="q-content-input"
@@ -463,8 +599,31 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                                 }
                                                 placeholder="Nội dung câu hỏi..."
                                             />
-                                            {/* ... Render Options/Pairs/OrderItems logic như cũ ... */}
-                                            {/* (Để tiết kiệm không gian tôi không paste lại toàn bộ logic render input câu hỏi ở đây, hãy giữ nguyên phần đó từ code trước) */}
+                                            <label className="btn-icon-upload" title="Thêm ảnh">
+                                                <FaImage />
+                                                <input
+                                                    type="file"
+                                                    hidden
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        if (e.target.files?.[0])
+                                                            handleMediaUpload(
+                                                                e.target.files[0],
+                                                                'question',
+                                                                secIdx,
+                                                                qIdx
+                                                            );
+                                                    }}
+                                                />
+                                            </label>
+                                            {q.media_url && (
+                                                <img
+                                                    src={q.media_url}
+                                                    alt="Question"
+                                                    className="q-media-preview"
+                                                />
+                                            )}
+
                                             {q.type === 'multiple_choice' && (
                                                 <div className="q-options-list">
                                                     {q.options?.map((opt, i) => (
@@ -655,6 +814,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                                     id: `sec-${Date.now()}`,
                                     title: `Phần ${sections.length + 1}`,
                                     description: '',
+                                    section_points: 0,
                                     questions: [],
                                 },
                             ])

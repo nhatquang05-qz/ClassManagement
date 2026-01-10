@@ -308,16 +308,14 @@ const getExamById = async (req, res) => {
                 const safeData = { ...row.content_data };
                 delete safeData.correct_ids;
                 delete safeData.correct_answer;
-                sectionsMap
-                    .get(row.s_id)
-                    .questions.push({
-                        id: row.q_id,
-                        type: row.type,
-                        content: row.content,
-                        points: row.points,
-                        media_url: row.q_media,
-                        content_data: safeData,
-                    });
+                sectionsMap.get(row.s_id).questions.push({
+                    id: row.q_id,
+                    type: row.type,
+                    content: row.content,
+                    points: row.points,
+                    media_url: row.q_media,
+                    content_data: safeData,
+                });
             }
         });
         res.json({ ...exams[0], sections: Array.from(sectionsMap.values()) });
