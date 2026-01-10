@@ -1,0 +1,245 @@
+.exam-taking-page {
+    background-color: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.exam-header {
+    background: white;
+    padding: 10px 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.timer-badge {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #d9534f;
+    background: #fff5f5;
+    padding: 5px 15px;
+    border-radius: 20px;
+    border: 1px solid #ffcccc;
+}
+
+.btn-submit {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.exam-body-container {
+    max-width: 900px;
+    margin: 20px auto;
+    width: 100%;
+    padding: 0 15px;
+    flex: 1;
+}
+
+.section-block {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    background: #e9ecef;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.section-title h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+.section-title p {
+    margin: 0;
+    font-style: italic;
+    color: #666;
+}
+
+/* MULTIPLE CHOICE */
+.mc-label {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #eee;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.mc-label:hover {
+    background: #f8f9fa;
+}
+.mc-label.selected {
+    background: #e7f1ff;
+    border-color: #007bff;
+    color: #0056b3;
+}
+.mc-label input {
+    margin-right: 10px;
+}
+
+/* FILL BLANK */
+.fill-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+.fill-input:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+/* MATCHING STYLES */
+.matching-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+.col-left,
+.col-right {
+    flex: 1;
+    min-width: 250px;
+}
+.match-item {
+    padding: 12px;
+    border: 1px solid #ddd;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    background: #fff;
+    transition: all 0.2s;
+}
+.match-item:hover {
+    background: #f8f9fa;
+    border-color: #bbb;
+}
+
+.match-item.left.selected {
+    background: #fff3cd;
+    border-color: #ffc107;
+    font-weight: bold;
+}
+.match-item.left.matched {
+    background: #d4edda;
+    border-color: #28a745;
+    opacity: 0.7;
+    pointer-events: none;
+}
+.match-item.right.matched {
+    background: #e2e6ea;
+    color: #666;
+    opacity: 0.7;
+    pointer-events: none;
+    text-decoration: line-through;
+}
+
+.link-badge {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #28a745;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+}
+
+.matched-results {
+    width: 100%;
+    margin-top: 15px;
+    border-top: 1px dashed #ccc;
+    padding-top: 10px;
+}
+.pair-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+.pair-tag {
+    background: #e7f1ff;
+    color: #0056b3;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.pair-tag button {
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+/* ORDERING STYLES */
+.order-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8f9fa;
+    border: 1px solid #eee;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+.order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.order-actions button {
+    width: 24px;
+    height: 24px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+}
+.order-actions button:hover {
+    background: #eee;
+}
+.order-actions button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.order-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.index-badge {
+    width: 24px;
+    height: 24px;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+}

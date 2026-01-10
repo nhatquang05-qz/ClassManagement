@@ -5,7 +5,6 @@ import { useClass } from '../../contexts/ClassContext';
 import api from '../../utils/api';
 import '../../assets/styles/MainLayout.css';
 import ClassManagerModal from '../classes/ClassManagerModal';
-import { FaBook } from 'react-icons/fa';
 import {
     FaHome,
     FaTrophy,
@@ -20,6 +19,9 @@ import {
     FaExchangeAlt,
     FaLock,
     FaBullhorn,
+    FaBook,
+    FaEdit,
+    FaPencilAlt,
 } from 'react-icons/fa';
 
 const MainLayout: React.FC = () => {
@@ -105,7 +107,7 @@ const MainLayout: React.FC = () => {
                     )}
                 </div>
 
-                {}
+                {/* Badge Class Info */}
                 {isSidebarOpen &&
                     !isClassAccount &&
                     (user?.role === 'teacher' ||
@@ -138,7 +140,7 @@ const MainLayout: React.FC = () => {
 
                 <nav className="sidebar-nav">
                     <ul>
-                        {}
+                        {/* --- General Section --- */}
                         {!isClassAccount && (
                             <>
                                 <li>
@@ -195,7 +197,9 @@ const MainLayout: React.FC = () => {
                             </>
                         )}
 
-                        {}
+                        {/* --- EXAM & MATERIALS SECTION --- */}
+
+                        {/* Tài liệu - Ai cũng thấy */}
                         <li>
                             <Link to="/materials" className={`nav-item ${isActive('/materials')}`}>
                                 <span className="icon">
@@ -205,7 +209,40 @@ const MainLayout: React.FC = () => {
                             </Link>
                         </li>
 
-                        {}
+                        {/* Tạo đề thi - Chỉ Teacher/Admin */}
+                        {(user?.role === 'teacher' || user?.role === 'admin') && (
+                            <li>
+                                <Link
+                                    to="/create-exam"
+                                    className={`nav-item ${isActive('/create-exam')}`}
+                                >
+                                    <span className="icon">
+                                        <FaEdit />
+                                    </span>
+                                    {isSidebarOpen && <span className="label">Tạo đề thi</span>}
+                                </Link>
+                            </li>
+                        )}
+
+                        {/* Làm bài thi - Chỉ Student */}
+                        {user?.role === 'student' && !isClassAccount && (
+                            <li>
+                                {/* Sửa đường dẫn thành /student-exams để vào trang danh sách đề */}
+                                <Link
+                                    to="/student-exams"
+                                    className={`nav-item ${isActive('/student-exams')}`}
+                                >
+                                    <span className="icon">
+                                        <FaPencilAlt />
+                                    </span>
+                                    {isSidebarOpen && (
+                                        <span className="label">Làm bài kiểm tra</span>
+                                    )}
+                                </Link>
+                            </li>
+                        )}
+
+                        {/* --- Personal & Management Section --- */}
                         {!isClassAccount && (
                             <>
                                 {user?.role !== 'admin' && user?.role !== 'teacher' && (

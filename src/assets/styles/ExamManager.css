@@ -1,0 +1,234 @@
+.exam-builder-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #f0f2f5;
+    overflow: hidden;
+}
+
+.sticky-header {
+    background: white;
+    padding: 15px 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    z-index: 100;
+}
+
+.builder-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.builder-settings {
+    width: 300px;
+    background: white;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+    overflow-y: auto;
+}
+
+.builder-content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.flex-center {
+    display: flex;
+    align-items: center;
+}
+
+.section-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-left: 5px solid #1890ff;
+}
+
+.section-header {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+.section-title-input {
+    flex: 1;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-bottom: 1px dashed #ccc;
+    padding: 5px;
+    outline: none;
+}
+.section-desc-input {
+    width: 100%;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    min-height: 60px;
+    margin-bottom: 10px;
+}
+
+.question-card {
+    background: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.q-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.q-type-badge {
+    background: #e6f7ff;
+    color: #1890ff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.q-points-input {
+    width: 60px;
+    text-align: center;
+    padding: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.q-content-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.q-content-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+}
+
+.q-media-preview {
+    max-height: 150px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.option-row,
+.pair-row,
+.reorder-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.option-text-input,
+.pair-row input,
+.reorder-row input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+}
+
+.section-toolbar {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px dashed #eee;
+}
+.section-toolbar button {
+    background: white;
+    border: 1px solid #1890ff;
+    color: #1890ff;
+    padding: 5px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.section-toolbar button:hover {
+    background: #e6f7ff;
+}
+
+.btn-add-section-large {
+    width: 100%;
+    padding: 15px;
+    background: white;
+    border: 2px dashed #ccc;
+    color: #666;
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 50px;
+}
+.btn-add-section-large:hover {
+    border-color: #1890ff;
+    color: #1890ff;
+}
+.btn-dashed {
+    background: none;
+    border: 1px dashed #999;
+    color: #666;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.btn-primary {
+    background: #1890ff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.btn-icon-danger {
+    background: none;
+    border: none;
+    color: #ff4d4f;
+    cursor: pointer;
+}
+.btn-back {
+    background: none;
+    border: 1px solid #ccc;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
