@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-
 import {
     FaArrowLeft,
     FaSave,
@@ -13,7 +12,6 @@ import {
 import { useClass } from '../../../contexts/ClassContext';
 import api from '../../../utils/api';
 import '../../../assets/styles/ExamBuilder.css';
-
 
 interface Option {
     id: string;
@@ -50,16 +48,14 @@ interface Section {
     description: string;
     media_url?: string;
     media_type?: 'image' | 'audio';
-    section_points?: number; 
+    section_points?: number;
     questions: Question[];
 }
-
 
 const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number | null }) => {
     const { selectedClass } = useClass();
     const [loading, setLoading] = useState(false);
 
-    
     const [settings, setSettings] = useState({
         title: '',
         description: '',
@@ -76,7 +72,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         { id: 'sec-1', title: 'Phần 1', description: '', section_points: 0, questions: [] },
     ]);
 
-    
     const totalScore = useMemo(() => {
         return sections.reduce(
             (acc, sec) =>
@@ -85,7 +80,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         );
     }, [sections]);
 
-    
     useEffect(() => {
         if (examId) {
             setLoading(true);
@@ -138,7 +132,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         }
     }, [examId]);
 
-    
     const handleFileUpload = async (file: File): Promise<string | null> => {
         const formData = new FormData();
         formData.append('file', file);
@@ -170,18 +163,17 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         if (url) {
             const newSections = [...sections];
             if (target === 'section') {
-                newSections[secIdx].media_url = url;
-                newSections[secIdx].media_type = type;
+                newSections[secIdx] = { ...newSections[secIdx], media_url: url, media_type: type };
             } else if (typeof qIdx === 'number') {
-                newSections[secIdx].questions[qIdx].media_url = url;
-                newSections[secIdx].questions[qIdx].media_type = type;
+                const newQuestions = [...newSections[secIdx].questions];
+                newQuestions[qIdx] = { ...newQuestions[qIdx], media_url: url, media_type: type };
+                newSections[secIdx].questions = newQuestions;
             }
             setSections(newSections);
         }
         setLoading(false);
     };
 
-    
     const distributePoints = (currentSections: Section[], secIdx: number) => {
         const section = currentSections[secIdx];
         const totalP = Number(section.section_points) || 0;
@@ -189,29 +181,30 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
 
         if (qCount > 0 && totalP > 0) {
             const avgPoints = parseFloat((totalP / qCount).toFixed(2));
-            section.questions.forEach((q, index) => {
+
+            const updatedQuestions = section.questions.map((q, index) => {
+                let newPoints = avgPoints;
                 if (index === qCount - 1) {
                     const sumOthers = avgPoints * (qCount - 1);
-                    q.points = parseFloat((totalP - sumOthers).toFixed(2));
-                } else {
-                    q.points = avgPoints;
+                    newPoints = parseFloat((totalP - sumOthers).toFixed(2));
                 }
+                return { ...q, points: newPoints };
             });
+            currentSections[secIdx] = { ...section, questions: updatedQuestions };
         }
         return currentSections;
     };
 
     const handleSectionPointsChange = (secIdx: number, value: number) => {
         let newSections = [...sections];
-        newSections[secIdx].section_points = value;
+        newSections[secIdx] = { ...newSections[secIdx], section_points: value };
         newSections = distributePoints(newSections, secIdx);
         setSections(newSections);
     };
 
-    
     const updateSection = (idx: number, field: keyof Section, value: any) => {
         const newSections = [...sections];
-        (newSections[idx] as any)[field] = value;
+        newSections[idx] = { ...newSections[idx], [field]: value };
         setSections(newSections);
     };
 
@@ -239,9 +232,11 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                     : undefined,
         };
 
-        newSections[secIdx].questions.push(newQ);
+        newSections[secIdx] = {
+            ...newSections[secIdx],
+            questions: [...newSections[secIdx].questions, newQ],
+        };
 
-        
         if ((newSections[secIdx].section_points || 0) > 0) {
             newSections = distributePoints(newSections, secIdx);
         }
@@ -251,9 +246,10 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
 
     const deleteQuestion = (secIdx: number, qIdx: number) => {
         let newSections = [...sections];
-        newSections[secIdx].questions.splice(qIdx, 1);
+        const newQuestions = [...newSections[secIdx].questions];
+        newQuestions.splice(qIdx, 1);
+        newSections[secIdx] = { ...newSections[secIdx], questions: newQuestions };
 
-        
         if ((newSections[secIdx].section_points || 0) > 0) {
             newSections = distributePoints(newSections, secIdx);
         }
@@ -262,7 +258,9 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
 
     const updateQuestion = (secIdx: number, qIdx: number, field: keyof Question, value: any) => {
         const newSections = [...sections];
-        (newSections[secIdx].questions[qIdx] as any)[field] = value;
+        const newQuestions = [...newSections[secIdx].questions];
+        newQuestions[qIdx] = { ...newQuestions[qIdx], [field]: value };
+        newSections[secIdx] = { ...newSections[secIdx], questions: newQuestions };
         setSections(newSections);
     };
 
@@ -275,12 +273,16 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         value: any
     ) => {
         const newSections = [...sections];
-        const targetArray = newSections[secIdx].questions[qIdx][arrayField] as any[];
-        targetArray[itemIdx][key] = value;
+        const newQuestions = [...newSections[secIdx].questions];
+
+        const targetArray = [...(newQuestions[qIdx][arrayField] as any[])];
+        targetArray[itemIdx] = { ...targetArray[itemIdx], [key]: value };
+
+        newQuestions[qIdx] = { ...newQuestions[qIdx], [arrayField]: targetArray };
+        newSections[secIdx] = { ...newSections[secIdx], questions: newQuestions };
         setSections(newSections);
     };
 
-    
     const handleSave = async () => {
         if (!settings.title) return alert('Vui lòng nhập tên đề thi!');
         if (!selectedClass) return alert('Lỗi: Không tìm thấy ID lớp học.');
@@ -344,7 +346,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                 sections: formattedSections,
             };
 
-            
             if (examId) {
                 await api.put(`/exams/${examId}`, payload);
                 alert('Cập nhật đề thi thành công!');
@@ -389,7 +390,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
             </div>
 
             <div className="exam-builder-body">
-                {}
                 <div className="exam-builder-sidebar">
                     <h4>Cấu hình</h4>
                     <div className="exam-builder-form-group">
@@ -490,7 +490,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                     </div>
                 </div>
 
-                {}
                 <div className="exam-builder-content">
                     {sections.map((sec, secIdx) => (
                         <div key={sec.id} className="exam-builder-section">
@@ -502,7 +501,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                     placeholder="Tiêu đề phần"
                                 />
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    {}
                                     <div className="exam-builder-section-points">
                                         <label
                                             style={{
@@ -532,7 +530,7 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                             }
                                         />
                                         <span
-                                            title="Tự động chia đều cho các câu hỏi"
+                                            title="Tự động chia đều"
                                             style={{
                                                 marginLeft: 5,
                                                 cursor: 'help',
@@ -600,7 +598,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                     <div key={q.id} className="exam-builder-question">
                                         <div className="exam-builder-q-header">
                                             <span className="exam-builder-q-badge">{q.type}</span>
-
                                             <div className="exam-builder-q-points-wrapper">
                                                 <label
                                                     style={{ marginRight: 5, fontSize: '0.8rem' }}
@@ -621,7 +618,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                     }
                                                 />
                                             </div>
-
                                             <button
                                                 className="exam-builder-btn-icon-danger"
                                                 onClick={() => deleteQuestion(secIdx, qIdx)}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaPlus, FaEye, FaTrash, FaClock, FaHistory, FaCalendarAlt } from 'react-icons/fa';
+import { FaPlus, FaEye, FaTrash, FaClock, FaHistory, FaCalendarAlt, FaEdit } from 'react-icons/fa';
 import api from '../../../utils/api';
 import { useClass } from '../../../contexts/ClassContext';
 import ExamDetail from './ExamDetail';
@@ -11,12 +11,16 @@ interface ExamSummary {
     start_time: string;
     end_time: string;
     duration_minutes: number;
-
     attempt_count?: number;
     max_attempts: number;
 }
 
-const ExamList = ({ onCreate }: any) => {
+interface ExamListProps {
+    onCreate: () => void;
+    onEdit: (id: number) => void;
+}
+
+const ExamList: React.FC<ExamListProps> = ({ onCreate, onEdit }) => {
     const { selectedClass } = useClass();
     const [exams, setExams] = useState<ExamSummary[]>([]);
     const [loading, setLoading] = useState(false);
@@ -125,9 +129,17 @@ const ExamList = ({ onCreate }: any) => {
                                             <button
                                                 className="exam-list-btn-icon exam-list-btn-view"
                                                 onClick={() => setSelectedExamId(exam.id)}
-                                                title="Xem chi tiết & Kết quả"
+                                                title="Xem chi tiết"
                                             >
                                                 <FaEye size={18} />
+                                            </button>
+                                            <button
+                                                className="exam-list-btn-icon"
+                                                onClick={() => onEdit(exam.id)}
+                                                title="Sửa đề thi"
+                                                style={{ color: '#e67e22' }}
+                                            >
+                                                <FaEdit size={18} />
                                             </button>
                                             <button
                                                 className="exam-list-btn-icon exam-list-btn-delete"
