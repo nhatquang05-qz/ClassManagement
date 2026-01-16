@@ -24,22 +24,29 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    
+    
+    const [token, setToken] = useState<string | null>(sessionStorage.getItem('token'));
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('token');
+        
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+
+        const storedUser = sessionStorage.getItem('user');
+        const storedToken = sessionStorage.getItem('token');
 
         if (storedUser && storedToken) {
             try {
                 setUser(JSON.parse(storedUser));
                 setToken(storedToken);
+                
+                api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
             } catch (error) {
                 console.error('Lỗi khôi phục user:', error);
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
+                sessionStorage.removeItem('user');
+                sessionStorage.removeItem('token');
                 setToken(null);
             }
         }
@@ -50,19 +57,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const res = await api.post('/auth/login', { username, password });
         const { token: newToken, user } = res.data;
 
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('user', JSON.stringify(user));
+        
+        sessionStorage.setItem('token', newToken);
+        sessionStorage.setItem('user', JSON.stringify(user));
 
         setUser(user);
         setToken(newToken);
+        
+        
+        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     };
 
     const logout = () => {
+        
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        
+        
         localStorage.removeItem('token');
         localStorage.removeItem('user');
 
         setUser(null);
         setToken(null);
+        delete api.defaults.headers.common['Authorization'];
+        
         window.location.href = '/login';
     };
 

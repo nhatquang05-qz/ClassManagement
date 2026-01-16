@@ -202,15 +202,21 @@ const submitExam = async (req, res) => {
             ]);
         }
 
+        await connection.execute('DELETE FROM student_answers WHERE submission_id = ?', [
+            submissionId,
+        ]);
+
         await connection.execute(
             `UPDATE exam_submissions SET submitted_at = NOW(), score = ? WHERE id = ?`,
             [earnedScore, submissionId]
         );
-        if (details.length > 0)
+
+        if (details.length > 0) {
             await connection.query(
                 `INSERT INTO student_answers (submission_id, question_id, answer_data, is_correct, score_obtained) VALUES ?`,
                 [details]
             );
+        }
 
         await connection.commit();
         res.json({ message: 'Success', score: earnedScore, total: totalScore });
@@ -225,10 +231,18 @@ const submitExam = async (req, res) => {
 const getSubmissionDetail = async (req, res) => {
     try {
         const { submissionId } = req.params;
+
         const [subs] = await db.execute(
-            `SELECT es.*, e.title, e.view_answer_mode FROM exam_submissions es JOIN exams e ON es.exam_id = e.id WHERE es.id = ?`,
+            `
+            SELECT es.*, e.title, e.view_answer_mode, u.full_name as student_name
+            FROM exam_submissions es 
+            JOIN exams e ON es.exam_id = e.id 
+            JOIN users u ON es.student_id = u.id
+            WHERE es.id = ?
+        `,
             [submissionId]
         );
+
         if (!subs.length) return res.status(404).json({ message: 'Not found' });
         const sub = subs[0];
 
@@ -244,21 +258,28 @@ const getSubmissionDetail = async (req, res) => {
         );
 
         const sectionsMap = new Map();
+
+        const processedQuestions = new Set();
+
         rows.forEach((row) => {
             if (!sectionsMap.has(row.s_id))
                 sectionsMap.set(row.s_id, { title: row.s_title, questions: [] });
 
-            const contentData = row.content_data;
-            if (sub.view_answer_mode === 'never') {
-                delete contentData.correct_ids;
-                delete contentData.correct_answer;
-            }
+            if (!processedQuestions.has(row.q_id)) {
+                processedQuestions.add(row.q_id);
 
-            sectionsMap.get(row.s_id).questions.push({
-                ...row,
-                content_data: contentData,
-                user_answer: row.answer_data,
-            });
+                const contentData = row.content_data;
+                if (sub.view_answer_mode === 'never') {
+                    delete contentData.correct_ids;
+                    delete contentData.correct_answer;
+                }
+
+                sectionsMap.get(row.s_id).questions.push({
+                    ...row,
+                    content_data: contentData,
+                    user_answer: row.answer_data,
+                });
+            }
         });
 
         res.json({ exam: sub, sections: Array.from(sectionsMap.values()) });
@@ -316,7 +337,6 @@ const getExamById = async (req, res) => {
 const getExamSubmissions = async (req, res) => {
     try {
         const { id } = req.params;
-
         const query = `
             SELECT es.*, u.full_name as student_name
             FROM exam_submissions es
@@ -324,11 +344,9 @@ const getExamSubmissions = async (req, res) => {
             WHERE es.exam_id = ? AND es.submitted_at IS NOT NULL
             ORDER BY es.score DESC, es.submitted_at ASC
         `;
-
         const [submissions] = await db.execute(query, [id]);
         res.json(submissions);
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Lỗi lấy danh sách bài nộp' });
     }
 };

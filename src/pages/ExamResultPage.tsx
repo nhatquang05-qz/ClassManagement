@@ -7,6 +7,10 @@ import '../assets/styles/ExamTakingPage.css';
 
 const isCorrectOption = (optId: string, correctIds: string[]) => correctIds?.includes(optId);
 
+const roundScore = (num: any) => {
+    return Math.round(Number(num) * 100) / 100;
+};
+
 const ResultMultipleChoice = ({ options, userAns, correctIds, canViewKey }: any) => {
     return (
         <div className="mc-options">
@@ -151,7 +155,6 @@ const ResultMatching = ({ pairs, userAns, canViewKey }: any) => {
                 })}
             </div>
 
-            {}
             {canViewKey && pairs && (
                 <div style={{ marginTop: 15, borderTop: '1px dashed #ccc', paddingTop: 10 }}>
                     <strong style={{ color: '#28a745', fontSize: '0.9rem' }}>Đáp án chuẩn:</strong>
@@ -284,7 +287,7 @@ const ResultQuestionRenderer = ({ question, canViewResults }: any) => {
                 </div>
                 <div style={{ whiteSpace: 'nowrap', marginLeft: 10, textAlign: 'right' }}>
                     <span style={{ fontSize: '0.9rem', color: '#666', display: 'block' }}>
-                        {points} điểm
+                        {roundScore(points)} điểm
                     </span>
                     {canViewResults && (
                         <span
@@ -293,7 +296,7 @@ const ResultQuestionRenderer = ({ question, canViewResults }: any) => {
                                 color: score_obtained > 0 ? '#28a745' : '#dc3545',
                             }}
                         >
-                            Đạt: {score_obtained}
+                            Đạt: {roundScore(score_obtained)}
                         </span>
                     )}
                 </div>
@@ -366,7 +369,6 @@ const ExamResultPage = () => {
             .catch((err) => {
                 console.error(err);
                 alert('Không thể tải kết quả.');
-
                 if (user?.role === 'student') navigate('/student-exams');
                 else navigate('/create-exam');
             });
@@ -423,7 +425,7 @@ const ExamResultPage = () => {
                         <FaArrowLeft /> {user?.role === 'student' ? 'Danh sách đề thi' : 'Quay lại'}
                     </button>
                     <h3 style={{ margin: 0 }}>{exam.title}</h3>
-                    <div style={{ width: 100, textAlign: 'right' }}></div> {}
+                    <div style={{ width: 100, textAlign: 'right' }}></div>
                 </div>
 
                 <div
@@ -458,7 +460,7 @@ const ExamResultPage = () => {
                                 color: exam.score >= 5 ? '#28a745' : '#dc3545',
                             }}
                         >
-                            {exam.score}
+                            {roundScore(exam.score)}
                         </span>
                     </div>
                 </div>
