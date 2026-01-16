@@ -26,9 +26,13 @@ const LoginPage = () => {
         e.preventDefault();
         setError('');
 
+        sessionStorage.removeItem('selectedClassId');
+        sessionStorage.removeItem('selectedClassName');
+        sessionStorage.removeItem('currentClass');
         localStorage.removeItem('selectedClassId');
         localStorage.removeItem('selectedClassName');
         localStorage.removeItem('currentClass');
+
         if (setSelectedClass) setSelectedClass(null);
 
         try {
@@ -38,7 +42,8 @@ const LoginPage = () => {
             if (user.must_change_password) {
                 setTempToken(token);
                 setTempUser(user);
-                localStorage.setItem('token', token);
+
+                sessionStorage.setItem('token', token);
                 setShowChangePass(true);
             } else {
                 await processLoginSuccess(token, user);
@@ -50,16 +55,19 @@ const LoginPage = () => {
     };
 
     const processLoginSuccess = async (token: string, user: any) => {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('user', JSON.stringify(user));
+
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
         const tryLoadClass = async (classId: number) => {
             try {
                 const clsRes = await api.get(`/classes/${classId}`);
                 if (setSelectedClass) setSelectedClass(clsRes.data);
-                localStorage.setItem('selectedClassId', classId.toString());
-                localStorage.setItem('selectedClassName', clsRes.data.name);
-                localStorage.setItem('currentClass', JSON.stringify(clsRes.data));
+
+                sessionStorage.setItem('selectedClassId', classId.toString());
+                sessionStorage.setItem('selectedClassName', clsRes.data.name);
+                sessionStorage.setItem('currentClass', JSON.stringify(clsRes.data));
                 return true;
             } catch (err) {
                 return false;
@@ -265,7 +273,6 @@ const LoginPage = () => {
                         </div>
                     </div>
                 </div>
-                {}
             </div>
         </div>
     );
