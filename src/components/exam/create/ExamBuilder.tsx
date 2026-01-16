@@ -19,7 +19,7 @@ interface Question {
   correctAnswer?: string; 
   pairs?: Pair[];
   orderItems?: OrderItem[];
-  // Dữ liệu từ DB trả về có thể nằm trong content_data
+  
   content_data?: {
       options?: Option[];
       correct_ids?: string[];
@@ -95,7 +95,7 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                          section_points: 0, 
                          questions: sec.questions.map((q: any) => ({
                              id: `q-${q.id}`,
-                             type: q.type === 'fill_in_blank' ? 'fill_blank' : (q.type === 'ordering' ? 'reorder' : q.type), // Map type từ DB
+                             type: q.type === 'fill_in_blank' ? 'fill_blank' : (q.type === 'ordering' ? 'reorder' : q.type), 
                              content: q.content,
                              points: q.points,
                              media_url: q.media_url,

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { FaClock } from 'react-icons/fa';
 import '../assets/styles/ExamTakingPage.css';
+
 import QuestionRenderer from '../components/exam/taking/QuestionRenderer';
 
 
@@ -92,8 +93,15 @@ const ExamTakingPage = () => {
              <div key={sec.id} className="section-block">
                 <div className="section-title"><h4>{sec.title}</h4>{sec.description && <p>{sec.description}</p>}</div>
                 {sec.media_url && <div style={{marginBottom:15}}><audio controls src={sec.media_url} style={{width:'100%'}}/></div>}
+                
+                {}
                 {sec.questions?.map((q: any) => (
-                   <QuestionRenderer key={q.id} question={q} answer={answers[q.id]} onAnswer={(val: any) => setAnswers({...answers, [q.id]: val})} />
+                   <QuestionRenderer 
+                        key={q.id} 
+                        question={q} 
+                        answer={answers[q.id]} 
+                        onAnswer={(val: any) => setAnswers({...answers, [q.id]: val})} 
+                   />
                 ))}
              </div>
           ))}
