@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+
 import {
     FaArrowLeft,
     FaSave,
@@ -11,8 +12,8 @@ import {
 } from 'react-icons/fa';
 import { useClass } from '../../../contexts/ClassContext';
 import api from '../../../utils/api';
-
 import '../../../assets/styles/ExamBuilder.css';
+
 
 interface Option {
     id: string;
@@ -49,14 +50,16 @@ interface Section {
     description: string;
     media_url?: string;
     media_type?: 'image' | 'audio';
-    section_points?: number;
+    section_points?: number; 
     questions: Question[];
 }
 
-const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
+
+const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number | null }) => {
     const { selectedClass } = useClass();
     const [loading, setLoading] = useState(false);
 
+    
     const [settings, setSettings] = useState({
         title: '',
         description: '',
@@ -73,6 +76,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         { id: 'sec-1', title: 'Phần 1', description: '', section_points: 0, questions: [] },
     ]);
 
+    
     const totalScore = useMemo(() => {
         return sections.reduce(
             (acc, sec) =>
@@ -81,12 +85,60 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         );
     }, [sections]);
 
+    
     useEffect(() => {
-        if (!selectedClass) {
-            alert('Cảnh báo: Bạn chưa chọn lớp học.');
-        }
-    }, [selectedClass]);
+        if (examId) {
+            setLoading(true);
+            api.get(`/exams/${examId}`)
+                .then((res) => {
+                    const data = res.data;
+                    const formatForInput = (isoString: string) =>
+                        isoString ? new Date(isoString).toISOString().slice(0, 16) : '';
 
+                    setSettings({
+                        title: data.title,
+                        description: data.description || '',
+                        duration: data.duration_minutes,
+                        start_time: formatForInput(data.start_time),
+                        end_time: formatForInput(data.end_time),
+                        max_attempts: data.max_attempts,
+                        is_unlimited_attempts: data.max_attempts === 999,
+                        view_answer_mode: data.view_answer_mode,
+                        is_shuffled: Boolean(data.is_shuffled),
+                    });
+
+                    if (data.sections && data.sections.length > 0) {
+                        const mappedSections = data.sections.map((sec: any) => ({
+                            id: `sec-${sec.id}`,
+                            title: sec.title,
+                            description: sec.description,
+                            media_url: sec.media_url,
+                            media_type: sec.media_type,
+                            section_points: 0,
+                            questions: sec.questions.map((q: any) => ({
+                                id: `q-${q.id}`,
+                                type: q.type,
+                                content: q.content,
+                                points: q.points,
+                                media_url: q.media_url,
+                                options: q.content_data.options?.map((o: any) => ({
+                                    ...o,
+                                    isCorrect: q.content_data.correct_ids?.includes(o.id),
+                                })),
+                                correctAnswer: q.content_data.correct_answer,
+                                pairs: q.content_data.pairs,
+                                orderItems: q.content_data.items,
+                            })),
+                        }));
+                        setSections(mappedSections);
+                    }
+                })
+                .catch(() => alert('Lỗi tải đề thi để sửa'))
+                .finally(() => setLoading(false));
+        }
+    }, [examId]);
+
+    
     const handleFileUpload = async (file: File): Promise<string | null> => {
         const formData = new FormData();
         formData.append('file', file);
@@ -100,7 +152,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
             });
             return res.data.url;
         } catch (error) {
-            console.error('Upload failed:', error);
+            console.error('Upload failed');
             alert('Lỗi upload file.');
             return null;
         }
@@ -129,6 +181,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         setLoading(false);
     };
 
+    
     const distributePoints = (currentSections: Section[], secIdx: number) => {
         const section = currentSections[secIdx];
         const totalP = Number(section.section_points) || 0;
@@ -155,6 +208,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         setSections(newSections);
     };
 
+    
     const updateSection = (idx: number, field: keyof Section, value: any) => {
         const newSections = [...sections];
         (newSections[idx] as any)[field] = value;
@@ -187,7 +241,8 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
 
         newSections[secIdx].questions.push(newQ);
 
-        if (newSections[secIdx].section_points && newSections[secIdx].section_points! > 0) {
+        
+        if ((newSections[secIdx].section_points || 0) > 0) {
             newSections = distributePoints(newSections, secIdx);
         }
 
@@ -198,7 +253,8 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         let newSections = [...sections];
         newSections[secIdx].questions.splice(qIdx, 1);
 
-        if (newSections[secIdx].section_points && newSections[secIdx].section_points! > 0) {
+        
+        if ((newSections[secIdx].section_points || 0) > 0) {
             newSections = distributePoints(newSections, secIdx);
         }
         setSections(newSections);
@@ -224,6 +280,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
         setSections(newSections);
     };
 
+    
     const handleSave = async () => {
         if (!settings.title) return alert('Vui lòng nhập tên đề thi!');
         if (!selectedClass) return alert('Lỗi: Không tìm thấy ID lớp học.');
@@ -287,11 +344,15 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                 sections: formattedSections,
             };
 
-            const res = await api.post('/exams/create', payload);
-            if (res.status === 201) {
+            
+            if (examId) {
+                await api.put(`/exams/${examId}`, payload);
+                alert('Cập nhật đề thi thành công!');
+            } else {
+                await api.post('/exams/create', payload);
                 alert('Tạo đề thi thành công!');
-                onBack();
             }
+            onBack();
         } catch (error: any) {
             const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra.';
             alert(`Lỗi Server: ${errorMsg}`);
@@ -307,7 +368,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                     <FaArrowLeft /> Quay lại
                 </button>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <h3>{settings.title || 'Đề thi mới'}</h3>
+                    <h3>{examId ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'}</h3>
                     <span className="exam-builder-total-score">
                         <FaCalculator style={{ marginRight: 5 }} /> Tổng điểm: {totalScore}
                     </span>
@@ -321,7 +382,7 @@ const ExamBuilder = ({ onBack }: { onBack: () => void }) => {
                         'Đang xử lý...'
                     ) : (
                         <>
-                            <FaSave /> Lưu Đề Thi
+                            <FaSave /> {examId ? 'Cập Nhật' : 'Lưu Đề Thi'}
                         </>
                     )}
                 </button>

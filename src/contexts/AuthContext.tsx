@@ -24,13 +24,11 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    
-    
+
     const [token, setToken] = useState<string | null>(sessionStorage.getItem('token'));
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        
         localStorage.removeItem('token');
         localStorage.removeItem('user');
 
@@ -41,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
                 setUser(JSON.parse(storedUser));
                 setToken(storedToken);
-                
+
                 api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
             } catch (error) {
                 console.error('Lỗi khôi phục user:', error);
@@ -57,30 +55,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const res = await api.post('/auth/login', { username, password });
         const { token: newToken, user } = res.data;
 
-        
         sessionStorage.setItem('token', newToken);
         sessionStorage.setItem('user', JSON.stringify(user));
 
         setUser(user);
         setToken(newToken);
-        
-        
+
         api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     };
 
     const logout = () => {
-        
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('user');
-        
-        
+
         localStorage.removeItem('token');
         localStorage.removeItem('user');
 
         setUser(null);
         setToken(null);
         delete api.defaults.headers.common['Authorization'];
-        
+
         window.location.href = '/login';
     };
 
