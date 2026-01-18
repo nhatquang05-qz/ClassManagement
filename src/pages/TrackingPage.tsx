@@ -14,7 +14,8 @@ import HistoryLogTable from '../components/tracking/HistoryLogTable';
 import { Student, ViolationType, DailyLogPayload } from '../types/trackingTypes';
 import { useAuth } from '../contexts/AuthContext';
 import { useClass } from '../contexts/ClassContext';
-import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils';
+
+import { getWeekNumberFromStart, getWeekDatesFromStart, WeekSchedule } from '../utils/dateUtils';
 import '../assets/styles/TrackingPage.css';
 
 const TrackingPage: React.FC = () => {
@@ -30,6 +31,8 @@ const TrackingPage: React.FC = () => {
         selectedClass?.start_date
     );
 
+    const [scheduleConfig, setScheduleConfig] = useState<WeekSchedule[] | null>(null);
+
     const currentYear = new Date().getFullYear();
 
     const selectedClassId =
@@ -39,8 +42,8 @@ const TrackingPage: React.FC = () => {
     const classStartDate = fetchedStartDate || selectedClass?.start_date;
 
     const currentRealWeek = useMemo(() => {
-        return getWeekNumberFromStart(new Date(), classStartDate);
-    }, [classStartDate]);
+        return getWeekNumberFromStart(new Date(), classStartDate, scheduleConfig);
+    }, [classStartDate, scheduleConfig]);
 
     const [selectedWeek, setSelectedWeek] = useState(1);
     const [activeDayIndex, setActiveDayIndex] = useState(0);
@@ -64,8 +67,8 @@ const TrackingPage: React.FC = () => {
     }, [currentRealWeek]);
 
     const weekDates = useMemo(
-        () => getWeekDatesFromStart(selectedWeek, classStartDate),
-        [selectedWeek, classStartDate]
+        () => getWeekDatesFromStart(selectedWeek, classStartDate, scheduleConfig),
+        [selectedWeek, classStartDate, scheduleConfig]
     );
 
     const currentSelectedDate =
@@ -117,8 +120,18 @@ const TrackingPage: React.FC = () => {
             try {
                 if (selectedClassId) {
                     const classRes = await api.get(`/classes/${selectedClassId}`);
-                    if (classRes.data && classRes.data.start_date) {
-                        setFetchedStartDate(classRes.data.start_date);
+
+                    if (classRes.data) {
+                        if (classRes.data.start_date) {
+                            setFetchedStartDate(classRes.data.start_date);
+                        }
+                        if (classRes.data.schedule_config) {
+                            const config =
+                                typeof classRes.data.schedule_config === 'string'
+                                    ? JSON.parse(classRes.data.schedule_config)
+                                    : classRes.data.schedule_config;
+                            setScheduleConfig(config);
+                        }
                     }
                 }
 

@@ -1,6 +1,34 @@
 const db = require('../config/dbConfig');
 const bcrypt = require('bcryptjs');
 
+const generateDefaultSchedule = (startDateStr, weeks = 40) => {
+    if (!startDateStr) return null;
+
+    const schedule = [];
+    const start = new Date(startDateStr);
+
+    const day = start.getDay();
+    const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(start.setDate(diff));
+
+    for (let i = 0; i < weeks; i++) {
+        const currentWeekDate = new Date(monday);
+        currentWeekDate.setDate(monday.getDate() + i * 7);
+
+        const y = currentWeekDate.getFullYear();
+        const m = String(currentWeekDate.getMonth() + 1).padStart(2, '0');
+        const d = String(currentWeekDate.getDate()).padStart(2, '0');
+
+        schedule.push({
+            week: i + 1,
+            startDate: `${y}-${m}-${d}`,
+            isBreak: false,
+            title: `Tuần ${i + 1}`,
+        });
+    }
+    return JSON.stringify(schedule);
+};
+
 const getClasses = async (req, res) => {
     try {
         if (!req.user) {
@@ -87,10 +115,13 @@ const createClass = async (req, res) => {
                 .json({ message: `Tài khoản lớp ${generatedUsername} đã tồn tại!` });
         }
 
+        const scheduleConfig = generateDefaultSchedule(start_date);
+
         const [result] = await connection.query(
-            'INSERT INTO classes (name, school_year, teacher_id, start_date) VALUES (?, ?, ?, ?)',
-            [name, school_year, teacherId, start_date || null]
+            'INSERT INTO classes (name, school_year, teacher_id, start_date, schedule_config) VALUES (?, ?, ?, ?, ?)',
+            [name, school_year, teacherId, start_date || null, scheduleConfig]
         );
+
         const newClassId = result.insertId;
 
         const hashedPassword = await bcrypt.hash('123456', 10);
@@ -116,7 +147,8 @@ const createClass = async (req, res) => {
 const updateClass = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, school_year, start_date } = req.body;
+
+        const { name, school_year, start_date, schedule_config } = req.body;
         const teacherId = req.user.id;
         const role = req.user.role;
 
@@ -135,8 +167,14 @@ const updateClass = async (req, res) => {
         }
 
         await db.query(
-            'UPDATE classes SET name = ?, school_year = ?, start_date = ? WHERE id = ?',
-            [name, school_year, start_date || null, id]
+            'UPDATE classes SET name = ?, school_year = ?, start_date = ?, schedule_config = ? WHERE id = ?',
+            [
+                name,
+                school_year,
+                start_date || null,
+                schedule_config ? JSON.stringify(schedule_config) : null,
+                id,
+            ]
         );
 
         res.json({ message: 'Cập nhật lớp thành công' });
