@@ -66,11 +66,10 @@ const TrackingPage: React.FC = () => {
         }
     }, [currentRealWeek]);
 
-    
-const weekDates = useMemo(
-    () => getWeekDatesFromStart(selectedWeek, classStartDate, scheduleConfig), 
-    [selectedWeek, classStartDate, scheduleConfig]
-);
+    const weekDates = useMemo(
+        () => getWeekDatesFromStart(selectedWeek, classStartDate, scheduleConfig),
+        [selectedWeek, classStartDate, scheduleConfig]
+    );
 
     const currentSelectedDate =
         weekDates.length > 0 ? weekDates[activeDayIndex < 6 ? activeDayIndex : 0] : undefined;

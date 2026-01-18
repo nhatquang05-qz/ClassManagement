@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useClass } from '../contexts/ClassContext';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaSearch } from 'react-icons/fa';
-import { getWeekNumberFromStart, getWeekDatesFromStart } from '../utils/dateUtils';
+
+import { getWeekNumberFromStart, getWeekDatesFromStart, WeekSchedule } from '../utils/dateUtils';
 
 import api from '../utils/api';
 import {
@@ -46,12 +47,14 @@ const ReportPage = () => {
         selectedClass?.start_date
     );
 
+    const [scheduleConfig, setScheduleConfig] = useState<WeekSchedule[] | null>(null);
+
     const classStartDate = fetchedStartDate || selectedClass?.start_date;
 
     const currentRealWeek = useMemo(() => {
         if (!classStartDate) return 1;
-        return getWeekNumberFromStart(new Date(), classStartDate);
-    }, [classStartDate]);
+        return getWeekNumberFromStart(new Date(), classStartDate, scheduleConfig);
+    }, [classStartDate, scheduleConfig]);
 
     const [selectedWeek, setSelectedWeek] = useState<number>(1);
 
@@ -70,11 +73,22 @@ const ReportPage = () => {
     useEffect(() => {
         const fetchClassInfo = async () => {
             const selectedClassId = selectedClass?.id || localStorage.getItem('selectedClassId');
-            if (selectedClassId && !selectedClass?.start_date) {
+
+            if (selectedClassId) {
                 try {
                     const res = await api.get(`/classes/${selectedClassId}`);
-                    if (res.data && res.data.start_date) {
-                        setFetchedStartDate(res.data.start_date);
+                    if (res.data) {
+                        if (res.data.start_date) {
+                            setFetchedStartDate(res.data.start_date);
+                        }
+
+                        if (res.data.schedule_config) {
+                            const config =
+                                typeof res.data.schedule_config === 'string'
+                                    ? JSON.parse(res.data.schedule_config)
+                                    : res.data.schedule_config;
+                            setScheduleConfig(config);
+                        }
                     }
                 } catch (error) {
                     console.error('Lỗi lấy thông tin lớp:', error);
@@ -82,7 +96,7 @@ const ReportPage = () => {
             }
         };
         fetchClassInfo();
-    }, [selectedClass]);
+    }, [selectedClass?.id]);
 
     useEffect(() => {
         if (currentRealWeek > 0) {
@@ -92,21 +106,22 @@ const ReportPage = () => {
 
     useEffect(() => {
         if (classStartDate && selectedWeek > 0) {
-            const dates = getWeekDatesFromStart(selectedWeek, classStartDate);
+            const dates = getWeekDatesFromStart(selectedWeek, classStartDate, scheduleConfig);
 
             if (dates && dates.length > 0) {
                 setStartDate(dates[0]);
                 setEndDate(dates[6]);
             }
         }
-    }, [selectedWeek, classStartDate]);
+    }, [selectedWeek, classStartDate, scheduleConfig]);
 
     const weekOptions = useMemo(() => {
         if (!classStartDate) return [];
         const options = [];
 
         for (let i = 1; i <= 45; i++) {
-            const dates = getWeekDatesFromStart(i, classStartDate);
+            const dates = getWeekDatesFromStart(i, classStartDate, scheduleConfig);
+
             if (dates && dates.length > 0) {
                 const sDate = new Date(dates[0]);
                 const eDate = new Date(dates[6]);
@@ -115,7 +130,7 @@ const ReportPage = () => {
             }
         }
         return options;
-    }, [classStartDate]);
+    }, [classStartDate, scheduleConfig]);
 
     const handleWeekChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = parseInt(e.target.value);
@@ -303,7 +318,7 @@ const ReportPage = () => {
                                 </option>
                             ))
                         ) : (
-                            <option value={1}>Đang tải lịch...</option>
+                            <option value={1}>Đang tải lịch hoặc chưa có cấu hình...</option>
                         )}
                     </select>
                 </div>

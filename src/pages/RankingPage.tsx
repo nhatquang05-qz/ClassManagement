@@ -3,66 +3,104 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 
+import { useClass } from '../contexts/ClassContext';
+
 import { ReportItem, Student, StudentSummary, GroupDetail } from '../types/rankingTypes';
+
+import { getWeekNumberFromStart, getWeekDatesFromStart, WeekSchedule } from '../utils/dateUtils';
 
 import '../assets/styles/RankingPage.css';
 import RankingSection from '../components/ranking/RankingSection';
 import TopStudentsSection from '../components/ranking/TopStudentsSection';
 import GroupDetailsGrid from '../components/ranking/GroupDetailsGrid';
-
-const getCurrentWeek = () => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-    const week1 = new Date(date.getFullYear(), 0, 4);
-    const weekNumber =
-        1 +
-        Math.round(
-            ((date.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7
-        );
-    return `${date.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
-};
-
-const getWeekRange = (weekValue: string) => {
-    const [year, week] = weekValue.split('-W').map(Number);
-    const simpleDate = new Date(year, 0, 1 + (week - 1) * 7);
-    const dow = simpleDate.getDay();
-    const ISOweekStart = simpleDate;
-    if (dow <= 4) ISOweekStart.setDate(simpleDate.getDate() - simpleDate.getDay() + 1);
-    else ISOweekStart.setDate(simpleDate.getDate() + 8 - simpleDate.getDay());
-
-    const startDate = new Date(ISOweekStart);
-    const endDate = new Date(ISOweekStart);
-    endDate.setDate(endDate.getDate() + 6);
-
-    return {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0],
-    };
-};
+import { FaArrowLeft } from 'react-icons/fa';
 
 const RankingPage: React.FC = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
 
-    const [selectedWeek, setSelectedWeek] = useState(getCurrentWeek());
+    const { selectedClass } = useClass();
+
+    const [fetchedStartDate, setFetchedStartDate] = useState<string | undefined>(
+        selectedClass?.start_date
+    );
+    const [scheduleConfig, setScheduleConfig] = useState<WeekSchedule[] | null>(null);
+
+    const classStartDate = fetchedStartDate || selectedClass?.start_date;
+
+    const currentRealWeek = useMemo(() => {
+        if (!classStartDate) return 1;
+        return getWeekNumberFromStart(new Date(), classStartDate, scheduleConfig);
+    }, [classStartDate, scheduleConfig]);
+
+    const [selectedWeek, setSelectedWeek] = useState<number>(1);
 
     const [allStudents, setAllStudents] = useState<Student[]>([]);
     const [reportData, setReportData] = useState<ReportItem[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        const fetchClassInfo = async () => {
+            const selectedClassId = selectedClass?.id || localStorage.getItem('selectedClassId');
+            if (selectedClassId) {
+                try {
+                    const res = await api.get(`/classes/${selectedClassId}`);
+                    if (res.data) {
+                        if (res.data.start_date) {
+                            setFetchedStartDate(res.data.start_date);
+                        }
+                        if (res.data.schedule_config) {
+                            const config =
+                                typeof res.data.schedule_config === 'string'
+                                    ? JSON.parse(res.data.schedule_config)
+                                    : res.data.schedule_config;
+                            setScheduleConfig(config);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Lỗi lấy thông tin lớp:', error);
+                }
+            }
+        };
+        fetchClassInfo();
+    }, [selectedClass?.id]);
+
+    useEffect(() => {
+        if (currentRealWeek > 0) {
+            setSelectedWeek(currentRealWeek);
+        }
+    }, [currentRealWeek]);
+
+    const weekOptions = useMemo(() => {
+        if (!classStartDate) return [];
+        const options = [];
+        for (let i = 1; i <= 45; i++) {
+            const dates = getWeekDatesFromStart(i, classStartDate, scheduleConfig);
+            if (dates && dates.length > 0) {
+                const sDate = new Date(dates[0]);
+                const eDate = new Date(dates[6]);
+                const label = `Tuần ${i} (${sDate.getDate()}/${sDate.getMonth() + 1} - ${eDate.getDate()}/${eDate.getMonth() + 1})`;
+                options.push({ value: i, label });
+            }
+        }
+        return options;
+    }, [classStartDate, scheduleConfig]);
+
+    useEffect(() => {
         const fetchData = async () => {
-            setLoading(true);
             const classId = localStorage.getItem('selectedClassId') || (user as any)?.class_id;
 
-            if (!classId) {
-                setLoading(false);
+            if (!classId || !classStartDate) {
                 return;
             }
 
-            const { start, end } = getWeekRange(selectedWeek);
+            const dates = getWeekDatesFromStart(selectedWeek, classStartDate, scheduleConfig);
+            if (!dates || dates.length === 0) return;
 
+            const start = dates[0];
+            const end = dates[6];
+
+            setLoading(true);
             try {
                 const [studentsRes, reportRes] = await Promise.all([
                     api.get(`/users?class_id=${classId}`),
@@ -80,7 +118,7 @@ const RankingPage: React.FC = () => {
             }
         };
         fetchData();
-    }, [user, selectedWeek]);
+    }, [user, selectedWeek, classStartDate, scheduleConfig]);
 
     const { rankings, top3Students, detailedGroups } = useMemo(() => {
         const groupPoints: Record<string, number> = {};
@@ -179,21 +217,46 @@ const RankingPage: React.FC = () => {
     return (
         <div className="ranking-page-container">
             <div className="ranking-header-controls">
-                <button onClick={() => navigate('/')} className="btn-back">
-                    ⬅ Quay lại
+                <button
+                    onClick={() => navigate('/')}
+                    className="btn-back"
+                    style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                    <FaArrowLeft /> Quay lại
                 </button>
                 <div className="week-selector">
-                    <label style={{ fontWeight: 'bold' }}>Chọn tuần:</label>
-                    <input
-                        type="week"
-                        value={selectedWeek}
-                        onChange={(e) => setSelectedWeek(e.target.value)}
-                        style={{ padding: '8px', borderRadius: '5px', border: '1px solid #ccc' }}
-                    />
+                    <label style={{ fontWeight: 'bold', marginRight: 10 }}>Chọn tuần:</label>
+                    {}
+                    {!classStartDate ? (
+                        <span style={{ color: 'red', fontStyle: 'italic' }}>
+                            Chưa cấu hình lịch
+                        </span>
+                    ) : (
+                        <select
+                            value={selectedWeek}
+                            onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+                            style={{
+                                padding: '8px',
+                                borderRadius: '5px',
+                                border: '1px solid #ccc',
+                                minWidth: '200px',
+                            }}
+                        >
+                            {weekOptions.length > 0 ? (
+                                weekOptions.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))
+                            ) : (
+                                <option value={1}>Đang tải lịch...</option>
+                            )}
+                        </select>
+                    )}
                 </div>
             </div>
 
-            <h1 className="page-title">Bảng Xếp Hạng Tuần {selectedWeek.split('-W')[1]}</h1>
+            <h1 className="page-title">Bảng Xếp Hạng Tuần {selectedWeek}</h1>
 
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '50px' }}>Đang tải dữ liệu...</div>

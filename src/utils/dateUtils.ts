@@ -1,7 +1,6 @@
-
 export interface WeekSchedule {
     week: number;
-    startDate: string; 
+    startDate: string;
     title?: string;
     isBreak?: boolean;
 }
@@ -23,7 +22,6 @@ const getMondayOfWeek = (d: Date): Date => {
     return new Date(date.setDate(diff));
 };
 
-
 const isSameOrAfter = (date1: Date, date2: Date) => {
     return date1.getTime() >= date2.getTime();
 };
@@ -36,14 +34,11 @@ export const getWeekNumberFromStart = (
     const current = new Date(currentDate);
     current.setHours(0, 0, 0, 0);
 
-    
     if (scheduleConfig && scheduleConfig.length > 0) {
-        
-        const sortedConfig = [...scheduleConfig].sort((a, b) => 
-            new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        const sortedConfig = [...scheduleConfig].sort(
+            (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
         );
-        
-        
+
         for (let i = 0; i < sortedConfig.length; i++) {
             const thisWeek = sortedConfig[i];
             const nextWeek = sortedConfig[i + 1];
@@ -51,18 +46,15 @@ export const getWeekNumberFromStart = (
             const thisWeekStart = parseLocalDate(thisWeek.startDate);
             const nextWeekStart = nextWeek ? parseLocalDate(nextWeek.startDate) : null;
 
-            
             if (isSameOrAfter(current, thisWeekStart)) {
-                
                 if (!nextWeekStart || current.getTime() < nextWeekStart.getTime()) {
                     return thisWeek.isBreak ? 0 : thisWeek.week;
                 }
             }
         }
-        return 0; 
+        return 0;
     }
 
-    
     if (!startDateStr) return 0;
     const start = parseLocalDate(startDateStr);
     const startWeekMonday = getMondayOfWeek(start);
@@ -82,26 +74,21 @@ export const getWeekDatesFromStart = (
 ): string[] => {
     let targetMonday: Date;
 
-    
     if (scheduleConfig && scheduleConfig.length > 0) {
-        
-        const weekInfo = scheduleConfig.find(w => w.week === weekNumber && !w.isBreak);
-        
+        const weekInfo = scheduleConfig.find((w) => w.week === weekNumber && !w.isBreak);
+
         if (weekInfo) {
-            
             targetMonday = getMondayOfWeek(parseLocalDate(weekInfo.startDate));
         } else {
-            
-             if (startDateStr) {
-                 const start = getMondayOfWeek(parseLocalDate(startDateStr));
-                 targetMonday = new Date(start);
-                 targetMonday.setDate(start.getDate() + (weekNumber - 1) * 7);
-             } else {
-                 return [];
-             }
+            if (startDateStr) {
+                const start = getMondayOfWeek(parseLocalDate(startDateStr));
+                targetMonday = new Date(start);
+                targetMonday.setDate(start.getDate() + (weekNumber - 1) * 7);
+            } else {
+                return [];
+            }
         }
     } else {
-        
         let startWeekMonday: Date;
         if (startDateStr) {
             startWeekMonday = getMondayOfWeek(parseLocalDate(startDateStr));
@@ -112,7 +99,6 @@ export const getWeekDatesFromStart = (
         targetMonday.setDate(startWeekMonday.getDate() + (weekNumber - 1) * 7);
     }
 
-    
     const dates: string[] = [];
     for (let i = 0; i < 7; i++) {
         const d = new Date(targetMonday);
