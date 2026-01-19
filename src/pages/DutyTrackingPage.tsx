@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaBroom, FaCalendarAlt, FaCheck, FaUserEdit } from 'react-icons/fa';
+import {
+    FaArrowLeft,
+    FaBroom,
+    FaCalendarAlt,
+    FaCheck,
+    FaUserEdit,
+    FaChevronLeft,
+    FaChevronRight,
+} from 'react-icons/fa';
 import api from '../utils/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useClass } from '../contexts/ClassContext';
@@ -43,11 +51,6 @@ const DutyTrackingPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalData, setModalData] = useState<any>(null);
 
-    const canEdit = useMemo(() => {
-        if (!user) return false;
-        return user.role === 'teacher' || user.role === 'admin' || user.role === 'labor_deputy';
-    }, [user]);
-
     const currentRealWeek = useMemo(() => {
         return getWeekNumberFromStart(new Date(), fetchedStartDate, scheduleConfig);
     }, [fetchedStartDate, scheduleConfig]);
@@ -56,6 +59,21 @@ const DutyTrackingPage: React.FC = () => {
         () => getWeekDatesFromStart(week, fetchedStartDate, scheduleConfig),
         [week, fetchedStartDate, scheduleConfig]
     );
+
+    const canEdit = useMemo(() => {
+        if (!user) return false;
+
+        const isTeacherOrAdmin = user.role === 'teacher' || user.role === 'admin';
+        const isViceLabor = user.role === 'vice_monitor_labor';
+
+        if (isTeacherOrAdmin) return true;
+
+        if (isViceLabor) {
+            return week >= currentRealWeek;
+        }
+
+        return false;
+    }, [user, week, currentRealWeek]);
 
     useEffect(() => {
         if (currentRealWeek > 0) setWeek(currentRealWeek);
@@ -102,7 +120,15 @@ const DutyTrackingPage: React.FC = () => {
     };
 
     const handleToggleSchedule = async (day: number, group: number) => {
-        if (!canEdit) return;
+        if (!canEdit) {
+            if (week < currentRealWeek) {
+                alert('Không thể chỉnh sửa lịch trực nhật của tuần đã qua.');
+            } else {
+                alert('Bạn không có quyền chỉnh sửa.');
+            }
+            return;
+        }
+
         const isAssigned = schedules.some((s) => s.day_of_week === day && s.group_number === group);
 
         const newSchedules = isAssigned
@@ -196,13 +222,34 @@ const DutyTrackingPage: React.FC = () => {
                         <FaArrowLeft /> Quay lại
                     </button>
                     <h1 className="duty-page-title">
-                        <FaBroom /> THEO DÕI TRỰC NHẬT - TUẦN {week}
+                        <FaBroom /> THEO DÕI TRỰC NHẬT
                     </h1>
                 </div>
-                <div className="duty-week-display">
-                    {weekDates[0]
-                        ? `${new Date(weekDates[0]).toLocaleDateString('vi-VN')} - ${new Date(weekDates[6]).toLocaleDateString('vi-VN')}`
-                        : ''}
+
+                {}
+                <div className="week-control-area">
+                    <button
+                        className="btn-nav"
+                        disabled={week <= 1}
+                        onClick={() => setWeek((p) => p - 1)}
+                    >
+                        <FaChevronLeft />
+                    </button>
+                    <div className="week-display">
+                        <span className="week-number">TUẦN {week}</span>
+                        {week === currentRealWeek && (
+                            <span className="badge-current">Hiện tại</span>
+                        )}
+                        {weekDates.length > 0 && (
+                            <div style={{ fontSize: '0.9rem', color: '#4b5563', marginTop: '4px' }}>
+                                {new Date(weekDates[0]).toLocaleDateString('vi-VN')} -{' '}
+                                {new Date(weekDates[6]).toLocaleDateString('vi-VN')}
+                            </div>
+                        )}
+                    </div>
+                    <button className="btn-nav" onClick={() => setWeek((p) => p + 1)}>
+                        <FaChevronRight />
+                    </button>
                 </div>
             </div>
 
@@ -241,8 +288,12 @@ const DutyTrackingPage: React.FC = () => {
                                                 className={`duty-cell-interactive ${isChecked ? 'duty-cell-checked' : ''}`}
                                                 style={{
                                                     textAlign: 'center',
-                                                    cursor: canEdit ? 'pointer' : 'default',
+                                                    cursor: canEdit ? 'pointer' : 'not-allowed',
+                                                    opacity: !canEdit && !isChecked ? 0.5 : 1,
                                                 }}
+                                                title={
+                                                    !canEdit ? 'Không thể chỉnh sửa tuần này' : ''
+                                                }
                                             >
                                                 {isChecked ? (
                                                     <FaCheck color="green" size={18} />
@@ -303,7 +354,10 @@ const DutyTrackingPage: React.FC = () => {
                                                 key={g}
                                                 onClick={() => handleOpenViolation(g, type.code)}
                                                 className={`duty-cell-interactive ${count > 0 ? 'trk-has-data' : ''}`}
-                                                style={{ textAlign: 'center' }}
+                                                style={{
+                                                    textAlign: 'center',
+                                                    cursor: canEdit ? 'pointer' : 'not-allowed',
+                                                }}
                                             >
                                                 {count > 0 && (
                                                     <span className="duty-badge-count">
