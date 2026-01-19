@@ -11,6 +11,7 @@ const materialRoutes = require('./routes/materialRoutes');
 const examRoutes = require('./routes/examRoutes');
 const verifyToken = require('./middleware/authMiddleware');
 const dutyRoutes = require('./routes/dutyRoutes');
+const supportRoutes = require('./routes/supportRoutes');
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.get('/api/dashboard/rankings', dashboardController.getGroupRankings);
 app.use('/api/reports', reportRoutes);
 app.use('/api/info', infoRoutes);
 app.use('/api/duty', dutyRoutes);
+app.use('/api/support', supportRoutes);
 app.get('/api/violations', violationController.getAllViolations);
 
 app.use((err, req, res, next) => {

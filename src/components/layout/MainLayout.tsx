@@ -23,6 +23,7 @@ import {
     FaEdit,
     FaPencilAlt,
     FaBroom,
+    FaHeadset,
 } from 'react-icons/fa';
 
 const MainLayout: React.FC = () => {
@@ -394,6 +395,19 @@ const MainLayout: React.FC = () => {
                                                         )}
                                                     </Link>
                                                 )}
+                                                <Link
+                                                    to="/admin/support"
+                                                    className={`nav-item ${isActive('/admin/support')}`}
+                                                >
+                                                    <span className="icon">
+                                                        <FaHeadset />
+                                                    </span>
+                                                    {isSidebarOpen && (
+                                                        <span className="label">
+                                                            Quản lý Hỗ trợ
+                                                        </span>
+                                                    )}
+                                                </Link>
                                             </li>
                                         )}
                                     </>

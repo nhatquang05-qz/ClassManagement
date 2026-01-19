@@ -17,6 +17,8 @@ import TeacherExamPage from './pages/TeacherExamPage';
 import StudentExamPage from './pages/StudentExamPage';
 import ExamTakingPage from './pages/ExamTakingPage';
 import DutyTrackingPage from './pages/DutyTrackingPage';
+import SupportPage from './pages/SupportPage';
+import AdminSupportPage from './pages/AdminSupportPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { token } = useAuth();
@@ -56,6 +58,8 @@ const App: React.FC = () => {
                             <Route path="create-exam" element={<TeacherExamPage />} />
                             <Route path="student-exams" element={<StudentExamPage />} />
                             <Route path="take-exam/:id" element={<ExamTakingPage />} />
+                            <Route path="support" element={<SupportPage />} />
+                            <Route path="admin/support" element={<AdminSupportPage />} />
                         </Route>
 
                         <Route path="*" element={<Navigate to="/" replace />} />
