@@ -5,7 +5,6 @@ import '../../assets/styles/DutyTracking.css';
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-
     onSave: (studentIds: string[] | null, note: string) => void;
     data: {
         group: number;
@@ -14,9 +13,17 @@ interface Props {
         typeName: string;
     } | null;
     students: any[];
+    allowAllGroup?: boolean;
 }
 
-const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, students }) => {
+const DutyViolationModal: React.FC<Props> = ({
+    isOpen,
+    onClose,
+    onSave,
+    data,
+    students,
+    allowAllGroup = true,
+}) => {
     const [selectedIds, setSelectedIds] = useState<string[]>(['']);
     const [modalNote, setModalNote] = useState('');
 
@@ -44,8 +51,7 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
     const handleChangeSlot = (index: number, value: string) => {
         const newIds = [...selectedIds];
         newIds[index] = value;
-
-        if (index === 0 && value === '') {
+        if (allowAllGroup && index === 0 && value === '') {
             setSelectedIds(['']);
             return;
         }
@@ -53,7 +59,7 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
     };
 
     const handleSave = () => {
-        const isAllGroup = selectedIds.length === 1 && selectedIds[0] === '';
+        const isAllGroup = allowAllGroup && selectedIds.length === 1 && selectedIds[0] === '';
 
         if (isAllGroup) {
             onSave(null, modalNote);
@@ -65,12 +71,11 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
                 onSave(validIds, modalNote);
             }
         }
-
         setSelectedIds(['']);
         setModalNote('');
     };
 
-    const isFirstRowAllGroup = selectedIds.length > 0 && selectedIds[0] === '';
+    const isFirstRowAllGroup = allowAllGroup && selectedIds.length > 0 && selectedIds[0] === '';
 
     return (
         <div className="duty-modal-overlay">
@@ -90,7 +95,6 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
 
                 <div className="duty-form-group">
                     <label className="duty-form-label">Người vi phạm:</label>
-
                     <div className="duty-student-list">
                         {selectedIds.map((id, index) => (
                             <div key={index} className="duty-student-row">
@@ -99,15 +103,15 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
                                     value={id}
                                     onChange={(e) => handleChangeSlot(index, e.target.value)}
                                 >
-                                    {}
-                                    {index === 0 && (
+                                    {index === 0 && allowAllGroup && (
                                         <option value="">-- Cả tổ {data.group} --</option>
                                     )}
-                                    {index > 0 && (
-                                        <option value="" disabled>
-                                            -- Chọn học sinh --
-                                        </option>
-                                    )}
+
+                                    <option value="">
+                                        {allowAllGroup
+                                            ? '-- Chọn học sinh --'
+                                            : '-- Không chọn cụ thể --'}
+                                    </option>
 
                                     {groupStudents.map((s) => (
                                         <option
@@ -123,7 +127,6 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
                                     ))}
                                 </select>
 
-                                {}
                                 {selectedIds.length > 1 && (
                                     <button
                                         className="duty-icon-btn remove"
@@ -136,7 +139,6 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
                         ))}
                     </div>
 
-                    {}
                     {!isFirstRowAllGroup && groupStudents.length > selectedIds.length && (
                         <button className="duty-add-btn" onClick={handleAddSlot}>
                             <FaPlus /> Thêm người

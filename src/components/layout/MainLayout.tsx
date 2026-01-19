@@ -24,6 +24,8 @@ import {
     FaPencilAlt,
     FaBroom,
     FaHeadset,
+    FaBookReader,
+    FaUserTie,
 } from 'react-icons/fa';
 
 const MainLayout: React.FC = () => {
@@ -45,7 +47,6 @@ const MainLayout: React.FC = () => {
             ) {
                 try {
                     const res = await api.get(`/classes/${user.class_id}`);
-
                     if (setSelectedClass) {
                         setSelectedClass(res.data);
                         localStorage.setItem('selectedClassId', user.class_id.toString());
@@ -57,7 +58,6 @@ const MainLayout: React.FC = () => {
                 }
             }
         };
-
         autoLoadClass();
     }, [user, selectedClass, setSelectedClass]);
 
@@ -109,7 +109,6 @@ const MainLayout: React.FC = () => {
                     )}
                 </div>
 
-                {}
                 {isSidebarOpen &&
                     !isClassAccount &&
                     (user?.role === 'teacher' ||
@@ -142,7 +141,6 @@ const MainLayout: React.FC = () => {
 
                 <nav className="sidebar-nav">
                     <ul>
-                        {}
                         {!isClassAccount && (
                             <>
                                 <li>
@@ -153,7 +151,6 @@ const MainLayout: React.FC = () => {
                                         {isSidebarOpen && <span className="label">Trang chủ</span>}
                                     </Link>
                                 </li>
-
                                 <li>
                                     <Link
                                         to="/ranking"
@@ -167,14 +164,11 @@ const MainLayout: React.FC = () => {
                                         )}
                                     </Link>
                                 </li>
-
-                                {}
                                 <li>
                                     {isClassLocked ? (
                                         <div
                                             className="nav-item"
                                             style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                                            title="Vui lòng chọn lớp trước"
                                         >
                                             <span className="icon">
                                                 <FaBullhorn />
@@ -197,14 +191,11 @@ const MainLayout: React.FC = () => {
                                         </Link>
                                     )}
                                 </li>
-
-                                {}
                                 <li>
                                     {isClassLocked ? (
                                         <div
                                             className="nav-item"
                                             style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                                            title="Vui lòng chọn lớp trước"
                                         >
                                             <span className="icon">
                                                 <FaBroom />
@@ -227,10 +218,63 @@ const MainLayout: React.FC = () => {
                                         </Link>
                                     )}
                                 </li>
+                                <li>
+                                    {isClassLocked ? (
+                                        <div
+                                            className="nav-item"
+                                            style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                        >
+                                            <span className="icon">
+                                                <FaBookReader />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Theo dõi học tập</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <Link
+                                            to="/study"
+                                            className={`nav-item ${isActive('/study')}`}
+                                        >
+                                            <span className="icon">
+                                                <FaBookReader />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Theo dõi học tập</span>
+                                            )}
+                                        </Link>
+                                    )}
+                                </li>
+                                <li>
+                                    {isClassLocked ? (
+                                        <div
+                                            className="nav-item"
+                                            style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                        >
+                                            <span className="icon">
+                                                <FaUserTie />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Theo dõi nề nếp</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <Link
+                                            to="/monitor"
+                                            className={`nav-item ${isActive('/monitor')}`}
+                                        >
+                                            <span className="icon">
+                                                <FaUserTie />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Theo dõi nề nếp</span>
+                                            )}
+                                        </Link>
+                                    )}
+                                </li>
                             </>
                         )}
 
-                        {}
                         <li>
                             <Link to="/materials" className={`nav-item ${isActive('/materials')}`}>
                                 <span className="icon">
@@ -240,7 +284,6 @@ const MainLayout: React.FC = () => {
                             </Link>
                         </li>
 
-                        {}
                         {(user?.role === 'teacher' || user?.role === 'admin') && (
                             <li>
                                 <Link
@@ -255,7 +298,6 @@ const MainLayout: React.FC = () => {
                             </li>
                         )}
 
-                        {}
                         {user?.role === 'student' && !isClassAccount && (
                             <li>
                                 <Link
@@ -272,7 +314,6 @@ const MainLayout: React.FC = () => {
                             </li>
                         )}
 
-                        {}
                         {!isClassAccount && (
                             <>
                                 {user?.role !== 'admin' && user?.role !== 'teacher' && (
@@ -291,7 +332,6 @@ const MainLayout: React.FC = () => {
                                     </li>
                                 )}
 
-                                {}
                                 {(user?.role === 'group_leader' ||
                                     user?.role === 'monitor' ||
                                     user?.role === 'teacher' ||
@@ -301,10 +341,9 @@ const MainLayout: React.FC = () => {
                                             <div
                                                 className="nav-item"
                                                 style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                                                title="Đang tải dữ liệu lớp..."
                                             >
                                                 <span className="icon">
-                                                    <FaLock />
+                                                    <FaClipboardList />
                                                 </span>
                                                 {isSidebarOpen && (
                                                     <span className="label">Sổ theo dõi</span>
@@ -326,7 +365,6 @@ const MainLayout: React.FC = () => {
                                     </li>
                                 )}
 
-                                {}
                                 {(user?.role === 'admin' ||
                                     user?.role === 'monitor' ||
                                     user?.role === 'teacher') && (
@@ -336,10 +374,9 @@ const MainLayout: React.FC = () => {
                                                 <div
                                                     className="nav-item"
                                                     style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                                                    title="Đang tải dữ liệu lớp..."
                                                 >
                                                     <span className="icon">
-                                                        <FaLock />
+                                                        <FaChartBar />
                                                     </span>
                                                     {isSidebarOpen && (
                                                         <span className="label">Báo cáo</span>
@@ -369,10 +406,9 @@ const MainLayout: React.FC = () => {
                                                             cursor: 'not-allowed',
                                                             opacity: 0.5,
                                                         }}
-                                                        title="Hãy chọn lớp trước"
                                                     >
                                                         <span className="icon">
-                                                            <FaLock />
+                                                            <FaUsers />
                                                         </span>
                                                         {isSidebarOpen && (
                                                             <span className="label">
@@ -395,22 +431,25 @@ const MainLayout: React.FC = () => {
                                                         )}
                                                     </Link>
                                                 )}
-                                                <Link
-                                                    to="/admin/support"
-                                                    className={`nav-item ${isActive('/admin/support')}`}
-                                                >
-                                                    <span className="icon">
-                                                        <FaHeadset />
-                                                    </span>
-                                                    {isSidebarOpen && (
-                                                        <span className="label">
-                                                            Quản lý Hỗ trợ
-                                                        </span>
-                                                    )}
-                                                </Link>
                                             </li>
                                         )}
                                     </>
+                                )}
+
+                                {(user?.role === 'admin' || user?.role === 'teacher') && (
+                                    <li>
+                                        <Link
+                                            to="/admin/support"
+                                            className={`nav-item ${isActive('/admin/support')}`}
+                                        >
+                                            <span className="icon">
+                                                <FaHeadset />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Quản lý Hỗ trợ</span>
+                                            )}
+                                        </Link>
+                                    </li>
                                 )}
                             </>
                         )}

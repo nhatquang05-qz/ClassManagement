@@ -12,6 +12,7 @@ const examRoutes = require('./routes/examRoutes');
 const verifyToken = require('./middleware/authMiddleware');
 const dutyRoutes = require('./routes/dutyRoutes');
 const supportRoutes = require('./routes/supportRoutes');
+const specializedRoutes = require('./routes/specializedRoutes');
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.use('/api/info', infoRoutes);
 app.use('/api/duty', dutyRoutes);
 app.use('/api/support', supportRoutes);
 app.get('/api/violations', violationController.getAllViolations);
+app.use('/api/specialized', specializedRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err.stack);

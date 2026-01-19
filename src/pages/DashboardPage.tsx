@@ -130,7 +130,8 @@ const DashboardPage: React.FC = () => {
             <div className="guide-section">
                 <div className="section-header">
                     <h2>
-                        <FaBookOpen style={{ color: '#3498db', marginRight: '10px' }} />Các chức năng chính dành cho vai trò của bạn
+                        <FaBookOpen style={{ color: '#3498db', marginRight: '10px' }} />
+                        Các chức năng chính dành cho vai trò của bạn
                     </h2>
                 </div>
 
