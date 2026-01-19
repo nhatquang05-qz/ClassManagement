@@ -15,10 +15,6 @@ const createBulkReports = async (req, res) => {
             return res.status(400).json({ message: 'Thiếu thông tin ngày ghi nhận' });
         }
 
-        const [users] = await connection.query('SELECT full_name FROM users WHERE id = ?', [
-            reporter_id,
-        ]);
-
         await connection.beginTransaction();
 
         let affectedStudentIds = [];
@@ -26,37 +22,58 @@ const createBulkReports = async (req, res) => {
             affectedStudentIds = [...new Set(reports.map((r) => r.student_id))];
         }
 
-        const logDesc = `Cập nhật sổ ngày ${log_date}. Số HS có ghi nhận: ${affectedStudentIds.length}`;
-
+        const logDesc = `Cập nhật sổ ngày ${log_date}. Số HS tác động: ${affectedStudentIds.length}`;
         await connection.query(
             'INSERT INTO audit_logs (user_id, action, target_date, description) VALUES (?, ?, ?, ?)',
             [reporter_id, 'UPDATE_DAILY', log_date, logDesc]
         );
 
         if (affectedStudentIds.length > 0) {
-            await connection.query(
-                'DELETE FROM daily_logs WHERE log_date = ? AND student_id IN (?)',
+            const reportsWithId = reports.filter((r) => r.id);
+            const reportsNew = reports.filter((r) => !r.id);
+
+            const [existingDbLogs] = await connection.query(
+                'SELECT id FROM daily_logs WHERE log_date = ? AND student_id IN (?)',
                 [log_date, affectedStudentIds]
             );
-        }
 
-        if (reports.length > 0) {
-            const insertQuery = `
-                INSERT INTO daily_logs (student_id, reporter_id, violation_type_id, log_date, week_number, quantity, note)
-                VALUES ?
-            `;
+            const submittedIds = new Set(reportsWithId.map((r) => r.id));
 
-            const values = reports.map((report) => [
-                report.student_id,
-                reporter_id,
-                report.violation_type_id,
-                log_date,
-                week_number,
-                report.quantity || 1,
-                report.note || null,
-            ]);
+            const idsToDelete = existingDbLogs
+                .filter((log) => !submittedIds.has(log.id))
+                .map((log) => log.id);
 
-            await connection.query(insertQuery, [values]);
+            if (idsToDelete.length > 0) {
+                await connection.query('DELETE FROM daily_logs WHERE id IN (?)', [idsToDelete]);
+            }
+
+            for (const report of reportsWithId) {
+                await connection.query(
+                    `UPDATE daily_logs 
+                     SET quantity = ?, note = ?, violation_type_id = ?
+                     WHERE id = ?`,
+                    [report.quantity || 1, report.note || null, report.violation_type_id, report.id]
+                );
+            }
+
+            if (reportsNew.length > 0) {
+                const insertQuery = `
+                    INSERT INTO daily_logs (student_id, reporter_id, violation_type_id, log_date, week_number, quantity, note)
+                    VALUES ?
+                `;
+
+                const values = reportsNew.map((report) => [
+                    report.student_id,
+                    reporter_id,
+                    report.violation_type_id,
+                    log_date,
+                    week_number,
+                    report.quantity || 1,
+                    report.note || null,
+                ]);
+
+                await connection.query(insertQuery, [values]);
+            }
         }
 
         await connection.commit();

@@ -28,34 +28,26 @@ const HistoryLogTable: React.FC<Props> = ({
     const getWeekRange = (dateStr: string) => {
         const current = new Date(dateStr);
         if (isNaN(current.getTime())) return null;
-
         current.setHours(0, 0, 0, 0);
         const day = current.getDay();
-
         const distanceToMonday = day === 0 ? 6 : day - 1;
-
         const startOfWeek = new Date(current);
         startOfWeek.setDate(current.getDate() - distanceToMonday);
         startOfWeek.setHours(0, 0, 0, 0);
-
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23, 59, 59, 999);
-
         return { start: startOfWeek, end: endOfWeek };
     };
 
     const filteredLogs = useMemo(() => {
         if (!Array.isArray(logs)) return [];
-
         const lowerSearch = searchTerm.toLowerCase().trim();
 
         return logs.filter((log) => {
             if (activeDate && log.log_date) {
                 if (viewMode === 'day') {
-                    if (log.log_date.slice(0, 10) !== activeDate.slice(0, 10)) {
-                        return false;
-                    }
+                    if (log.log_date.slice(0, 10) !== activeDate.slice(0, 10)) return false;
                 } else {
                     const range = getWeekRange(activeDate);
                     if (range) {
@@ -70,16 +62,13 @@ const HistoryLogTable: React.FC<Props> = ({
                     }
                 }
             }
-
             if (filterCategory !== 'all' && log.category !== filterCategory) return false;
-
             if (lowerSearch) {
                 const matchName = log.student_name?.toLowerCase().includes(lowerSearch);
                 const matchViolation = log.violation_name?.toLowerCase().includes(lowerSearch);
                 const matchNote = log.note?.toLowerCase().includes(lowerSearch);
                 if (!matchName && !matchViolation && !matchNote) return false;
             }
-
             return true;
         });
     }, [logs, activeDate, viewMode, searchTerm, filterCategory]);
@@ -105,20 +94,13 @@ const HistoryLogTable: React.FC<Props> = ({
 
     const getDisplayTitle = () => {
         if (!activeDate) return 'Cả Tuần';
-
-        if (viewMode === 'day') {
-            return `Ngày ${formatDateOnly(activeDate)}`;
-        }
-
+        if (viewMode === 'day') return `Ngày ${formatDateOnly(activeDate)}`;
         const range = getWeekRange(activeDate);
         if (range) {
             const s = range.start;
             const e = range.end;
-            const startStr = `${s.getDate().toString().padStart(2, '0')}/${(s.getMonth() + 1).toString().padStart(2, '0')}`;
-            const endStr = `${e.getDate().toString().padStart(2, '0')}/${(e.getMonth() + 1).toString().padStart(2, '0')}`;
-            return `Tuần từ ${startStr} đến ${endStr}`;
+            return `Tuần từ ${s.getDate()}/${s.getMonth() + 1} đến ${e.getDate()}/${e.getMonth() + 1}`;
         }
-
         return 'Cả Tuần';
     };
 
@@ -201,7 +183,7 @@ const HistoryLogTable: React.FC<Props> = ({
                                 const canDelete = !!log.id;
 
                                 return (
-                                    <tr key={log.id || index} className="history-row">
+                                    <tr key={log.id || `temp-${index}`} className="history-row">
                                         <td style={{ fontSize: '12px', color: '#666' }}>
                                             {formatTime(log.created_at)}
                                         </td>
@@ -247,11 +229,10 @@ const HistoryLogTable: React.FC<Props> = ({
                                                 fontStyle: 'italic',
                                                 color: '#666',
                                                 fontSize: '12px',
-                                                maxWidth: '200px',
                                                 whiteSpace: 'normal',
                                             }}
                                         >
-                                            {log.note || ''}
+                                            {log.note}
                                         </td>
                                         <td>
                                             {canDelete && (

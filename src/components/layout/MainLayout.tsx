@@ -22,6 +22,7 @@ import {
     FaBook,
     FaEdit,
     FaPencilAlt,
+    FaBroom,
 } from 'react-icons/fa';
 
 const MainLayout: React.FC = () => {
@@ -107,7 +108,7 @@ const MainLayout: React.FC = () => {
                     )}
                 </div>
 
-                {/* Badge Class Info */}
+                {}
                 {isSidebarOpen &&
                     !isClassAccount &&
                     (user?.role === 'teacher' ||
@@ -140,7 +141,7 @@ const MainLayout: React.FC = () => {
 
                 <nav className="sidebar-nav">
                     <ul>
-                        {/* --- General Section --- */}
+                        {}
                         {!isClassAccount && (
                             <>
                                 <li>
@@ -166,6 +167,7 @@ const MainLayout: React.FC = () => {
                                     </Link>
                                 </li>
 
+                                {}
                                 <li>
                                     {isClassLocked ? (
                                         <div
@@ -194,12 +196,40 @@ const MainLayout: React.FC = () => {
                                         </Link>
                                     )}
                                 </li>
+
+                                {}
+                                <li>
+                                    {isClassLocked ? (
+                                        <div
+                                            className="nav-item"
+                                            style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                            title="Vui lòng chọn lớp trước"
+                                        >
+                                            <span className="icon">
+                                                <FaBroom />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Theo dõi trực nhật</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <Link
+                                            to="/duty"
+                                            className={`nav-item ${isActive('/duty')}`}
+                                        >
+                                            <span className="icon">
+                                                <FaBroom />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Theo dõi trực nhật</span>
+                                            )}
+                                        </Link>
+                                    )}
+                                </li>
                             </>
                         )}
 
-                        {/* --- EXAM & MATERIALS SECTION --- */}
-
-                        {/* Tài liệu - Ai cũng thấy */}
+                        {}
                         <li>
                             <Link to="/materials" className={`nav-item ${isActive('/materials')}`}>
                                 <span className="icon">
@@ -209,7 +239,7 @@ const MainLayout: React.FC = () => {
                             </Link>
                         </li>
 
-                        {/* Tạo đề thi - Chỉ Teacher/Admin */}
+                        {}
                         {(user?.role === 'teacher' || user?.role === 'admin') && (
                             <li>
                                 <Link
@@ -224,10 +254,9 @@ const MainLayout: React.FC = () => {
                             </li>
                         )}
 
-                        {/* Làm bài thi - Chỉ Student */}
+                        {}
                         {user?.role === 'student' && !isClassAccount && (
                             <li>
-                                {/* Sửa đường dẫn thành /student-exams để vào trang danh sách đề */}
                                 <Link
                                     to="/student-exams"
                                     className={`nav-item ${isActive('/student-exams')}`}
@@ -242,7 +271,7 @@ const MainLayout: React.FC = () => {
                             </li>
                         )}
 
-                        {/* --- Personal & Management Section --- */}
+                        {}
                         {!isClassAccount && (
                             <>
                                 {user?.role !== 'admin' && user?.role !== 'teacher' && (
@@ -261,6 +290,7 @@ const MainLayout: React.FC = () => {
                                     </li>
                                 )}
 
+                                {}
                                 {(user?.role === 'group_leader' ||
                                     user?.role === 'monitor' ||
                                     user?.role === 'teacher' ||
@@ -295,68 +325,78 @@ const MainLayout: React.FC = () => {
                                     </li>
                                 )}
 
+                                {}
                                 {(user?.role === 'admin' ||
                                     user?.role === 'monitor' ||
                                     user?.role === 'teacher') && (
-                                    <li>
-                                        {isClassLocked ? (
-                                            <div
-                                                className="nav-item"
-                                                style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                                                title="Đang tải dữ liệu lớp..."
-                                            >
-                                                <span className="icon">
-                                                    <FaLock />
-                                                </span>
-                                                {isSidebarOpen && (
-                                                    <span className="label">Báo cáo</span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <Link
-                                                to="/report"
-                                                className={`nav-item ${isActive('/report')}`}
-                                            >
-                                                <span className="icon">
-                                                    <FaChartBar />
-                                                </span>
-                                                {isSidebarOpen && (
-                                                    <span className="label">Báo cáo</span>
-                                                )}
-                                            </Link>
-                                        )}
-                                    </li>
-                                )}
+                                    <>
+                                        <li>
+                                            {isClassLocked ? (
+                                                <div
+                                                    className="nav-item"
+                                                    style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                                    title="Đang tải dữ liệu lớp..."
+                                                >
+                                                    <span className="icon">
+                                                        <FaLock />
+                                                    </span>
+                                                    {isSidebarOpen && (
+                                                        <span className="label">Báo cáo</span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <Link
+                                                    to="/report"
+                                                    className={`nav-item ${isActive('/report')}`}
+                                                >
+                                                    <span className="icon">
+                                                        <FaChartBar />
+                                                    </span>
+                                                    {isSidebarOpen && (
+                                                        <span className="label">Báo cáo</span>
+                                                    )}
+                                                </Link>
+                                            )}
+                                        </li>
 
-                                {(user?.role === 'teacher' || user?.role === 'admin') && (
-                                    <li>
-                                        {isClassLocked ? (
-                                            <div
-                                                className="nav-item"
-                                                style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                                                title="Hãy chọn lớp trước"
-                                            >
-                                                <span className="icon">
-                                                    <FaLock />
-                                                </span>
-                                                {isSidebarOpen && (
-                                                    <span className="label">DS Học sinh</span>
+                                        {(user?.role === 'teacher' || user?.role === 'admin') && (
+                                            <li>
+                                                {isClassLocked ? (
+                                                    <div
+                                                        className="nav-item"
+                                                        style={{
+                                                            cursor: 'not-allowed',
+                                                            opacity: 0.5,
+                                                        }}
+                                                        title="Hãy chọn lớp trước"
+                                                    >
+                                                        <span className="icon">
+                                                            <FaLock />
+                                                        </span>
+                                                        {isSidebarOpen && (
+                                                            <span className="label">
+                                                                DS Học sinh
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <Link
+                                                        to="/students"
+                                                        className={`nav-item ${isActive('/students')}`}
+                                                    >
+                                                        <span className="icon">
+                                                            <FaUsers />
+                                                        </span>
+                                                        {isSidebarOpen && (
+                                                            <span className="label">
+                                                                DS Học sinh
+                                                            </span>
+                                                        )}
+                                                    </Link>
                                                 )}
-                                            </div>
-                                        ) : (
-                                            <Link
-                                                to="/students"
-                                                className={`nav-item ${isActive('/students')}`}
-                                            >
-                                                <span className="icon">
-                                                    <FaUsers />
-                                                </span>
-                                                {isSidebarOpen && (
-                                                    <span className="label">DS Học sinh</span>
-                                                )}
-                                            </Link>
+                                            </li>
                                         )}
-                                    </li>
+                                    </>
                                 )}
                             </>
                         )}

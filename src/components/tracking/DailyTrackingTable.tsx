@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { FaStickyNote } from 'react-icons/fa';
 import '../../assets/styles/TrackingTable.css';
 import {
     Student,
@@ -124,7 +125,6 @@ const DailyTrackingTable: React.FC<Props> = ({
 
     const handleCellClick = (student: Student, colKey: string, subGroup: string | null) => {
         if (isReadOnly || activeDayIndex === 6) return;
-
         if (!activeDate) return;
 
         const violationId = getViolationIdByKey(colKey);
@@ -178,7 +178,6 @@ const DailyTrackingTable: React.FC<Props> = ({
                     l.violation_type_id === violationId &&
                     compareDates(l.log_date, activeDate)
             );
-
             if (exists) {
                 setLogs((prev) =>
                     prev.filter(
@@ -190,11 +189,29 @@ const DailyTrackingTable: React.FC<Props> = ({
                             )
                     )
                 );
-                return;
+            } else {
+                const absenceK_ID = getViolationIdByKey('Vắng (K)');
+                setLogs((prev) => {
+                    const cleanLogs = prev.filter(
+                        (l) =>
+                            !(
+                                l.student_id === student.id &&
+                                l.violation_type_id === absenceK_ID &&
+                                compareDates(l.log_date, activeDate)
+                            )
+                    );
+                    cleanLogs.push({
+                        student_id: student.id,
+                        violation_type_id: violationId,
+                        quantity: 1,
+                        log_date: activeDate,
+                        note: '',
+                    });
+                    return cleanLogs;
+                });
             }
+            return;
         }
-
-        const { quantity } = getCellData(student.id, violationId);
 
         const isAbsenceP = colKey === 'Vắng (P)';
 
@@ -205,7 +222,7 @@ const DailyTrackingTable: React.FC<Props> = ({
             studentName: student.full_name,
             isAbsence: isAbsenceP,
             isBonus: (violationType?.points || 0) > 0,
-            currentQuantity: quantity,
+            currentQuantity: 1,
             currentNote: '',
         });
     };
@@ -214,34 +231,16 @@ const DailyTrackingTable: React.FC<Props> = ({
         if (!editingCell || !activeDate) return;
 
         setLogs((prev) => {
-            let newLogs = prev.filter(
-                (l) =>
-                    !(
-                        l.student_id === editingCell.studentId &&
-                        l.violation_type_id === editingCell.violationId &&
-                        compareDates(l.log_date, activeDate)
-                    )
-            );
+            const newLogs = [...prev];
 
             if (editingCell.isAbsence) {
-                const absenceK_ID = getViolationIdByKey('Vắng (K)');
-                newLogs = newLogs.filter(
-                    (l) =>
-                        !(
-                            l.student_id === editingCell.studentId &&
-                            l.violation_type_id === absenceK_ID &&
-                            compareDates(l.log_date, activeDate)
-                        )
-                );
             }
 
-            const finalQuantity = editingCell.isAbsence ? 1 : quantityToAdd;
-
-            if (finalQuantity > 0) {
+            if (quantityToAdd > 0) {
                 newLogs.push({
                     student_id: editingCell.studentId,
                     violation_type_id: editingCell.violationId,
-                    quantity: finalQuantity,
+                    quantity: quantityToAdd,
                     log_date: activeDate,
                     note: note,
                 });
@@ -268,7 +267,7 @@ const DailyTrackingTable: React.FC<Props> = ({
     const handleSaveCurrentDay = () => {
         if (activeDayIndex === 6) return;
         if (!activeDate) {
-            alert('Lỗi: Ngày không hợp lệ. Hãy thử tải lại trang.');
+            alert('Lỗi: Ngày không hợp lệ.');
             return;
         }
         const logsForToday = logs.filter((l) => compareDates(l.log_date, activeDate));
@@ -510,7 +509,7 @@ const DailyTrackingTable: React.FC<Props> = ({
                                                         ))}
                                                     {hasNote && activeDayIndex !== 6 && (
                                                         <span className="trk-note-indicator">
-                                                            📝
+                                                            <FaStickyNote color="#f39c12" />
                                                         </span>
                                                     )}
                                                 </div>

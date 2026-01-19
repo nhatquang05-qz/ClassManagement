@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ClassProvider } from './contexts/ClassContext';
 import MainLayout from './components/layout/MainLayout';
-
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import RankingPage from './pages/RankingPage';
@@ -17,6 +16,7 @@ import ExamResultPage from './pages/ExamResultPage';
 import TeacherExamPage from './pages/TeacherExamPage';
 import StudentExamPage from './pages/StudentExamPage';
 import ExamTakingPage from './pages/ExamTakingPage';
+import DutyTrackingPage from './pages/DutyTrackingPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { token } = useAuth();
@@ -47,22 +47,14 @@ const App: React.FC = () => {
                             <Route path="info" element={<ClassInfoPage />} />
                             <Route path="my-record" element={<MyRecordPage />} />
                             <Route path="tracking" element={<TrackingPage />} />
+                            <Route path="duty" element={<DutyTrackingPage />} />
                             <Route path="report" element={<ReportPage />} />
                             <Route path="students" element={<StudentManagerPage />} />
-
-                            {}
                             <Route path="materials" element={<MaterialsPage />} />
                             <Route path="materials/:folderId" element={<MaterialsPage />} />
                             <Route path="exam-review/:submissionId" element={<ExamResultPage />} />
-                            {}
-
-                            {}
                             <Route path="create-exam" element={<TeacherExamPage />} />
-
-                            {}
                             <Route path="student-exams" element={<StudentExamPage />} />
-
-                            {}
                             <Route path="take-exam/:id" element={<ExamTakingPage />} />
                         </Route>
 

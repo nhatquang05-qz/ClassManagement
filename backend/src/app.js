@@ -10,6 +10,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const materialRoutes = require('./routes/materialRoutes');
 const examRoutes = require('./routes/examRoutes');
 const verifyToken = require('./middleware/authMiddleware');
+const dutyRoutes = require('./routes/dutyRoutes');
 
 const app = express();
 
@@ -30,16 +31,13 @@ app.use(express.json());
 app.use('/api/classes', classRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/materials', materialRoutes);
-
 app.post('/api/auth/login', authController.login);
 app.post('/api/auth/change-password', verifyToken, authController.changePassword);
 app.get('/api/auth/me', verifyToken, authController.getMe);
-
 app.get('/api/dashboard/rankings', dashboardController.getGroupRankings);
-
 app.use('/api/reports', reportRoutes);
 app.use('/api/info', infoRoutes);
-
+app.use('/api/duty', dutyRoutes);
 app.get('/api/violations', violationController.getAllViolations);
 
 app.use((err, req, res, next) => {
