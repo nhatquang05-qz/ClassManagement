@@ -17,10 +17,16 @@ const ExamTakingPage = () => {
     const navigate = useNavigate();
     const [exam, setExam] = useState<ExamData | null>(null);
     const [answers, setAnswers] = useState<any>({});
+
+    const answersRef = useRef(answers);
+
     const [loading, setLoading] = useState(true);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [submissionId, setSubmissionId] = useState<number | null>(null);
-    const timerRef = useRef<any>(null);
+
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
 
     useEffect(() => {
         const initExam = async () => {
@@ -45,35 +51,68 @@ const ExamTakingPage = () => {
             }
         };
         initExam();
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-        };
     }, [id, navigate]);
 
-    useEffect(() => {
-        if (timeLeft !== null && timeLeft > 0) {
-            timerRef.current = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev && prev <= 1) {
-                        clearInterval(timerRef.current);
-                        handleSubmit(true);
-                        return 0;
-                    }
-                    return prev ? prev - 1 : 0;
-                });
-            }, 1000);
-        }
-    }, [timeLeft]);
-
     const handleSubmit = async (force = false) => {
-        if (!force && !window.confirm('Nộp bài ngay?')) return;
+        const currentAnswers = force ? answersRef.current : answers;
+
+        if (!force) {
+            const unanswered = countUnanswered();
+            if (unanswered > 0) {
+                alert(`Bạn còn ${unanswered} câu chưa làm. Vui lòng hoàn thành trước khi nộp!`);
+                return;
+            }
+            if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
+        }
+
         try {
-            await api.post('/exams/submit', { submissionId: submissionId, answers: answers });
-            alert(`Nộp bài thành công!`);
+            await api.post('/exams/submit', {
+                submissionId: submissionId,
+                answers: currentAnswers,
+            });
+
+            if (force) alert('Đã hết giờ làm bài. Hệ thống đã tự động nộp bài làm của bạn.');
+            else alert('Nộp bài thành công!');
+
             navigate(`/exam-review/${submissionId}`);
         } catch (err) {
-            alert('Lỗi nộp bài.');
+            alert('Lỗi nộp bài. Vui lòng thử lại.');
         }
+    };
+
+    useEffect(() => {
+        if (loading || timeLeft === null) return;
+        if (timeLeft === 0) {
+            handleSubmit(true);
+            return;
+        }
+        const interval = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev === null || prev <= 0) {
+                    clearInterval(interval);
+                    handleSubmit(true);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [loading]);
+
+    const countUnanswered = () => {
+        if (!exam || !exam.sections) return 0;
+        let count = 0;
+        exam.sections.forEach((sec) => {
+            sec.questions?.forEach((q: any) => {
+                const ans = answers[q.id];
+                const isAnswered =
+                    ans !== undefined &&
+                    ans !== '' &&
+                    (typeof ans === 'object' ? Object.keys(ans).length > 0 : true);
+                if (!isAnswered) count++;
+            });
+        });
+        return count;
     };
 
     const formatTime = (s: number) => {
@@ -112,8 +151,6 @@ const ExamTakingPage = () => {
                                 <audio controls src={sec.media_url} style={{ width: '100%' }} />
                             </div>
                         )}
-
-                        {}
                         {sec.questions?.map((q: any) => (
                             <QuestionRenderer
                                 key={q.id}

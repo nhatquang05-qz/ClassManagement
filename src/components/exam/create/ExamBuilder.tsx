@@ -36,18 +36,11 @@ interface Question {
     points: number;
     media_url?: string;
     media_type?: 'image' | 'audio';
+
     options?: Option[];
     correctAnswer?: string;
     pairs?: Pair[];
     orderItems?: OrderItem[];
-
-    content_data?: {
-        options?: Option[];
-        correct_ids?: string[];
-        correct_answer?: string;
-        pairs?: Pair[];
-        items?: OrderItem[];
-    };
 }
 
 interface Section {
@@ -60,7 +53,21 @@ interface Section {
     questions: Question[];
 }
 
-const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number | null }) => {
+interface ExamBuilderProps {
+    onBack: () => void;
+    onSuccess?: () => void;
+    examId?: number | null;
+    classId: number;
+    initialData?: any;
+}
+
+const ExamBuilder: React.FC<ExamBuilderProps> = ({
+    onBack,
+    onSuccess,
+    examId,
+    classId,
+    initialData,
+}) => {
     const { selectedClass } = useClass();
     const [loading, setLoading] = useState(false);
 
@@ -89,68 +96,76 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
     }, [sections]);
 
     useEffect(() => {
-        if (examId) {
-            setLoading(true);
-            api.get(`/exams/${examId}`)
-                .then((res) => {
-                    const data = res.data;
-                    const formatForInput = (isoString: string) =>
-                        isoString ? new Date(isoString).toISOString().slice(0, 16) : '';
+        const dataToLoad = initialData;
 
-                    setSettings({
-                        title: data.title,
-                        description: data.description || '',
-                        duration: data.duration_minutes,
-                        start_time: formatForInput(data.start_time),
-                        end_time: formatForInput(data.end_time),
-                        max_attempts: data.max_attempts,
-                        is_unlimited_attempts: data.max_attempts === 999,
-                        view_answer_mode: data.view_answer_mode,
-                        is_shuffled: Boolean(data.is_shuffled),
-                    });
+        if (dataToLoad) {
+            const formatForInput = (isoString: string) =>
+                isoString ? new Date(isoString).toISOString().slice(0, 16) : '';
 
-                    if (data.sections && data.sections.length > 0) {
-                        const mappedSections = data.sections.map((sec: any) => ({
-                            id: `sec-${sec.id}`,
-                            title: sec.title,
-                            description: sec.description,
-                            media_url: sec.media_url,
-                            media_type: sec.media_type,
-                            section_points: 0,
-                            questions: sec.questions.map((q: any) => ({
+            setSettings({
+                title: dataToLoad.title,
+                description: dataToLoad.description || '',
+
+                duration: dataToLoad.duration_minutes || dataToLoad.duration || 45,
+                start_time: formatForInput(dataToLoad.start_time),
+                end_time: formatForInput(dataToLoad.end_time),
+                max_attempts: dataToLoad.max_attempts || 1,
+                is_unlimited_attempts: dataToLoad.max_attempts === 999,
+                view_answer_mode: dataToLoad.view_answer_mode || 'after_close',
+                is_shuffled: Boolean(dataToLoad.is_shuffled),
+            });
+
+            if (dataToLoad.sections && dataToLoad.sections.length > 0) {
+                const mappedSections = dataToLoad.sections.map((sec: any) => ({
+                    id: `sec-${sec.id}`,
+                    title: sec.title,
+                    description: sec.description || '',
+                    media_url: sec.media_url,
+                    media_type: sec.media_type,
+                    section_points: 0,
+                    questions:
+                        sec.questions?.map((q: any) => {
+                            let parsedData: any = {};
+                            try {
+                                parsedData =
+                                    typeof q.content_data === 'string'
+                                        ? JSON.parse(q.content_data)
+                                        : q.content_data || {};
+                            } catch (e) {
+                                parsedData = {};
+                            }
+
+                            let type: Question['type'] = 'multiple_choice';
+                            if (q.type === 'fill_in_blank') type = 'fill_blank';
+                            else if (q.type === 'ordering') type = 'reorder';
+                            else type = q.type;
+
+                            return {
                                 id: `q-${q.id}`,
-                                type:
-                                    q.type === 'fill_in_blank'
-                                        ? 'fill_blank'
-                                        : q.type === 'ordering'
-                                          ? 'reorder'
-                                          : q.type,
+                                type: type,
                                 content: q.content,
-                                points: q.points,
+                                points: Number(q.points),
                                 media_url: q.media_url,
-                                options: q.content_data.options?.map((o: any) => ({
+                                options: parsedData.options?.map((o: any) => ({
                                     ...o,
-                                    isCorrect: q.content_data.correct_ids?.includes(o.id),
+                                    isCorrect: parsedData.correct_ids?.includes(o.id),
                                 })),
-                                correctAnswer: q.content_data.correct_answer,
-                                pairs: q.content_data.pairs,
-                                orderItems: q.content_data.items,
-                            })),
-                        }));
-                        setSections(mappedSections);
-                    }
-                })
-                .catch(() => alert('Lỗi tải đề thi để sửa'))
-                .finally(() => setLoading(false));
+                                correctAnswer: parsedData.correct_answer,
+                                pairs: parsedData.pairs,
+                                orderItems: parsedData.items,
+                            };
+                        }) || [],
+                }));
+                setSections(mappedSections);
+            } else if (dataToLoad.questions) {
+            }
         }
-    }, [examId]);
+    }, [initialData, examId]);
 
     const handleFileUpload = async (file: File): Promise<string | null> => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('type', 'file');
-        formData.append('title', `Exam Asset ${Date.now()}`);
-        formData.append('parentId', 'null');
 
         try {
             const res = await api.post('/materials', formData, {
@@ -158,9 +173,8 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
             });
             return res.data.url;
         } catch (error) {
-            console.error('Upload failed');
-            alert('Lỗi upload file.');
-            return null;
+            console.error('Upload failed', error);
+            return URL.createObjectURL(file);
         }
     };
 
@@ -173,6 +187,7 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         setLoading(true);
         const type = file.type.startsWith('image') ? 'image' : 'audio';
         const url = await handleFileUpload(file);
+
         if (url) {
             const newSections = [...sections];
             if (target === 'section') {
@@ -193,12 +208,16 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         const qCount = section.questions.length;
 
         if (qCount > 0 && totalP > 0) {
-            const avgPoints = parseFloat((totalP / qCount).toFixed(2));
+            let avgPoints = Math.floor((totalP / qCount) * 100) / 100;
+
+            let currentSum = avgPoints * (qCount - 1);
+
+            let lastPoints = parseFloat((totalP - currentSum).toFixed(2));
+
             const updatedQuestions = section.questions.map((q, index) => {
                 let newPoints = avgPoints;
                 if (index === qCount - 1) {
-                    const sumOthers = avgPoints * (qCount - 1);
-                    newPoints = parseFloat((totalP - sumOthers).toFixed(2));
+                    newPoints = lastPoints;
                 }
                 return { ...q, points: newPoints };
             });
@@ -242,6 +261,7 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                 type === 'reorder'
                     ? [{ id: `ord-${Date.now()}-1`, text: '', order: 1 }]
                     : undefined,
+            correctAnswer: '',
         };
 
         newSections[secIdx] = {
@@ -252,7 +272,6 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
         if ((newSections[secIdx].section_points || 0) > 0) {
             newSections = distributePoints(newSections, secIdx);
         }
-
         setSections(newSections);
     };
 
@@ -296,17 +315,12 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
 
     const handleSave = async () => {
         if (!settings.title) return alert('Vui lòng nhập tên đề thi!');
-        if (!selectedClass) return alert('Lỗi: Không tìm thấy ID lớp học.');
+        if (!selectedClass && !classId) return alert('Lỗi: Không tìm thấy ID lớp học.');
 
         setLoading(true);
         try {
             const formatDate = (dateString: string) =>
                 dateString ? dateString.replace('T', ' ') + ':00' : null;
-            const mapQuestionType = (feType: string) => {
-                if (feType === 'fill_blank') return 'fill_in_blank';
-                if (feType === 'reorder') return 'ordering';
-                return feType;
-            };
 
             const formattedSections = sections.map((sec) => ({
                 title: sec.title,
@@ -315,6 +329,7 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                 media_type: sec.media_type || null,
                 questions: sec.questions.map((q) => {
                     let content_data: any = {};
+
                     if (q.type === 'multiple_choice') {
                         content_data = {
                             options: q.options?.map((o) => ({ id: o.id, text: o.text })),
@@ -334,8 +349,12 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                         };
                     }
 
+                    let backendType = q.type;
+                    if (q.type === 'fill_blank') backendType = 'fill_in_blank' as any;
+                    if (q.type === 'reorder') backendType = 'ordering' as any;
+
                     return {
-                        type: mapQuestionType(q.type),
+                        type: backendType,
                         content: q.content || '',
                         points: Number(q.points) || 0,
                         media_url: q.media_url || null,
@@ -345,11 +364,12 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
             }));
 
             const payload = {
-                class_id: selectedClass.id,
+                class_id: classId || selectedClass?.id,
                 title: settings.title,
                 description: settings.description || '',
                 start_time: formatDate(settings.start_time),
                 end_time: formatDate(settings.end_time),
+
                 duration_minutes: settings.duration,
                 max_attempts: settings.is_unlimited_attempts ? 999 : settings.max_attempts,
                 view_answer_mode: settings.view_answer_mode,
@@ -357,15 +377,18 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                 sections: formattedSections,
             };
 
-            if (examId) {
-                await api.put(`/exams/${examId}`, payload);
+            if (examId || initialData?.id) {
+                await api.put(`/exams/${examId || initialData.id}`, payload);
                 alert('Cập nhật đề thi thành công!');
             } else {
                 await api.post('/exams/create', payload);
                 alert('Tạo đề thi thành công!');
             }
-            onBack();
+
+            if (onSuccess) onSuccess();
+            else onBack();
         } catch (error: any) {
+            console.error(error);
             const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra.';
             alert(`Lỗi Server: ${errorMsg}`);
         } finally {
@@ -375,46 +398,41 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
 
     return (
         <div className="exam-builder-container">
-            <div className="exam-builder-header">
-                <button onClick={onBack} className="exam-builder-btn exam-builder-btn-back">
+            <div className="builder-header">
+                <button onClick={onBack} className="btn-back">
                     <FaArrowLeft /> Quay lại
                 </button>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <h3>{examId ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'}</h3>
-                    <span className="exam-builder-total-score">
-                        <FaCalculator style={{ marginRight: 5 }} /> Tổng điểm: {totalScore}
+                    <h2>{examId || initialData ? 'Chỉnh sửa đề thi' : 'Tạo đề thi mới'}</h2>
+                    <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                        <FaCalculator style={{ marginRight: 5 }} /> Tổng điểm: <b>{totalScore}</b>
                     </span>
                 </div>
-                <button
-                    className="exam-builder-btn exam-builder-btn-primary"
-                    onClick={handleSave}
-                    disabled={loading}
-                >
+                <button className="btn-save" onClick={handleSave} disabled={loading}>
                     {loading ? (
-                        'Đang xử lý...'
+                        'Đang lưu...'
                     ) : (
                         <>
-                            <FaSave /> {examId ? 'Cập Nhật' : 'Lưu Đề Thi'}
+                            <FaSave /> Lưu Đề Thi
                         </>
                     )}
                 </button>
             </div>
 
             <div className="exam-builder-body">
-                <div className="exam-builder-sidebar">
-                    <h4>Cấu hình</h4>
-                    <div className="exam-builder-form-group">
+                <div className="exam-info-card">
+                    <h4>Cấu hình chung</h4>
+                    <div className="form-group">
                         <label>Tên bài thi</label>
                         <input
-                            className="exam-builder-input"
                             value={settings.title}
                             onChange={(e) => setSettings({ ...settings, title: e.target.value })}
+                            placeholder="VD: Kiểm tra 1 tiết"
                         />
                     </div>
-                    <div className="exam-builder-form-group">
+                    <div className="form-group">
                         <label>Thời gian (phút)</label>
                         <input
-                            className="exam-builder-input"
                             type="number"
                             value={settings.duration}
                             onChange={(e) =>
@@ -422,11 +440,10 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                             }
                         />
                     </div>
-                    <div className="exam-builder-form-group">
-                        <label>Lượt làm</label>
-                        <div className="exam-builder-flex-center">
+                    <div className="form-group">
+                        <label>Lượt làm bài</label>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <input
-                                className="exam-builder-input"
                                 type="number"
                                 value={settings.max_attempts}
                                 disabled={settings.is_unlimited_attempts}
@@ -436,9 +453,16 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                         max_attempts: Number(e.target.value),
                                     })
                                 }
-                                style={{ width: 60 }}
+                                style={{ width: '60px' }}
                             />
-                            <label>
+                            <label
+                                style={{
+                                    fontSize: '0.85rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    marginBottom: 0,
+                                }}
+                            >
                                 <input
                                     type="checkbox"
                                     checked={settings.is_unlimited_attempts}
@@ -448,15 +472,15 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                             is_unlimited_attempts: e.target.checked,
                                         })
                                     }
+                                    style={{ marginRight: '5px' }}
                                 />{' '}
-                                KGH
+                                Không giới hạn
                             </label>
                         </div>
                     </div>
-                    <div className="exam-builder-form-group">
-                        <label>Mở</label>
+                    <div className="form-group">
+                        <label>Bắt đầu lúc</label>
                         <input
-                            className="exam-builder-input"
                             type="datetime-local"
                             value={settings.start_time}
                             onChange={(e) =>
@@ -464,73 +488,90 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                             }
                         />
                     </div>
-                    <div className="exam-builder-form-group">
-                        <label>Đóng</label>
+                    <div className="form-group">
+                        <label>Kết thúc lúc</label>
                         <input
-                            className="exam-builder-input"
                             type="datetime-local"
                             value={settings.end_time}
                             onChange={(e) => setSettings({ ...settings, end_time: e.target.value })}
                         />
                     </div>
-                    <div className="exam-builder-form-group">
+                    <div className="form-group">
                         <label>Xem đáp án</label>
                         <select
-                            className="exam-builder-select"
                             value={settings.view_answer_mode}
                             onChange={(e) =>
                                 setSettings({ ...settings, view_answer_mode: e.target.value })
                             }
                         >
                             <option value="immediate">Ngay khi nộp</option>
-                            <option value="after_close">Sau khi đóng</option>
-                            <option value="never">Không</option>
+                            <option value="after_close">Sau khi đóng đề</option>
+                            <option value="never">Không cho xem</option>
                         </select>
                     </div>
-                    <div className="exam-builder-form-group">
-                        <label>
+                    <div className="form-group">
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                             <input
                                 type="checkbox"
                                 checked={settings.is_shuffled}
                                 onChange={(e) =>
                                     setSettings({ ...settings, is_shuffled: e.target.checked })
                                 }
-                            />{' '}
-                            Trộn câu hỏi
+                                style={{ marginRight: '8px' }}
+                            />
+                            Trộn câu hỏi ngẫu nhiên
                         </label>
                     </div>
                 </div>
 
-                <div className="exam-builder-content">
+                <div style={{ flex: 1, paddingRight: '5px' }}>
                     {sections.map((sec, secIdx) => (
-                        <div key={sec.id} className="exam-builder-section">
-                            <div className="exam-builder-section-header">
-                                <input
-                                    className="exam-builder-section-title"
-                                    value={sec.title}
-                                    onChange={(e) => updateSection(secIdx, 'title', e.target.value)}
-                                    placeholder="Tiêu đề phần"
-                                />
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div className="exam-builder-section-points">
-                                        <label
-                                            style={{
-                                                marginRight: 5,
-                                                fontSize: '0.85rem',
-                                                whiteSpace: 'nowrap',
-                                            }}
-                                        >
-                                            Điểm phần này:
-                                        </label>
+                        <div
+                            key={sec.id}
+                            className="exam-info-card"
+                            style={{ marginBottom: '20px', width: 'auto' }}
+                        >
+                            <div className="q-header">
+                                <div style={{ flex: 1, marginRight: '15px' }}>
+                                    <input
+                                        className="exam-builder-section-title"
+                                        value={sec.title}
+                                        onChange={(e) =>
+                                            updateSection(secIdx, 'title', e.target.value)
+                                        }
+                                        placeholder="Tiêu đề phần (VD: Phần 1 - Trắc nghiệm)"
+                                    />
+                                    <textarea
+                                        value={sec.description}
+                                        onChange={(e) =>
+                                            updateSection(secIdx, 'description', e.target.value)
+                                        }
+                                        placeholder="Mô tả phần thi..."
+                                        rows={1}
+                                        style={{
+                                            width: '100%',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            resize: 'none',
+                                            fontSize: '0.9rem',
+                                            color: '#666',
+                                            outline: 'none',
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '5px',
+                                        }}
+                                    >
+                                        <span style={{ fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                            Điểm phần:
+                                        </span>
                                         <input
                                             type="number"
-                                            style={{
-                                                width: 60,
-                                                textAlign: 'center',
-                                                fontWeight: 'bold',
-                                                border: '1px solid #ccc',
-                                                borderRadius: 4,
-                                            }}
                                             value={sec.section_points || ''}
                                             placeholder="0"
                                             onChange={(e) =>
@@ -539,22 +580,36 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                     Number(e.target.value)
                                                 )
                                             }
-                                        />
-                                        <span
-                                            title="Tự động chia đều"
                                             style={{
-                                                marginLeft: 5,
-                                                cursor: 'help',
-                                                color: '#007bff',
+                                                width: '50px',
+                                                padding: '5px',
+                                                textAlign: 'center',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '4px',
                                             }}
+                                        />
+                                        <button
+                                            title="Chia đều điểm"
+                                            style={{
+                                                border: 'none',
+                                                background: 'none',
+                                                cursor: 'pointer',
+                                                color: '#3498db',
+                                            }}
+                                            onClick={() =>
+                                                handleSectionPointsChange(
+                                                    secIdx,
+                                                    sec.section_points || 0
+                                                )
+                                            }
                                         >
                                             <FaMagic />
-                                        </span>
+                                        </button>
                                     </div>
                                     <button
-                                        className="exam-builder-btn-icon-danger"
+                                        className="btn-remove-q"
                                         onClick={() => {
-                                            if (window.confirm('Xoá phần này?'))
+                                            if (window.confirm('Xóa phần này?'))
                                                 setSections(
                                                     sections.filter((_, i) => i !== secIdx)
                                                 );
@@ -564,60 +619,50 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                     </button>
                                 </div>
                             </div>
-                            <div className="exam-builder-form-group">
-                                <textarea
-                                    className="exam-builder-textarea"
-                                    placeholder="Mô tả/Đoạn văn..."
-                                    value={sec.description}
-                                    onChange={(e) =>
-                                        updateSection(secIdx, 'description', e.target.value)
-                                    }
-                                />
-                                <div style={{ marginTop: '0.5rem' }}>
-                                    <label className="exam-builder-btn-upload">
-                                        {loading ? (
-                                            'Đang tải...'
-                                        ) : (
-                                            <>
-                                                <FaMicrophone /> Audio chung
-                                            </>
-                                        )}
-                                        <input
-                                            type="file"
-                                            hidden
-                                            accept="audio/*"
-                                            onChange={(e) => {
-                                                if (e.target.files?.[0])
-                                                    handleMediaUpload(
-                                                        e.target.files[0],
-                                                        'section',
-                                                        secIdx
-                                                    );
-                                            }}
-                                        />
-                                    </label>
-                                    {sec.media_url && sec.media_type === 'audio' && (
-                                        <div className="exam-builder-media-preview">
-                                            <audio controls src={sec.media_url} />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
 
-                            <div>
+                            <div className="questions-list">
                                 {sec.questions.map((q, qIdx) => (
-                                    <div key={q.id} className="exam-builder-question">
-                                        <div className="exam-builder-q-header">
-                                            <span className="exam-builder-q-badge">{q.type}</span>
-                                            <div className="exam-builder-q-points-wrapper">
-                                                <label
-                                                    style={{ marginRight: 5, fontSize: '0.8rem' }}
+                                    <div key={q.id} className="question-card">
+                                        <div className="q-header">
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '10px',
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        background: '#e1f5fe',
+                                                        color: '#0288d1',
+                                                        padding: '4px 8px',
+                                                        borderRadius: '4px',
+                                                        fontSize: '0.8rem',
+                                                        fontWeight: 'bold',
+                                                    }}
                                                 >
-                                                    Điểm:
-                                                </label>
+                                                    {q.type === 'multiple_choice'
+                                                        ? 'Trắc nghiệm'
+                                                        : q.type === 'fill_blank'
+                                                          ? 'Điền từ'
+                                                          : q.type === 'matching'
+                                                            ? 'Nối cột'
+                                                            : 'Sắp xếp'}
+                                                </span>
+                                                <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                                                    Câu {qIdx + 1}
+                                                </span>
+                                            </div>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '10px',
+                                                }}
+                                            >
+                                                <label style={{ fontSize: '0.85rem' }}>Điểm:</label>
                                                 <input
                                                     type="number"
-                                                    className="exam-builder-q-points-input"
                                                     value={q.points}
                                                     onChange={(e) =>
                                                         updateQuestion(
@@ -627,19 +672,19 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                             Number(e.target.value)
                                                         )
                                                     }
+                                                    className="points-input"
                                                 />
+                                                <button
+                                                    className="btn-remove-q"
+                                                    onClick={() => deleteQuestion(secIdx, qIdx)}
+                                                >
+                                                    <FaTrash />
+                                                </button>
                                             </div>
-                                            <button
-                                                className="exam-builder-btn-icon-danger"
-                                                onClick={() => deleteQuestion(secIdx, qIdx)}
-                                            >
-                                                <FaTrash />
-                                            </button>
                                         </div>
 
-                                        <div className="exam-builder-q-body">
-                                            <input
-                                                className="exam-builder-q-content-input"
+                                        <div className="q-content">
+                                            <textarea
                                                 value={q.content}
                                                 onChange={(e) =>
                                                     updateQuestion(
@@ -649,61 +694,73 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                         e.target.value
                                                     )
                                                 }
-                                                placeholder="Nội dung câu hỏi..."
+                                                placeholder="Nhập nội dung câu hỏi..."
                                             />
-                                            <label className="exam-builder-btn-upload">
-                                                <FaImage /> Thêm ảnh
-                                                <input
-                                                    type="file"
-                                                    hidden
-                                                    accept="image/*"
-                                                    onChange={(e) => {
-                                                        if (e.target.files?.[0])
-                                                            handleMediaUpload(
-                                                                e.target.files[0],
-                                                                'question',
-                                                                secIdx,
-                                                                qIdx
-                                                            );
-                                                    }}
-                                                />
-                                            </label>
-                                            {q.media_url && (
-                                                <img
-                                                    src={q.media_url}
-                                                    alt="Question"
-                                                    className="exam-builder-media-preview"
-                                                />
-                                            )}
+
+                                            <div style={{ marginBottom: '10px' }}>
+                                                <label className="exam-builder-btn-upload">
+                                                    <FaImage /> Thêm ảnh/Audio
+                                                    <input
+                                                        type="file"
+                                                        hidden
+                                                        accept="image/*,audio/*"
+                                                        onChange={(e) => {
+                                                            if (e.target.files?.[0])
+                                                                handleMediaUpload(
+                                                                    e.target.files[0],
+                                                                    'question',
+                                                                    secIdx,
+                                                                    qIdx
+                                                                );
+                                                        }}
+                                                    />
+                                                </label>
+                                                {q.media_url && (
+                                                    <div style={{ marginTop: '5px' }}>
+                                                        {q.media_type === 'audio' ? (
+                                                            <audio controls src={q.media_url} />
+                                                        ) : (
+                                                            <img
+                                                                src={q.media_url}
+                                                                alt="Question media"
+                                                                style={{
+                                                                    maxWidth: '200px',
+                                                                    borderRadius: '4px',
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
 
                                             {q.type === 'multiple_choice' && (
-                                                <div className="exam-builder-q-options-list">
+                                                <div className="q-options">
                                                     {q.options?.map((opt, i) => (
-                                                        <div
-                                                            key={opt.id}
-                                                            className="exam-builder-option-row"
-                                                        >
+                                                        <div key={opt.id} className="option-row">
                                                             <input
                                                                 type="radio"
+                                                                name={`q-${q.id}`}
                                                                 checked={opt.isCorrect}
                                                                 onChange={() => {
                                                                     const ns = [...sections];
-                                                                    const currentOpts =
+                                                                    ns[secIdx].questions[
+                                                                        qIdx
+                                                                    ].options?.forEach(
+                                                                        (o) => (o.isCorrect = false)
+                                                                    );
+                                                                    if (
                                                                         ns[secIdx].questions[qIdx]
-                                                                            .options;
-                                                                    if (currentOpts) {
-                                                                        currentOpts.forEach(
-                                                                            (o) =>
-                                                                                (o.isCorrect = false)
-                                                                        );
-                                                                        currentOpts[i].isCorrect =
+                                                                            .options
+                                                                    )
+                                                                        ns[secIdx].questions[
+                                                                            qIdx
+                                                                        ].options![i].isCorrect =
                                                                             true;
-                                                                        setSections(ns);
-                                                                    }
+                                                                    setSections(ns);
                                                                 }}
                                                             />
                                                             <input
-                                                                className="exam-builder-option-input"
+                                                                type="text"
                                                                 value={opt.text}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -715,9 +772,14 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                                         e.target.value
                                                                     )
                                                                 }
+                                                                placeholder={`Đáp án ${i + 1}`}
                                                             />
                                                             <button
-                                                                className="exam-builder-btn-icon-danger"
+                                                                className="btn-remove-q"
+                                                                style={{
+                                                                    width: '24px',
+                                                                    height: '24px',
+                                                                }}
                                                                 onClick={() => {
                                                                     const ns = [...sections];
                                                                     ns[secIdx].questions[
@@ -731,7 +793,17 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                         </div>
                                                     ))}
                                                     <button
-                                                        className="exam-builder-btn-dashed"
+                                                        style={{
+                                                            background: 'none',
+                                                            border: '1px dashed #ccc',
+                                                            padding: '5px',
+                                                            borderRadius: '4px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.85rem',
+                                                            color: '#666',
+                                                            marginTop: '5px',
+                                                            width: '100%',
+                                                        }}
                                                         onClick={() => {
                                                             const ns = [...sections];
                                                             ns[secIdx].questions[
@@ -744,13 +816,14 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                             setSections(ns);
                                                         }}
                                                     >
-                                                        + Option
+                                                        + Thêm đáp án
                                                     </button>
                                                 </div>
                                             )}
+
                                             {q.type === 'fill_blank' && (
                                                 <input
-                                                    className="exam-builder-input"
+                                                    type="text"
                                                     value={q.correctAnswer}
                                                     onChange={(e) =>
                                                         updateQuestion(
@@ -760,18 +833,22 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                             e.target.value
                                                         )
                                                     }
-                                                    placeholder="Đáp án đúng"
+                                                    placeholder="Nhập đáp án đúng (chính xác từng ký tự)..."
+                                                    style={{
+                                                        width: '100%',
+                                                        padding: '10px',
+                                                        border: '1px solid #ddd',
+                                                        borderRadius: '4px',
+                                                    }}
                                                 />
                                             )}
+
                                             {q.type === 'matching' && (
-                                                <div>
+                                                <div className="q-options">
                                                     {q.pairs?.map((p, i) => (
-                                                        <div
-                                                            key={p.id}
-                                                            className="exam-builder-pair-row"
-                                                        >
+                                                        <div key={p.id} className="option-row">
                                                             <input
-                                                                className="exam-builder-option-input"
+                                                                type="text"
                                                                 value={p.left}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -783,9 +860,12 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                                         e.target.value
                                                                     )
                                                                 }
+                                                                placeholder="Vế trái"
+                                                                style={{ flex: 1 }}
                                                             />
+                                                            <span>-</span>
                                                             <input
-                                                                className="exam-builder-option-input"
+                                                                type="text"
                                                                 value={p.right}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -797,11 +877,39 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                                         e.target.value
                                                                     )
                                                                 }
+                                                                placeholder="Vế phải"
+                                                                style={{ flex: 1 }}
                                                             />
+                                                            <button
+                                                                className="btn-remove-q"
+                                                                style={{
+                                                                    width: '24px',
+                                                                    height: '24px',
+                                                                }}
+                                                                onClick={() => {
+                                                                    const ns = [...sections];
+                                                                    ns[secIdx].questions[
+                                                                        qIdx
+                                                                    ].pairs?.splice(i, 1);
+                                                                    setSections(ns);
+                                                                }}
+                                                            >
+                                                                x
+                                                            </button>
                                                         </div>
                                                     ))}
                                                     <button
-                                                        className="exam-builder-btn-dashed"
+                                                        style={{
+                                                            background: 'none',
+                                                            border: '1px dashed #ccc',
+                                                            padding: '5px',
+                                                            borderRadius: '4px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.85rem',
+                                                            color: '#666',
+                                                            marginTop: '5px',
+                                                            width: '100%',
+                                                        }}
                                                         onClick={() => {
                                                             const ns = [...sections];
                                                             ns[secIdx].questions[qIdx].pairs?.push({
@@ -812,20 +920,25 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                             setSections(ns);
                                                         }}
                                                     >
-                                                        + Pair
+                                                        + Thêm cặp nối
                                                     </button>
                                                 </div>
                                             )}
+
                                             {q.type === 'reorder' && (
-                                                <div>
+                                                <div className="q-options">
                                                     {q.orderItems?.map((o, i) => (
-                                                        <div
-                                                            key={o.id}
-                                                            className="exam-builder-reorder-row"
-                                                        >
-                                                            <span>{i + 1}</span>
+                                                        <div key={o.id} className="option-row">
+                                                            <span
+                                                                style={{
+                                                                    fontWeight: 'bold',
+                                                                    width: '20px',
+                                                                }}
+                                                            >
+                                                                {i + 1}.
+                                                            </span>
                                                             <input
-                                                                className="exam-builder-option-input"
+                                                                type="text"
                                                                 value={o.text}
                                                                 onChange={(e) =>
                                                                     updateDeep(
@@ -837,11 +950,39 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                                         e.target.value
                                                                     )
                                                                 }
+                                                                placeholder="Nội dung"
+                                                                style={{ flex: 1 }}
                                                             />
+                                                            <button
+                                                                className="btn-remove-q"
+                                                                style={{
+                                                                    width: '24px',
+                                                                    height: '24px',
+                                                                }}
+                                                                onClick={() => {
+                                                                    const ns = [...sections];
+                                                                    ns[secIdx].questions[
+                                                                        qIdx
+                                                                    ].orderItems?.splice(i, 1);
+                                                                    setSections(ns);
+                                                                }}
+                                                            >
+                                                                x
+                                                            </button>
                                                         </div>
                                                     ))}
                                                     <button
-                                                        className="exam-builder-btn-dashed"
+                                                        style={{
+                                                            background: 'none',
+                                                            border: '1px dashed #ccc',
+                                                            padding: '5px',
+                                                            borderRadius: '4px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.85rem',
+                                                            color: '#666',
+                                                            marginTop: '5px',
+                                                            width: '100%',
+                                                        }}
                                                         onClick={() => {
                                                             const ns = [...sections];
                                                             ns[secIdx].questions[
@@ -849,12 +990,14 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                                             ].orderItems?.push({
                                                                 id: `ord-${Date.now()}`,
                                                                 text: '',
-                                                                order: 0,
+                                                                order:
+                                                                    ns[secIdx].questions[qIdx]
+                                                                        .orderItems!.length + 1,
                                                             });
                                                             setSections(ns);
                                                         }}
                                                     >
-                                                        + Item
+                                                        + Thêm bước
                                                     </button>
                                                 </div>
                                             )}
@@ -862,6 +1005,7 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                     </div>
                                 ))}
                             </div>
+
                             <div className="exam-builder-section-toolbar">
                                 <button onClick={() => addQuestion(secIdx, 'multiple_choice')}>
                                     + Trắc nghiệm
@@ -870,7 +1014,7 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                                     + Điền từ
                                 </button>
                                 <button onClick={() => addQuestion(secIdx, 'matching')}>
-                                    + Nối
+                                    + Nối cột
                                 </button>
                                 <button onClick={() => addQuestion(secIdx, 'reorder')}>
                                     + Sắp xếp
@@ -878,8 +1022,10 @@ const ExamBuilder = ({ onBack, examId }: { onBack: () => void; examId?: number |
                             </div>
                         </div>
                     ))}
+
                     <button
-                        className="exam-builder-btn exam-builder-btn-add-section"
+                        className="btn-add-q"
+                        style={{ background: '#e8f5e9', borderColor: '#2ecc71', color: '#27ae60' }}
                         onClick={() =>
                             setSections([
                                 ...sections,

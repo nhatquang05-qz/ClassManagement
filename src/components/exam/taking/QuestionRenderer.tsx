@@ -1,62 +1,145 @@
-import React, { useState, useEffect } from 'react';
-import { FaArrowUp, FaArrowDown, FaTimes } from 'react-icons/fa';
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
+import { FaArrowUp, FaArrowDown, FaTimes, FaExchangeAlt } from 'react-icons/fa';
 
-const MatchingQuestion = ({ data, value, onChange }: any) => {
+const formatPoints = (num: number) => {
+    return parseFloat(Number(num).toFixed(2));
+};
+
+const MatchingQuestion = ({ data, value, onChange, questionId }: any) => {
     const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
-    const pairs = value || {};
+
+    const pairs = useMemo(() => value || {}, [JSON.stringify(value)]);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [lines, setLines] = useState<any[]>([]);
+
+    const calculateLines = useCallback(() => {
+        if (!containerRef.current) return;
+
+        const newLines: any[] = [];
+        const containerRect = containerRef.current.getBoundingClientRect();
+
+        Object.entries(pairs).forEach(([leftText, rightText]) => {
+            const leftEl = containerRef.current?.querySelector(`[data-match-left="${leftText}"]`);
+            const rightEl = containerRef.current?.querySelector(
+                `[data-match-right="${rightText}"]`
+            );
+
+            if (leftEl && rightEl) {
+                const leftRect = leftEl.getBoundingClientRect();
+                const rightRect = rightEl.getBoundingClientRect();
+
+                newLines.push({
+                    x1: leftRect.right - containerRect.left,
+                    y1: leftRect.top + leftRect.height / 2 - containerRect.top,
+                    x2: rightRect.left - containerRect.left,
+                    y2: rightRect.top + rightRect.height / 2 - containerRect.top,
+                    key: `${leftText}-${rightText}`,
+                });
+            }
+        });
+
+        setLines((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(newLines)) {
+                return newLines;
+            }
+            return prev;
+        });
+    }, [pairs]);
+
+    useLayoutEffect(() => {
+        calculateLines();
+        window.addEventListener('resize', calculateLines);
+        return () => window.removeEventListener('resize', calculateLines);
+    }, [calculateLines]);
 
     const handleLeftClick = (text: string) => {
-        if (!pairs[text]) setSelectedLeft(text);
+        if (selectedLeft === text) {
+            setSelectedLeft(null);
+        } else {
+            setSelectedLeft(text);
+        }
     };
+
     const handleRightClick = (rightText: string) => {
         if (selectedLeft) {
-            onChange({ ...pairs, [selectedLeft]: rightText });
+            const newPairs = { ...pairs };
+
+            const oldLeft = Object.keys(newPairs).find((key) => newPairs[key] === rightText);
+            if (oldLeft) {
+                delete newPairs[oldLeft];
+            }
+
+            newPairs[selectedLeft] = rightText;
+
+            onChange(newPairs);
             setSelectedLeft(null);
         }
     };
+
     const removePair = (leftText: string) => {
         const n = { ...pairs };
         delete n[leftText];
         onChange(n);
     };
-    const isRightMatched = (text: string) => Object.values(pairs).includes(text);
+
+    const getLeftStatus = (text: string) => {
+        if (selectedLeft === text) return 'selected';
+        if (pairs[text]) return 'matched';
+        return '';
+    };
+
+    const getRightStatus = (text: string) => {
+        if (Object.values(pairs).includes(text)) return 'matched';
+        return '';
+    };
 
     return (
-        <div className="matching-container">
+        <div className="matching-container" ref={containerRef}>
+            {}
+            <svg className="matching-lines-svg">
+                {lines.map((line, idx) => (
+                    <line
+                        key={line.key || idx}
+                        x1={line.x1}
+                        y1={line.y1}
+                        x2={line.x2}
+                        y2={line.y2}
+                        stroke="#3498db"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                    />
+                ))}
+            </svg>
+
             <div className="col-left">
                 {data.pairs?.map((p: any, idx: number) => (
                     <div
                         key={idx}
-                        className={`match-item left ${selectedLeft === p.left ? 'selected' : ''} ${pairs[p.left] ? 'matched' : ''}`}
+                        data-match-left={p.left}
+                        className={`match-item left ${getLeftStatus(p.left)}`}
                         onClick={() => handleLeftClick(p.left)}
                     >
                         {p.left}
+                        <span className="connect-dot right"></span>
                     </div>
                 ))}
             </div>
+
+            <div className="col-space" style={{ width: '50px' }}></div>
+
             <div className="col-right">
                 {data.pairs?.map((p: any, idx: number) => (
                     <div
                         key={idx}
-                        className={`match-item right ${isRightMatched(p.right) ? 'matched' : ''}`}
-                        onClick={() => !isRightMatched(p.right) && handleRightClick(p.right)}
+                        data-match-right={p.right}
+                        className={`match-item right ${getRightStatus(p.right)} ${selectedLeft ? 'waiting-target' : ''}`}
+                        onClick={() => handleRightClick(p.right)}
                     >
+                        <span className="connect-dot left"></span>
                         {p.right}
                     </div>
                 ))}
-            </div>
-            <div className="matched-results">
-                <strong>Đã nối:</strong>
-                <div className="pair-tags">
-                    {Object.entries(pairs).map(([l, r]: any) => (
-                        <span key={l} className="pair-tag">
-                            {l} ↔ {r}{' '}
-                            <button onClick={() => removePair(l)}>
-                                <FaTimes />
-                            </button>
-                        </span>
-                    ))}
-                </div>
             </div>
         </div>
     );
@@ -64,12 +147,37 @@ const MatchingQuestion = ({ data, value, onChange }: any) => {
 
 const OrderingQuestion = ({ data, value, onChange }: any) => {
     const [items, setItems] = useState<any[]>([]);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
     useEffect(() => {
-        if (value && value.length > 0) setItems(value);
-        else if (data.items) setItems([...data.items]);
+        if (value && value.length > 0) {
+            setItems(value);
+        } else if (data.items) {
+            const defaultItems = [...data.items];
+            setItems(defaultItems);
+
+            if (!value) {
+                onChange(defaultItems);
+            }
+        }
     }, [data, value]);
 
-    const moveItem = (index: number, direction: 'up' | 'down') => {
+    const handleItemClick = (index: number) => {
+        if (selectedIndex === null) {
+            setSelectedIndex(index);
+        } else if (selectedIndex === index) {
+            setSelectedIndex(null);
+        } else {
+            const newItems = [...items];
+            [newItems[selectedIndex], newItems[index]] = [newItems[index], newItems[selectedIndex]];
+            setItems(newItems);
+            onChange(newItems);
+            setSelectedIndex(null);
+        }
+    };
+
+    const moveItem = (index: number, direction: 'up' | 'down', e: React.MouseEvent) => {
+        e.stopPropagation();
         const newItems = [...items];
         if (direction === 'up' && index > 0)
             [newItems[index], newItems[index - 1]] = [newItems[index - 1], newItems[index]];
@@ -81,22 +189,31 @@ const OrderingQuestion = ({ data, value, onChange }: any) => {
 
     return (
         <div className="ordering-container">
+            <p style={{ fontSize: '0.9rem', color: '#666', fontStyle: 'italic', marginBottom: 10 }}>
+                *Bấm vào 2 ô để đổi chỗ cho nhau.
+            </p>
             {items.map((item: any, index: number) => (
-                <div key={index} className="order-item">
+                <div
+                    key={index}
+                    className={`order-item ${selectedIndex === index ? 'swapping' : ''}`}
+                    onClick={() => handleItemClick(index)}
+                >
+                    <div className="order-content">
+                        <span className={`index-badge ${selectedIndex === index ? 'active' : ''}`}>
+                            {index + 1}
+                        </span>
+                        {item.text}
+                    </div>
                     <div className="order-actions">
-                        <button disabled={index === 0} onClick={() => moveItem(index, 'up')}>
+                        <button disabled={index === 0} onClick={(e) => moveItem(index, 'up', e)}>
                             <FaArrowUp />
                         </button>
                         <button
                             disabled={index === items.length - 1}
-                            onClick={() => moveItem(index, 'down')}
+                            onClick={(e) => moveItem(index, 'down', e)}
                         >
                             <FaArrowDown />
                         </button>
-                    </div>
-                    <div className="order-content">
-                        <span className="index-badge">{index + 1}</span>
-                        {item.text}
                     </div>
                 </div>
             ))}
@@ -105,8 +222,18 @@ const OrderingQuestion = ({ data, value, onChange }: any) => {
 };
 
 const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
-    const { type, content, media_url, content_data, points } = question;
-    const data = typeof content_data === 'string' ? JSON.parse(content_data) : content_data;
+    const { id, type, content, media_url, content_data, points } = question;
+
+    const data = useMemo(() => {
+        if (typeof content_data === 'string') {
+            try {
+                return JSON.parse(content_data);
+            } catch (e) {
+                return {};
+            }
+        }
+        return content_data || {};
+    }, [content_data]);
 
     return (
         <div
@@ -119,58 +246,100 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             }}
         >
-            <div style={{ marginBottom: 15, fontSize: '1.1rem', fontWeight: 600 }}>
-                <span style={{ color: '#007bff', marginRight: 8 }}>Câu hỏi:</span>
-                {content}{' '}
-                <span style={{ fontSize: '0.8rem', color: '#999', fontWeight: 'normal' }}>
-                    ({points} điểm)
+            <div
+                style={{
+                    marginBottom: 15,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                }}
+            >
+                <div>
+                    <span style={{ color: '#007bff', marginRight: 8, fontWeight: 'bold' }}>
+                        Câu hỏi:
+                    </span>
+                    {content}
+                </div>
+                <span
+                    style={{
+                        fontSize: '0.9rem',
+                        color: '#e67e22',
+                        whiteSpace: 'nowrap',
+                        marginLeft: 10,
+                    }}
+                >
+                    {formatPoints(points)} điểm
                 </span>
             </div>
+
             {media_url && (
-                <div style={{ marginBottom: 15, textAlign: 'center' }}>
+                <div
+                    style={{
+                        marginBottom: 15,
+                        textAlign: 'center',
+                        background: '#f8f9fa',
+                        padding: 10,
+                        borderRadius: 8,
+                    }}
+                >
                     {question.media_type === 'audio' ? (
                         <audio controls src={media_url} style={{ width: '100%' }} />
                     ) : (
-                        <img src={media_url} style={{ maxWidth: '100%', maxHeight: 300 }} />
+                        <img
+                            src={media_url}
+                            style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 4 }}
+                            alt="Media"
+                        />
                     )}
                 </div>
             )}
 
-            {type === 'multiple_choice' && (
-                <div className="mc-options">
-                    {data.options?.map((opt: any) => (
-                        <label
-                            key={opt.id}
-                            className={`mc-label ${answer === opt.id ? 'selected' : ''}`}
-                        >
-                            <input
-                                type="radio"
-                                name={`q-${question.id}`}
-                                checked={answer === opt.id}
-                                onChange={() => onAnswer(opt.id)}
-                            />
-                            {opt.text}
-                        </label>
-                    ))}
-                </div>
-            )}
-            {(type === 'fill_in_blank' || type === 'fill_blank') && (
-                <div className="fill-blank-area">
-                    <input
-                        type="text"
-                        className="fill-input"
-                        value={answer || ''}
-                        onChange={(e) => onAnswer(e.target.value)}
-                        placeholder="Nhập câu trả lời..."
+            <div className="question-interaction-area">
+                {type === 'multiple_choice' && (
+                    <div className="mc-options">
+                        {data.options?.map((opt: any) => (
+                            <label
+                                key={opt.id}
+                                className={`mc-label ${answer === opt.id ? 'selected' : ''}`}
+                            >
+                                <input
+                                    type="radio"
+                                    name={`q-${id}`}
+                                    checked={answer === opt.id}
+                                    onChange={() => onAnswer(opt.id)}
+                                />
+                                {opt.text}
+                            </label>
+                        ))}
+                    </div>
+                )}
+
+                {(type === 'fill_in_blank' || type === 'fill_blank') && (
+                    <div className="fill-blank-area">
+                        <input
+                            type="text"
+                            className="fill-input"
+                            value={answer || ''}
+                            onChange={(e) => onAnswer(e.target.value)}
+                            placeholder="Nhập câu trả lời..."
+                        />
+                    </div>
+                )}
+
+                {type === 'matching' && (
+                    <MatchingQuestion
+                        data={data}
+                        value={answer}
+                        onChange={onAnswer}
+                        questionId={id}
                     />
-                </div>
-            )}
-            {type === 'matching' && (
-                <MatchingQuestion data={data} value={answer} onChange={onAnswer} />
-            )}
-            {(type === 'ordering' || type === 'reorder') && (
-                <OrderingQuestion data={data} value={answer} onChange={onAnswer} />
-            )}
+                )}
+
+                {(type === 'ordering' || type === 'reorder') && (
+                    <OrderingQuestion data={data} value={answer} onChange={onAnswer} />
+                )}
+            </div>
         </div>
     );
 };

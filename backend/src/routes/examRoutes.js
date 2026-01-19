@@ -11,4 +11,7 @@ router.post('/submit', verifyToken, examController.submitExam);
 router.get('/review/:submissionId', verifyToken, examController.getSubmissionDetail);
 router.get('/:id/submissions', verifyToken, examController.getExamSubmissions);
 
+router.put('/:id', verifyToken, examController.updateExam);
+router.delete('/:id', verifyToken, examController.deleteExam);
+
 module.exports = router;

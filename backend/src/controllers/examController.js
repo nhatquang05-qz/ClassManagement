@@ -141,9 +141,11 @@ const submitExam = async (req, res) => {
     try {
         await connection.beginTransaction();
         const { submissionId, answers } = req.body;
+
         const [subs] = await connection.execute('SELECT * FROM exam_submissions WHERE id = ?', [
             submissionId,
         ]);
+        if (!subs.length) throw new Error('Submission not found');
         const examId = subs[0].exam_id;
 
         const [questions] = await connection.execute(
@@ -158,26 +160,39 @@ const submitExam = async (req, res) => {
         for (const q of questions) {
             const points = parseFloat(q.points);
             totalScore += points;
-            const userAns = answers[q.id];
-            const correctData = q.content_data;
+
+            const userAns = answers[q.id] || answers[String(q.id)];
+
+            let correctData = q.content_data;
+            if (typeof correctData === 'string') {
+                try {
+                    correctData = JSON.parse(correctData);
+                } catch (e) {}
+            }
+
             let isCorrect = false;
 
-            if (userAns) {
-                if (q.type === 'multiple_choice' && correctData.correct_ids?.includes(userAns))
-                    isCorrect = true;
-                else if (
-                    q.type === 'fill_in_blank' &&
-                    String(userAns).trim().toLowerCase() ===
+            if (userAns !== undefined && userAns !== null && userAns !== '') {
+                if (q.type === 'multiple_choice') {
+                    if (correctData.correct_ids?.some((id) => String(id) === String(userAns))) {
+                        isCorrect = true;
+                    }
+                } else if (q.type === 'fill_in_blank') {
+                    if (
+                        String(userAns).trim().toLowerCase() ===
                         String(correctData.correct_answer).trim().toLowerCase()
-                )
-                    isCorrect = true;
-                else if (q.type === 'matching') {
+                    ) {
+                        isCorrect = true;
+                    }
+                } else if (q.type === 'matching') {
                     const correctPairs = correctData.pairs || [];
                     let matchCount = 0;
-                    correctPairs.forEach((p) => {
-                        if (userAns[p.left] === p.right) matchCount++;
-                    });
-                    if (matchCount === correctPairs.length && matchCount > 0) isCorrect = true;
+                    if (typeof userAns === 'object') {
+                        correctPairs.forEach((p) => {
+                            if (userAns[p.left] === p.right) matchCount++;
+                        });
+                        if (matchCount === correctPairs.length && matchCount > 0) isCorrect = true;
+                    }
                 } else if (q.type === 'ordering') {
                     const correctItems = correctData.items || [];
                     let orderMatch = true;
@@ -192,20 +207,23 @@ const submitExam = async (req, res) => {
                     } else orderMatch = false;
                 }
             }
+
             if (isCorrect) earnedScore += points;
+
             details.push([
                 submissionId,
                 q.id,
-                JSON.stringify(userAns || null),
+                JSON.stringify(userAns === undefined ? null : userAns),
                 isCorrect ? 1 : 0,
                 isCorrect ? points : 0,
             ]);
         }
 
+        earnedScore = Math.round(earnedScore * 100) / 100;
+
         await connection.execute('DELETE FROM student_answers WHERE submission_id = ?', [
             submissionId,
         ]);
-
         await connection.execute(
             `UPDATE exam_submissions SET submitted_at = NOW(), score = ? WHERE id = ?`,
             [earnedScore, submissionId]
@@ -219,9 +237,10 @@ const submitExam = async (req, res) => {
         }
 
         await connection.commit();
-        res.json({ message: 'Success', score: earnedScore, total: totalScore });
+        res.json({ message: 'Success', score: earnedScore });
     } catch (error) {
         await connection.rollback();
+        console.error(error);
         res.status(500).json({ message: error.message });
     } finally {
         connection.release();
@@ -233,13 +252,11 @@ const getSubmissionDetail = async (req, res) => {
         const { submissionId } = req.params;
 
         const [subs] = await db.execute(
-            `
-            SELECT es.*, e.title, e.view_answer_mode, u.full_name as student_name
-            FROM exam_submissions es 
-            JOIN exams e ON es.exam_id = e.id 
-            JOIN users u ON es.student_id = u.id
-            WHERE es.id = ?
-        `,
+            `SELECT es.*, e.title, e.view_answer_mode, u.full_name as student_name
+             FROM exam_submissions es 
+             JOIN exams e ON es.exam_id = e.id 
+             JOIN users u ON es.student_id = u.id
+             WHERE es.id = ?`,
             [submissionId]
         );
 
@@ -247,18 +264,18 @@ const getSubmissionDetail = async (req, res) => {
         const sub = subs[0];
 
         const [rows] = await db.execute(
-            `
-            SELECT s.id as s_id, s.title as s_title, q.id as q_id, q.type, q.content, q.points, q.media_url, q.content_data, sa.answer_data, sa.is_correct, sa.score_obtained
-            FROM exam_sections s 
-            JOIN questions q ON s.id = q.section_id 
-            LEFT JOIN student_answers sa ON sa.question_id = q.id AND sa.submission_id = ?
-            WHERE s.exam_id = ? ORDER BY s.order_index, q.order_index
-        `,
+            `SELECT s.id as s_id, s.title as s_title, 
+                    q.id as q_id, q.type, q.content, q.points, q.media_url, q.content_data, 
+                    sa.answer_data, sa.is_correct, sa.score_obtained
+             FROM exam_sections s 
+             JOIN questions q ON s.id = q.section_id 
+             LEFT JOIN student_answers sa ON sa.question_id = q.id AND sa.submission_id = ?
+             WHERE s.exam_id = ? 
+             ORDER BY s.order_index, q.order_index`,
             [submissionId, sub.exam_id]
         );
 
         const sectionsMap = new Map();
-
         const processedQuestions = new Set();
 
         rows.forEach((row) => {
@@ -268,22 +285,45 @@ const getSubmissionDetail = async (req, res) => {
             if (!processedQuestions.has(row.q_id)) {
                 processedQuestions.add(row.q_id);
 
-                const contentData = row.content_data;
+                let contentData = row.content_data;
+
+                if (typeof contentData === 'string') {
+                    try {
+                        contentData = JSON.parse(contentData);
+                    } catch (e) {}
+                }
+
+                let userAnswer = row.answer_data;
+                if (typeof userAnswer === 'string') {
+                    try {
+                        userAnswer = JSON.parse(userAnswer);
+                    } catch (e) {}
+                }
+
                 if (sub.view_answer_mode === 'never') {
-                    delete contentData.correct_ids;
-                    delete contentData.correct_answer;
+                    if (contentData) {
+                        delete contentData.correct_ids;
+                        delete contentData.correct_answer;
+                    }
                 }
 
                 sectionsMap.get(row.s_id).questions.push({
-                    ...row,
+                    id: row.q_id,
+                    type: row.type,
+                    content: row.content,
+                    points: row.points,
+                    media_url: row.media_url,
                     content_data: contentData,
-                    user_answer: row.answer_data,
+                    user_answer: userAnswer,
+                    is_correct: row.is_correct,
+                    score_obtained: row.score_obtained,
                 });
             }
         });
 
         res.json({ exam: sub, sections: Array.from(sectionsMap.values()) });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error' });
     }
 };
@@ -316,8 +356,7 @@ const getExamById = async (req, res) => {
                 });
             if (row.q_id) {
                 const safeData = { ...row.content_data };
-                delete safeData.correct_ids;
-                delete safeData.correct_answer;
+
                 sectionsMap.get(row.s_id).questions.push({
                     id: row.q_id,
                     type: row.type,
@@ -331,6 +370,92 @@ const getExamById = async (req, res) => {
         res.json({ ...exams[0], sections: Array.from(sectionsMap.values()) });
     } catch (error) {
         res.status(500).json({ message: 'Error' });
+    }
+};
+
+const updateExam = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id } = req.params;
+        const {
+            title,
+            description,
+            start_time,
+            end_time,
+            duration_minutes,
+            max_attempts,
+            view_answer_mode,
+            is_shuffled,
+            sections,
+        } = req.body;
+
+        await connection.execute(
+            `UPDATE exams SET title=?, description=?, start_time=?, end_time=?, duration_minutes=?, max_attempts=?, view_answer_mode=?, is_shuffled=? WHERE id=?`,
+            [
+                title,
+                description,
+                start_time,
+                end_time,
+                duration_minutes,
+                max_attempts,
+                view_answer_mode,
+                is_shuffled,
+                id,
+            ]
+        );
+
+        const [oldSections] = await connection.execute(
+            'SELECT id FROM exam_sections WHERE exam_id = ?',
+            [id]
+        );
+        if (oldSections.length > 0) {
+            const sectionIds = oldSections.map((s) => s.id).join(',');
+            await connection.execute(`DELETE FROM questions WHERE section_id IN (${sectionIds})`);
+            await connection.execute(`DELETE FROM exam_sections WHERE exam_id = ?`, [id]);
+        }
+
+        if (sections?.length > 0) {
+            for (let i = 0; i < sections.length; i++) {
+                const sec = sections[i];
+                const [secRes] = await connection.execute(
+                    `INSERT INTO exam_sections (exam_id, title, description, media_url, media_type, order_index) VALUES (?, ?, ?, ?, ?, ?)`,
+                    [id, sec.title, sec.description, sec.media_url, sec.media_type, i]
+                );
+                const sectionId = secRes.insertId;
+
+                if (sec.questions?.length > 0) {
+                    for (let j = 0; j < sec.questions.length; j++) {
+                        const q = sec.questions[j];
+                        const contentData = JSON.stringify(q.content_data);
+                        await connection.execute(
+                            `INSERT INTO questions (section_id, type, content, media_url, points, content_data, order_index) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                            [sectionId, q.type, q.content, q.media_url, q.points, contentData, j]
+                        );
+                    }
+                }
+            }
+        }
+
+        await connection.commit();
+        res.json({ message: 'Cập nhật thành công' });
+    } catch (error) {
+        await connection.rollback();
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi cập nhật bài thi' });
+    } finally {
+        connection.release();
+    }
+};
+
+const deleteExam = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await db.execute('DELETE FROM exams WHERE id = ?', [id]);
+        res.json({ message: 'Đã xóa bài kiểm tra' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi khi xóa bài kiểm tra' });
     }
 };
 
@@ -358,5 +483,7 @@ module.exports = {
     submitExam,
     getSubmissionDetail,
     getExamById,
+    updateExam,
+    deleteExam,
     getExamSubmissions,
 };

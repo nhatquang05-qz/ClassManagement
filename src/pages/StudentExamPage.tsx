@@ -162,14 +162,12 @@ const StudentExamPage = () => {
                                 }}
                             >
                                 {isUpcoming && (
-                                    <span style={{ color: '#e67e22' }}>
-                                        ⚠️ Chưa đến giờ làm bài
-                                    </span>
+                                    <span style={{ color: '#e67e22' }}>Chưa đến giờ làm bài</span>
                                 )}
                                 {isEnded && (
-                                    <span style={{ color: '#dc3545' }}>⛔ Đã hết hạn nộp bài</span>
+                                    <span style={{ color: '#dc3545' }}>Đã hết hạn nộp bài</span>
                                 )}
-                                {isOpen && <span style={{ color: '#28a745' }}>✅ Đang mở</span>}
+                                {isOpen && <span style={{ color: '#28a745' }}>Đang mở</span>}
                             </div>
 
                             <div style={{ display: 'flex', gap: 10 }}>

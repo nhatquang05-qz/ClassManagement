@@ -15,6 +15,7 @@ import StudentManagerPage from './pages/StudentManagerPage';
 import MaterialsPage from './pages/MaterialsPage';
 import ExamResultPage from './pages/ExamResultPage';
 import TeacherExamPage from './pages/TeacherExamPage';
+import ExamDetail from './components/exam/teacher/ExamDetail';
 import StudentExamPage from './pages/StudentExamPage';
 import ExamTakingPage from './pages/ExamTakingPage';
 import DutyTrackingPage from './pages/DutyTrackingPage';
@@ -60,7 +61,12 @@ const App: React.FC = () => {
                             <Route path="materials" element={<MaterialsPage />} />
                             <Route path="materials/:folderId" element={<MaterialsPage />} />
                             <Route path="exam-review/:submissionId" element={<ExamResultPage />} />
-                            <Route path="create-exam" element={<TeacherExamPage />} />
+                            <Route path="teacher/exams" element={<TeacherExamPage />} />
+                            <Route path="teacher/exams/:examId" element={<ExamDetail />} />
+                            <Route
+                                path="create-exam"
+                                element={<Navigate to="/teacher/exams" replace />}
+                            />
                             <Route path="student-exams" element={<StudentExamPage />} />
                             <Route path="take-exam/:id" element={<ExamTakingPage />} />
                             <Route path="support" element={<SupportPage />} />

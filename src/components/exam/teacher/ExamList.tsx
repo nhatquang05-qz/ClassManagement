@@ -1,171 +1,71 @@
-import React, { useEffect, useState } from 'react';
-import { FaPlus, FaEye, FaTrash, FaClock, FaHistory, FaCalendarAlt, FaEdit } from 'react-icons/fa';
-import api from '../../../utils/api';
-import { useClass } from '../../../contexts/ClassContext';
-import ExamDetail from './ExamDetail';
+import React from 'react';
+import { FaCalendarAlt, FaClock, FaEdit, FaEye, FaPlus, FaTrash } from 'react-icons/fa';
 import '../../../assets/styles/ExamList.css';
 
-interface ExamSummary {
-    id: number;
-    title: string;
-    start_time: string;
-    end_time: string;
-    duration_minutes: number;
-    attempt_count?: number;
-    max_attempts: number;
-}
-
 interface ExamListProps {
+    exams: any[];
     onCreate: () => void;
-    onEdit: (id: number) => void;
+    onViewDetail: (id: number) => void;
+    onEdit: (exam: any) => void;
+    onDelete: (id: number) => void;
 }
 
-const ExamList: React.FC<ExamListProps> = ({ onCreate, onEdit }) => {
-    const { selectedClass } = useClass();
-    const [exams, setExams] = useState<ExamSummary[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
-
-    const fetchExams = () => {
-        if (selectedClass?.id) {
-            setLoading(true);
-            api.get(`/exams/class/${selectedClass.id}`)
-                .then((res) => setExams(res.data))
-                .catch((err) => console.error(err))
-                .finally(() => setLoading(false));
-        }
-    };
-
-    useEffect(() => {
-        fetchExams();
-    }, [selectedClass]);
-
-    const handleDelete = async (id: number) => {
-        if (
-            window.confirm(
-                'Bạn có chắc chắn muốn xoá bài kiểm tra này? Toàn bộ bài làm của học sinh sẽ bị mất.'
-            )
-        ) {
-            try {
-                await api.delete(`/exams/${id}`);
-                alert('Đã xoá thành công!');
-                fetchExams();
-            } catch (err) {
-                alert('Lỗi khi xoá đề thi.');
-            }
-        }
-    };
-
-    if (selectedExamId) {
-        return <ExamDetail examId={selectedExamId} onBack={() => setSelectedExamId(null)} />;
-    }
-
+const ExamList: React.FC<ExamListProps> = ({ exams, onCreate, onViewDetail, onEdit, onDelete }) => {
     return (
         <div className="exam-list-container">
             <div className="exam-list-header">
-                <h2>Ngân hàng đề thi - Lớp {selectedClass?.name}</h2>
-                <button className="exam-list-btn-primary" onClick={onCreate}>
+                <h2>Danh sách bài kiểm tra</h2>
+                <button className="btn-create-exam" onClick={onCreate}>
                     <FaPlus /> Tạo đề mới
                 </button>
             </div>
 
-            {loading ? (
-                <div className="exam-list-loading">Đang tải danh sách đề thi...</div>
-            ) : (
-                <table className="exam-list-table">
-                    <thead>
-                        <tr>
-                            <th style={{ width: '40%' }}>Tiêu đề & Thời gian</th>
-                            <th style={{ width: '20%' }}>Cấu hình thi</th>
-                            <th style={{ width: '25%' }}>Hiệu lực</th>
-                            <th style={{ width: '15%' }}>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {exams.map((exam) => {
-                            const isUnlimited = exam.max_attempts === 999;
-                            return (
-                                <tr key={exam.id}>
-                                    <td>
-                                        <div className="exam-list-title">{exam.title}</div>
-                                        <div className="exam-list-meta">
-                                            <span className="exam-list-meta-item">
-                                                <FaClock size={12} /> {exam.duration_minutes} phút
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="exam-list-meta">
-                                            <span className="exam-list-meta-item">
-                                                <FaHistory size={12} />
-                                                Lượt làm:{' '}
-                                                {isUnlimited
-                                                    ? 'Không giới hạn'
-                                                    : `${exam.max_attempts} lần`}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div
-                                            className="exam-list-meta"
-                                            style={{
-                                                flexDirection: 'column',
-                                                alignItems: 'flex-start',
-                                                gap: 2,
-                                            }}
-                                        >
-                                            <span className="exam-list-meta-item">
-                                                <FaCalendarAlt size={12} color="#28a745" /> Mở:{' '}
-                                                {new Date(exam.start_time).toLocaleString()}
-                                            </span>
-                                            <span className="exam-list-meta-item">
-                                                <FaCalendarAlt size={12} color="#dc3545" /> Đóng:{' '}
-                                                {new Date(exam.end_time).toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div className="exam-list-actions">
-                                            <button
-                                                className="exam-list-btn-icon exam-list-btn-view"
-                                                onClick={() => setSelectedExamId(exam.id)}
-                                                title="Xem chi tiết"
-                                            >
-                                                <FaEye size={18} />
-                                            </button>
-                                            <button
-                                                className="exam-list-btn-icon"
-                                                onClick={() => onEdit(exam.id)}
-                                                title="Sửa đề thi"
-                                                style={{ color: '#e67e22' }}
-                                            >
-                                                <FaEdit size={18} />
-                                            </button>
-                                            <button
-                                                className="exam-list-btn-icon exam-list-btn-delete"
-                                                onClick={() => handleDelete(exam.id)}
-                                                title="Xoá đề thi"
-                                            >
-                                                <FaTrash size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                        {exams.length === 0 && (
-                            <tr>
-                                <td
-                                    colSpan={4}
-                                    style={{ textAlign: 'center', padding: '2rem', color: '#999' }}
+            <div className="exam-grid">
+                {exams.length === 0 ? (
+                    <p className="empty-text">Chưa có bài kiểm tra nào.</p>
+                ) : (
+                    exams.map((exam) => (
+                        <div key={exam.id} className="exam-card">
+                            <div className="exam-card-body" onClick={() => onViewDetail(exam.id)}>
+                                <h3 className="exam-title">{exam.title}</h3>
+                                <p className="exam-desc">{exam.description || 'Không có mô tả'}</p>
+                                <div className="exam-meta">
+                                    <span>
+                                        <FaClock /> {exam.duration_minutes} phút
+                                    </span>
+                                    <span>
+                                        <FaCalendarAlt />
+                                        {new Date(exam.start_time).toLocaleDateString('vi-VN')}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="exam-card-actions">
+                                <button
+                                    className="btn-action-icon btn-view"
+                                    onClick={() => onViewDetail(exam.id)}
+                                    title="Xem kết quả"
                                 >
-                                    Chưa có bài kiểm tra nào được tạo.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            )}
+                                    <FaEye />
+                                </button>
+                                <button
+                                    className="btn-action-icon btn-edit"
+                                    onClick={() => onEdit(exam)}
+                                    title="Chỉnh sửa đề"
+                                >
+                                    <FaEdit />
+                                </button>
+                                <button
+                                    className="btn-action-icon btn-delete"
+                                    onClick={() => onDelete(exam.id)}
+                                    title="Xóa đề thi"
+                                >
+                                    <FaTrash />
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 };

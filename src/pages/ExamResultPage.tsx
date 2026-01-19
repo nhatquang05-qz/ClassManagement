@@ -1,63 +1,161 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { FaArrowLeft, FaCheck, FaTimes, FaClock, FaUser } from 'react-icons/fa';
-import { useAuth } from '../contexts/AuthContext';
+import {
+    FaArrowLeft,
+    FaCheckCircle,
+    FaTimesCircle,
+    FaHistory,
+    FaCheck,
+    FaTimes,
+} from 'react-icons/fa';
 import '../assets/styles/ExamTakingPage.css';
 
-const isCorrectOption = (optId: string, correctIds: string[]) => correctIds?.includes(optId);
-
-const roundScore = (num: any) => {
-    return Math.round(Number(num) * 100) / 100;
+const formatScore = (num: any) => {
+    const n = parseFloat(num);
+    if (isNaN(n)) return 0;
+    return parseFloat(n.toFixed(2));
 };
 
-const ResultMultipleChoice = ({ options, userAns, correctIds, canViewKey }: any) => {
+const ResultMatching = ({ question, userAnswer }: any) => {
+    const pairs = useMemo(() => userAnswer || {}, [JSON.stringify(userAnswer)]);
+    const correctPairs = useMemo(() => question.content_data?.pairs || [], [question]);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [lines, setLines] = useState<any[]>([]);
+
+    useLayoutEffect(() => {
+        if (!containerRef.current) return;
+
+        const newLines: any[] = [];
+        const containerRect = containerRef.current.getBoundingClientRect();
+
+        Object.entries(pairs).forEach(([leftText, rightText]) => {
+            const leftEl = containerRef.current?.querySelector(`[data-res-left="${leftText}"]`);
+            const rightEl = containerRef.current?.querySelector(
+                `[data-res-right="${String(rightText)}"]`
+            );
+
+            if (leftEl && rightEl) {
+                const leftRect = leftEl.getBoundingClientRect();
+                const rightRect = rightEl.getBoundingClientRect();
+
+                const isCorrect = correctPairs.some(
+                    (p: any) => p.left === leftText && p.right === rightText
+                );
+
+                newLines.push({
+                    x1: leftRect.right - containerRect.left,
+                    y1: leftRect.top + leftRect.height / 2 - containerRect.top,
+                    x2: rightRect.left - containerRect.left,
+                    y2: rightRect.top + rightRect.height / 2 - containerRect.top,
+                    color: isCorrect ? '#28a745' : '#dc3545',
+                    key: `${leftText}-${rightText}`,
+                });
+            }
+        });
+
+        setLines((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(newLines)) {
+                return newLines;
+            }
+            return prev;
+        });
+    }, [pairs, correctPairs]);
+
+    return (
+        <div className="matching-container" ref={containerRef} style={{ position: 'relative' }}>
+            <svg className="matching-lines-svg">
+                {lines.map((line) => (
+                    <line
+                        key={line.key}
+                        x1={line.x1}
+                        y1={line.y1}
+                        x2={line.x2}
+                        y2={line.y2}
+                        stroke={line.color}
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                    />
+                ))}
+            </svg>
+
+            <div className="col-left">
+                {correctPairs.map((p: any, idx: number) => (
+                    <div
+                        key={idx}
+                        data-res-left={p.left}
+                        className="match-item left matched"
+                        style={{ cursor: 'default' }}
+                    >
+                        {p.left}
+                        <span className="connect-dot right"></span>
+                    </div>
+                ))}
+            </div>
+
+            <div className="col-space" style={{ width: '60px' }}></div>
+
+            <div className="col-right">
+                {correctPairs.map((p: any, idx: number) => (
+                    <div
+                        key={idx}
+                        data-res-right={p.right}
+                        className="match-item right matched"
+                        style={{ cursor: 'default' }}
+                    >
+                        <span className="connect-dot left"></span>
+                        {p.right}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const ResultMultipleChoice = ({ question, userAnswer }: any) => {
+    const options = question.content_data?.options || [];
+    const correctIds = question.content_data?.correct_ids || [];
+
     return (
         <div className="mc-options">
-            {options?.map((opt: any) => {
-                const isSelected = userAns === opt.id;
-                const isCorrect = correctIds?.includes(opt.id);
+            {options.map((opt: any) => {
+                const isSelected = String(userAnswer) === String(opt.id);
+                const isCorrect = correctIds.some((id: any) => String(id) === String(opt.id));
 
-                let className = 'mc-label';
-                let style = {};
+                let styleClass = 'mc-label';
+                let borderColor = '1px solid #eee';
+                let bgColor = 'white';
 
-                if (canViewKey) {
-                    if (isSelected && isCorrect) {
-                        className += ' selected correct';
-                        style = { background: '#d4edda', borderColor: '#28a745', color: '#155724' };
-                    } else if (isSelected && !isCorrect) {
-                        className += ' selected wrong';
-                        style = { background: '#f8d7da', borderColor: '#dc3545', color: '#721c24' };
-                    } else if (!isSelected && isCorrect) {
-                        style = { border: '2px dashed #28a745' };
-                    } else if (isSelected) {
-                        className += ' selected';
-                    }
-                } else {
-                    if (isSelected) {
-                        className += ' selected';
-                        style = { background: '#e7f1ff', borderColor: '#007bff' };
-                    }
+                if (isCorrect) {
+                    borderColor = '2px solid #28a745';
+                    bgColor = '#d4edda';
+                } else if (isSelected && !isCorrect) {
+                    borderColor = '2px solid #dc3545';
+                    bgColor = '#f8d7da';
+                } else if (isSelected) {
+                    styleClass += ' selected';
                 }
 
                 return (
                     <div
                         key={opt.id}
-                        className={className}
-                        style={{ ...style, cursor: 'default', pointerEvents: 'none' }}
+                        className={styleClass}
+                        style={{ border: borderColor, backgroundColor: bgColor }}
                     >
                         <input
                             type="radio"
                             checked={isSelected}
                             readOnly
-                            style={{ marginRight: 10 }}
+                            disabled
+                            style={{ marginRight: '10px' }}
                         />
                         {opt.text}
-                        {canViewKey && isSelected && isCorrect && (
-                            <FaCheck style={{ marginLeft: 'auto', color: '#28a745' }} />
+                        {isCorrect && (
+                            <FaCheckCircle color="green" style={{ marginLeft: 'auto' }} />
                         )}
-                        {canViewKey && isSelected && !isCorrect && (
-                            <FaTimes style={{ marginLeft: 'auto', color: '#dc3545' }} />
+                        {isSelected && !isCorrect && (
+                            <FaTimesCircle color="red" style={{ marginLeft: 'auto' }} />
                         )}
                     </div>
                 );
@@ -66,195 +164,109 @@ const ResultMultipleChoice = ({ options, userAns, correctIds, canViewKey }: any)
     );
 };
 
-const ResultFillBlank = ({ userAns, correctAnswer, canViewKey }: any) => {
+const ResultFillBlank = ({ question, userAnswer }: any) => {
+    const correctAnswer = question.content_data?.correct_answer || '';
     const isCorrect =
-        String(userAns || '')
+        String(userAnswer || '')
             .trim()
-            .toLowerCase() ===
-        String(correctAnswer || '')
-            .trim()
-            .toLowerCase();
+            .toLowerCase() === String(correctAnswer).trim().toLowerCase();
 
     return (
-        <div className="fill-blank-area">
-            <div
-                style={{
-                    padding: 10,
-                    border: '1px solid',
-                    borderColor: canViewKey ? (isCorrect ? '#28a745' : '#dc3545') : '#ccc',
-                    background: canViewKey ? (isCorrect ? '#d4edda' : '#f8d7da') : '#fff',
-                    borderRadius: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                }}
-            >
-                <span>{userAns || '(Bỏ trống)'}</span>
-                {canViewKey && (isCorrect ? <FaCheck color="green" /> : <FaTimes color="red" />)}
-            </div>
-
-            {canViewKey && !isCorrect && (
-                <div
-                    style={{ marginTop: 5, color: '#28a745', fontWeight: 500, fontSize: '0.9rem' }}
+        <div>
+            <div style={{ marginBottom: 5 }}>
+                <strong>Trả lời:</strong>
+                <span
+                    style={{
+                        color: isCorrect ? 'green' : 'red',
+                        fontWeight: 'bold',
+                        marginLeft: 5,
+                    }}
                 >
-                    Đáp án đúng: {correctAnswer}
-                </div>
-            )}
-        </div>
-    );
-};
-
-const ResultMatching = ({ pairs, userAns, canViewKey }: any) => {
-    const userPairs = Object.entries(userAns || {});
-
-    return (
-        <div className="matching-result">
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: 10 }}>
-                Các cặp bạn đã nối:
-            </p>
-            <div className="pair-tags">
-                {userPairs.length === 0 && (
-                    <span style={{ color: '#999' }}>Không có câu trả lời</span>
-                )}
-
-                {userPairs.map(([uLeft, uRight]: any, idx) => {
-                    const correctPair = pairs?.find((p: any) => p.left === uLeft);
-                    const isCorrect = correctPair && correctPair.right === uRight;
-
-                    const style = canViewKey
-                        ? {
-                              background: isCorrect ? '#d4edda' : '#f8d7da',
-                              border: `1px solid ${isCorrect ? '#28a745' : '#dc3545'}`,
-                              color: isCorrect ? '#155724' : '#721c24',
-                          }
-                        : {
-                              background: '#e7f1ff',
-                              border: '1px solid #b8daff',
-                          };
-
-                    return (
-                        <div
-                            key={idx}
-                            className="pair-tag"
-                            style={{
-                                ...style,
-                                padding: '8px 12px',
-                                borderRadius: 4,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 10,
-                                marginBottom: 5,
-                            }}
-                        >
-                            <span>{uLeft}</span>
-                            <strong>↔</strong>
-                            <span>{uRight}</span>
-                            {canViewKey && (isCorrect ? <FaCheck /> : <FaTimes />)}
-                        </div>
-                    );
-                })}
+                    {userAnswer || '(Bỏ trống)'}
+                </span>
             </div>
-
-            {canViewKey && pairs && (
-                <div style={{ marginTop: 15, borderTop: '1px dashed #ccc', paddingTop: 10 }}>
-                    <strong style={{ color: '#28a745', fontSize: '0.9rem' }}>Đáp án chuẩn:</strong>
-                    <ul
-                        style={{
-                            margin: '5px 0',
-                            paddingLeft: 20,
-                            fontSize: '0.9rem',
-                            color: '#555',
-                        }}
-                    >
-                        {pairs.map((p: any, i: number) => (
-                            <li key={i}>
-                                {p.left} ↔ {p.right}
-                            </li>
-                        ))}
-                    </ul>
+            {!isCorrect && (
+                <div style={{ color: '#28a745' }}>
+                    <strong>Đáp án đúng:</strong> {correctAnswer}
                 </div>
             )}
         </div>
     );
 };
 
-const ResultOrdering = ({ correctItems, userAns, canViewKey }: any) => {
-    const userList = Array.isArray(userAns) ? userAns : [];
+const ResultOrdering = ({ question, userAnswer }: any) => {
+    const correctItems = question.content_data?.items || [];
+
+    const itemsToShow = userAnswer && Array.isArray(userAnswer) ? userAnswer : [];
 
     return (
         <div className="ordering-container">
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: 10 }}>
-                Thứ tự bạn đã xếp:
-            </p>
-            {userList.map((item: any, index: number) => {
-                const isCorrectPos =
-                    correctItems && correctItems[index] && correctItems[index].text === item.text;
-
-                const style = canViewKey
-                    ? {
-                          background: isCorrectPos ? '#d4edda' : '#f8d7da',
-                          borderColor: isCorrectPos ? '#28a745' : '#dc3545',
-                      }
-                    : {};
-
-                return (
-                    <div key={index} className="order-item" style={{ ...style, cursor: 'default' }}>
-                        <div className="order-content">
-                            <span
-                                className="index-badge"
-                                style={{
-                                    background: canViewKey
-                                        ? isCorrectPos
-                                            ? '#28a745'
-                                            : '#dc3545'
-                                        : '#007bff',
-                                }}
-                            >
-                                {index + 1}
-                            </span>
-                            {item.text}
-                        </div>
-                        {canViewKey &&
-                            (isCorrectPos ? <FaCheck color="green" /> : <FaTimes color="red" />)}
-                    </div>
-                );
-            })}
-
-            {canViewKey &&
-                !userList.every(
-                    (item: any, idx: number) => correctItems[idx]?.text === item.text
-                ) && (
-                    <div style={{ marginTop: 15 }}>
-                        <strong style={{ color: '#28a745', fontSize: '0.9rem' }}>
-                            Thứ tự đúng:
-                        </strong>
-                        <ol
+            {itemsToShow.length > 0 ? (
+                itemsToShow.map((item: any, index: number) => {
+                    const isCorrectPos = correctItems[index]?.text === item.text;
+                    return (
+                        <div
+                            key={index}
+                            className="order-item"
                             style={{
-                                paddingLeft: 20,
-                                margin: '5px 0',
-                                fontSize: '0.9rem',
-                                color: '#555',
+                                border: isCorrectPos ? '1px solid #28a745' : '1px solid #dc3545',
+                                background: isCorrectPos ? '#e8f5e9' : '#ffebee',
                             }}
                         >
-                            {correctItems?.map((it: any, i: number) => (
-                                <li key={i}>{it.text}</li>
-                            ))}
-                        </ol>
-                    </div>
-                )}
+                            <div className="order-content">
+                                <span className="index-badge">{index + 1}</span>
+                                {item.text}
+                            </div>
+                            <div style={{ marginLeft: 'auto' }}>
+                                {isCorrectPos ? <FaCheck color="green" /> : <FaTimes color="red" />}
+                            </div>
+                        </div>
+                    );
+                })
+            ) : (
+                <div style={{ color: '#999', fontStyle: 'italic', padding: 10 }}>
+                    Bạn chưa sắp xếp câu này.
+                </div>
+            )}
+
+            {}
+            {JSON.stringify(itemsToShow) !== JSON.stringify(correctItems) && (
+                <div
+                    style={{
+                        marginTop: 15,
+                        padding: 15,
+                        background: '#f9f9f9',
+                        borderRadius: 6,
+                        border: '1px solid #eee',
+                    }}
+                >
+                    <strong style={{ color: '#28a745' }}>Thứ tự đúng:</strong>
+                    <ol style={{ paddingLeft: 20, margin: '5px 0' }}>
+                        {correctItems.map((it: any, i: number) => (
+                            <li key={i} style={{ marginBottom: 4 }}>
+                                {it.text}
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+            )}
         </div>
     );
 };
 
-const ResultQuestionRenderer = ({ question, canViewResults }: any) => {
-    const { type, content, media_url, content_data, user_answer, points, score_obtained } =
-        question;
-    const data = content_data || {};
+const ResultQuestionRenderer = ({ question }: any) => {
+    const { id, type, content, points, user_answer, is_correct, score_obtained } = question;
 
-    const isMultipleChoice = type === 'multiple_choice';
-    const isFillBlank = type === 'fill_in_blank';
-    const isMatching = type === 'matching';
-    const isOrdering = type === 'ordering';
+    const parsedUserAnswer = useMemo(() => {
+        if (typeof user_answer === 'string') {
+            try {
+                return JSON.parse(user_answer);
+            } catch {
+                return user_answer;
+            }
+        }
+        return user_answer;
+    }, [user_answer]);
 
     return (
         <div
@@ -265,90 +277,68 @@ const ResultQuestionRenderer = ({ question, canViewResults }: any) => {
                 marginBottom: 20,
                 borderRadius: 8,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                borderLeft: canViewResults
-                    ? score_obtained >= points
-                        ? '5px solid #28a745'
-                        : '5px solid #dc3545'
-                    : '5px solid #007bff',
+                borderLeft: is_correct ? '5px solid #28a745' : '5px solid #dc3545',
             }}
         >
-            {}
             <div
                 style={{
                     marginBottom: 15,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
                 }}
             >
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, flex: 1 }}>
-                    <span style={{ color: '#007bff', marginRight: 8 }}>Câu hỏi:</span>
+                <div style={{ flex: 1 }}>
+                    <span style={{ color: '#007bff', marginRight: 8, fontWeight: 'bold' }}>
+                        Câu hỏi:
+                    </span>
                     {content}
                 </div>
-                <div style={{ whiteSpace: 'nowrap', marginLeft: 10, textAlign: 'right' }}>
-                    <span style={{ fontSize: '0.9rem', color: '#666', display: 'block' }}>
-                        {roundScore(points)} điểm
-                    </span>
-                    {canViewResults && (
-                        <span
-                            style={{
-                                fontWeight: 'bold',
-                                color: score_obtained > 0 ? '#28a745' : '#dc3545',
-                            }}
-                        >
-                            Đạt: {roundScore(score_obtained)}
-                        </span>
-                    )}
+                <div style={{ textAlign: 'right', minWidth: '100px' }}>
+                    <div
+                        style={{
+                            fontSize: '0.9rem',
+                            color: is_correct ? 'green' : 'red',
+                            fontWeight: 'bold',
+                        }}
+                    >
+                        {is_correct ? 'ĐÚNG' : 'SAI'}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>
+                        {formatScore(score_obtained)} / {formatScore(points)} điểm
+                    </div>
                 </div>
             </div>
 
-            {media_url && (
+            {question.media_url && (
                 <div style={{ marginBottom: 15, textAlign: 'center' }}>
                     {question.media_type === 'audio' ? (
-                        <audio controls src={media_url} style={{ width: '100%' }} />
+                        <audio controls src={question.media_url} style={{ width: '100%' }} />
                     ) : (
                         <img
-                            src={media_url}
+                            src={question.media_url}
                             style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 4 }}
                         />
                     )}
                 </div>
             )}
 
-            {}
-
-            {isMultipleChoice && (
-                <ResultMultipleChoice
-                    options={data.options}
-                    userAns={user_answer}
-                    correctIds={data.correct_ids}
-                    canViewKey={canViewResults}
-                />
-            )}
-
-            {isFillBlank && (
-                <ResultFillBlank
-                    userAns={user_answer}
-                    correctAnswer={data.correct_answer}
-                    canViewKey={canViewResults}
-                />
-            )}
-
-            {isMatching && (
-                <ResultMatching
-                    pairs={data.pairs}
-                    userAns={user_answer}
-                    canViewKey={canViewResults}
-                />
-            )}
-
-            {isOrdering && (
-                <ResultOrdering
-                    correctItems={data.items}
-                    userAns={user_answer}
-                    canViewKey={canViewResults}
-                />
-            )}
+            <div className="result-content">
+                {type === 'multiple_choice' && (
+                    <ResultMultipleChoice question={question} userAnswer={parsedUserAnswer} />
+                )}
+                {(type === 'fill_in_blank' || type === 'fill_blank') && (
+                    <ResultFillBlank question={question} userAnswer={parsedUserAnswer} />
+                )}
+                {type === 'matching' && (
+                    <ResultMatching question={question} userAnswer={parsedUserAnswer} />
+                )}
+                {(type === 'ordering' || type === 'reorder') && (
+                    <ResultOrdering question={question} userAnswer={parsedUserAnswer} />
+                )}
+            </div>
         </div>
     );
 };
@@ -356,148 +346,119 @@ const ResultQuestionRenderer = ({ question, canViewResults }: any) => {
 const ExamResultPage = () => {
     const { submissionId } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
     const [data, setData] = useState<any>(null);
+    const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        api.get(`/exams/review/${submissionId}`)
-            .then((res) => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const res = await api.get(`/exams/review/${submissionId}`);
                 setData(res.data);
+
+                const examId = res.data.exam.exam_id;
+                const histRes = await api.get(`/exams/${examId}/submissions`);
+                setHistory(histRes.data);
+            } catch (error) {
+                console.error(error);
+            } finally {
                 setLoading(false);
-            })
-            .catch((err) => {
-                console.error(err);
-                alert('Không thể tải kết quả.');
-                if (user?.role === 'student') navigate('/student-exams');
-                else navigate('/create-exam');
-            });
-    }, [submissionId, navigate, user]);
+            }
+        };
+        if (submissionId) fetchData();
+    }, [submissionId]);
+
+    const handleAttemptChange = (newSubId: string) => {
+        if (newSubId !== submissionId) {
+            navigate(`/exam-review/${newSubId}`);
+        }
+    };
 
     const handleBack = () => {
-        if (user?.role === 'student') navigate('/student-exams');
-        else navigate(-1);
+        navigate(-1);
     };
 
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Đang tải kết quả...</div>;
-    if (!data) return null;
+    if (!data)
+        return <div style={{ padding: 40, textAlign: 'center' }}>Không tìm thấy dữ liệu.</div>;
 
     const { exam, sections } = data;
 
-    const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
-    const mode = exam.view_answer_mode;
-    const isAfterClose = exam.end_time ? new Date() > new Date(exam.end_time) : false;
-
-    let canViewResults = false;
-    if (isTeacher) {
-        canViewResults = true;
-    } else {
-        if (mode === 'immediate') canViewResults = true;
-        else if (mode === 'after_close' && isAfterClose) canViewResults = true;
-        else canViewResults = false;
-    }
-
     return (
         <div className="exam-taking-page">
-            {}
             <div
                 className="exam-header"
-                style={{
-                    height: 'auto',
-                    padding: '15px 20px',
-                    flexDirection: 'column',
-                    gap: 10,
-                    alignItems: 'stretch',
-                }}
+                style={{ height: 'auto', flexWrap: 'wrap', gap: 10, padding: '15px' }}
             >
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                    }}
-                >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <button
+                        className="btn-submit"
+                        style={{ background: '#6c757d', padding: '8px 15px' }}
                         onClick={handleBack}
-                        className="btn-back"
-                        style={{ border: 'none', padding: 0 }}
                     >
-                        <FaArrowLeft /> {user?.role === 'student' ? 'Danh sách đề thi' : 'Quay lại'}
+                        <FaArrowLeft /> Quay lại
                     </button>
-                    <h3 style={{ margin: 0 }}>{exam.title}</h3>
-                    <div style={{ width: 100, textAlign: 'right' }}></div>
-                </div>
-
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        gap: 30,
-                        flexWrap: 'wrap',
-                        background: '#f8f9fa',
-                        padding: 10,
-                        borderRadius: 8,
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <FaUser color="#555" />
-                        <strong>
-                            {isTeacher
-                                ? `Học sinh: ${exam.student_name || 'N/A'}`
-                                : 'Kết quả của bạn'}
-                        </strong>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <FaClock color="#555" />
-                        Nộp lúc: {new Date(exam.submitted_at).toLocaleString()}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <strong>Điểm số:</strong>
-                        <span
-                            style={{
-                                fontSize: '1.2rem',
-                                fontWeight: 'bold',
-                                color: exam.score >= 5 ? '#28a745' : '#dc3545',
-                            }}
-                        >
-                            {roundScore(exam.score)}
+                    <div>
+                        <h3 style={{ margin: 0 }}>{exam.title}</h3>
+                        <span style={{ fontSize: '0.9rem', color: '#666' }}>
+                            Học sinh: {exam.student_name}
                         </span>
                     </div>
                 </div>
 
-                {!canViewResults && !isTeacher && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div
                         style={{
-                            textAlign: 'center',
-                            color: '#dc3545',
-                            fontSize: '0.9rem',
-                            fontStyle: 'italic',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            background: '#f8f9fa',
+                            padding: '5px 10px',
+                            borderRadius: 6,
+                            border: '1px solid #ddd',
                         }}
                     >
-                        * Bạn chỉ có thể xem điểm số. Chi tiết đáp án đang bị ẩn bởi giáo viên.
+                        <FaHistory color="#007bff" />
+                        <select
+                            value={submissionId}
+                            onChange={(e) => handleAttemptChange(e.target.value)}
+                            style={{
+                                border: 'none',
+                                background: 'transparent',
+                                fontWeight: 'bold',
+                                outline: 'none',
+                                cursor: 'pointer',
+                                maxWidth: '200px',
+                            }}
+                        >
+                            {history.map((h: any, idx: number) => (
+                                <option key={h.id} value={h.id}>
+                                    Lần {h.attempt_number} - {formatScore(h.score)} điểm
+                                </option>
+                            ))}
+                        </select>
                     </div>
-                )}
+
+                    <div
+                        className="timer-badge"
+                        style={{ color: '#28a745', borderColor: '#28a745', background: '#e8f5e9' }}
+                    >
+                        Điểm: {formatScore(exam.score)}
+                    </div>
+                </div>
             </div>
 
-            {}
             <div className="exam-body-container">
                 {sections.map((sec: any) => (
-                    <div key={sec.id} className="section-block">
+                    <div key={sec.id || `sec-${Math.random()}`} className="section-block">
                         <div className="section-title">
                             <h4>{sec.title}</h4>
-                            {sec.description && <p>{sec.description}</p>}
                         </div>
-                        {sec.media_url && (
-                            <div style={{ marginBottom: 15 }}>
-                                <audio controls src={sec.media_url} style={{ width: '100%' }} />
-                            </div>
-                        )}
-
-                        {sec.questions?.map((q: any) => (
+                        {sec.questions.map((q: any) => (
                             <ResultQuestionRenderer
-                                key={q.id}
+                                key={q.id || `q-${Math.random()}`}
                                 question={q}
-                                canViewResults={canViewResults}
                             />
                         ))}
                     </div>
