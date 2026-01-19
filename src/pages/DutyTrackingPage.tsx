@@ -30,6 +30,18 @@ interface DutyViolation {
     violation_type: string;
     student_name?: string;
     note?: string;
+    created_at?: string;
+}
+
+interface GroupedViolation {
+    key: string;
+    ids: number[];
+    date: string;
+    group_number: number;
+    violation_type: string;
+    student_names: string[];
+    note?: string;
+    created_at: string;
 }
 
 const DutyTrackingPage: React.FC = () => {
@@ -62,16 +74,11 @@ const DutyTrackingPage: React.FC = () => {
 
     const canEdit = useMemo(() => {
         if (!user) return false;
-
         const isTeacherOrAdmin = user.role === 'teacher' || user.role === 'admin';
         const isViceLabor = user.role === 'vice_monitor_labor';
 
         if (isTeacherOrAdmin) return true;
-
-        if (isViceLabor) {
-            return week >= currentRealWeek;
-        }
-
+        if (isViceLabor) return week >= currentRealWeek;
         return false;
     }, [user, week, currentRealWeek]);
 
@@ -119,13 +126,67 @@ const DutyTrackingPage: React.FC = () => {
         }
     };
 
+    const groupedViolations = useMemo(() => {
+        if (!violations || violations.length === 0) return [];
+
+        const groups: Record<string, GroupedViolation> = {};
+
+        violations.forEach((v) => {
+            const timeKey = v.created_at ? new Date(v.created_at).getTime() : v.id;
+
+            const key = `${v.date}_${v.violation_type}_${v.group_number}_${timeKey}_${v.note?.trim()}`;
+
+            if (!groups[key]) {
+                groups[key] = {
+                    key,
+                    ids: [v.id],
+                    date: v.date,
+                    group_number: v.group_number,
+                    violation_type: v.violation_type,
+                    student_names: v.student_name ? [v.student_name] : [],
+                    note: v.note,
+                    created_at: v.created_at || '',
+                };
+            } else {
+                groups[key].ids.push(v.id);
+                if (v.student_name) {
+                    groups[key].student_names.push(v.student_name);
+                }
+            }
+        });
+
+        return Object.values(groups).sort((a, b) => {
+            const timeA = new Date(a.created_at).getTime();
+            const timeB = new Date(b.created_at).getTime();
+            return timeB - timeA;
+        });
+    }, [violations]);
+
+    const currentDayViolations = useMemo(() => {
+        const dateStr = weekDates[activeDayTab];
+        if (!dateStr) return [];
+        return groupedViolations.filter((v) => v.date.startsWith(dateStr));
+    }, [groupedViolations, activeDayTab, weekDates]);
+
+    const uniqueGroups = useMemo(
+        () => Array.from(new Set(students.map((s) => s.group_number))).sort((a, b) => a - b),
+        [students]
+    );
+
+    const getViolationCount = (group: number, type: string) => {
+        return currentDayViolations.filter(
+            (v) => v.group_number === group && v.violation_type === type
+        ).length;
+    };
+
+    const getTotalViolationPerGroup = (group: number) => {
+        return currentDayViolations.filter((v) => v.group_number === group).length;
+    };
+
     const handleToggleSchedule = async (day: number, group: number) => {
         if (!canEdit) {
-            if (week < currentRealWeek) {
-                alert('Không thể chỉnh sửa lịch trực nhật của tuần đã qua.');
-            } else {
-                alert('Bạn không có quyền chỉnh sửa.');
-            }
+            if (week < currentRealWeek) alert('Không thể chỉnh sửa tuần đã qua.');
+            else alert('Bạn không có quyền chỉnh sửa.');
             return;
         }
 
@@ -134,7 +195,6 @@ const DutyTrackingPage: React.FC = () => {
         const newSchedules = isAssigned
             ? schedules.filter((s) => !(s.day_of_week === day && s.group_number === group))
             : [...schedules, { id: Date.now(), day_of_week: day, group_number: group }];
-
         setSchedules(newSchedules);
 
         try {
@@ -167,7 +227,7 @@ const DutyTrackingPage: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleSaveViolation = async (studentId: string | null, note: string) => {
+    const handleSaveViolation = async (studentIds: string[] | null, note: string) => {
         if (!modalData) return;
         try {
             await api.post('/duty/violation', {
@@ -175,7 +235,7 @@ const DutyTrackingPage: React.FC = () => {
                 date: modalData.date,
                 week_number: week,
                 group_number: modalData.group,
-                student_id: studentId,
+                student_ids: studentIds,
                 violation_type: modalData.type,
                 note: note,
                 reporter_id: user?.id,
@@ -183,35 +243,19 @@ const DutyTrackingPage: React.FC = () => {
             setIsModalOpen(false);
             loadDutyData();
         } catch (error) {
-            alert('Lỗi lưu vi phạm');
+            console.error(error);
+            alert('Lỗi khi lưu vi phạm.');
         }
     };
 
-    const handleDeleteViolation = async (id: number) => {
+    const handleDeleteGroup = async (ids: number[]) => {
         if (!canEdit || !window.confirm('Xóa ghi nhận này?')) return;
         try {
-            await api.delete(`/duty/violation/${id}`);
+            await api.delete(`/duty/violation/${ids.join(',')}`);
             loadDutyData();
         } catch (e) {
             alert('Lỗi xóa');
         }
-    };
-
-    const uniqueGroups = useMemo(
-        () => Array.from(new Set(students.map((s) => s.group_number))).sort((a, b) => a - b),
-        [students]
-    );
-
-    const currentDayViolations = useMemo(() => {
-        const dateStr = weekDates[activeDayTab];
-        if (!dateStr) return [];
-        return violations.filter((v) => v.date.startsWith(dateStr));
-    }, [violations, activeDayTab, weekDates]);
-
-    const getViolationCount = (group: number, type: string) => {
-        return currentDayViolations.filter(
-            (v) => v.group_number === group && v.violation_type === type
-        ).length;
     };
 
     return (
@@ -226,7 +270,6 @@ const DutyTrackingPage: React.FC = () => {
                     </h1>
                 </div>
 
-                {}
                 <div className="week-control-area">
                     <button
                         className="btn-nav"
@@ -253,7 +296,6 @@ const DutyTrackingPage: React.FC = () => {
                 </div>
             </div>
 
-            {}
             <div className="duty-section-card">
                 <h3 className="duty-section-title">
                     <FaCalendarAlt color="#3498db" /> PHÂN CÔNG LỊCH TRỰC
@@ -291,9 +333,6 @@ const DutyTrackingPage: React.FC = () => {
                                                     cursor: canEdit ? 'pointer' : 'not-allowed',
                                                     opacity: !canEdit && !isChecked ? 0.5 : 1,
                                                 }}
-                                                title={
-                                                    !canEdit ? 'Không thể chỉnh sửa tuần này' : ''
-                                                }
                                             >
                                                 {isChecked ? (
                                                     <FaCheck color="green" size={18} />
@@ -308,7 +347,6 @@ const DutyTrackingPage: React.FC = () => {
                 </div>
             </div>
 
-            {}
             <div className="duty-section-card">
                 <h3 className="duty-section-title">
                     <FaUserEdit color="#e67e22" /> GHI NHẬN VI PHẠM NGÀY
@@ -376,20 +414,53 @@ const DutyTrackingPage: React.FC = () => {
                                     </td>
                                 </tr>
                             ))}
+                            <tr style={{ backgroundColor: '#f9fafb', borderTop: '2px solid #eee' }}>
+                                <td
+                                    style={{
+                                        fontWeight: 'bold',
+                                        color: '#2c3e50',
+                                        textAlign: 'left',
+                                        paddingLeft: '15px',
+                                    }}
+                                >
+                                    TỔNG SỐ LỖI
+                                </td>
+                                {uniqueGroups.map((g) => (
+                                    <td
+                                        key={`total-${g}`}
+                                        style={{
+                                            fontWeight: 'bold',
+                                            textAlign: 'center',
+                                            color: '#e74c3c',
+                                        }}
+                                    >
+                                        {getTotalViolationPerGroup(g) > 0
+                                            ? getTotalViolationPerGroup(g)
+                                            : '-'}
+                                    </td>
+                                ))}
+                                <td
+                                    style={{
+                                        fontWeight: 'bold',
+                                        textAlign: 'center',
+                                        color: '#c0392b',
+                                    }}
+                                >
+                                    {currentDayViolations.length}
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {}
             <DutyHistoryTable
-                violations={violations}
+                groupedViolations={groupedViolations}
                 week={week}
                 canEdit={canEdit}
-                onDelete={handleDeleteViolation}
+                onDelete={handleDeleteGroup}
             />
 
-            {}
             <DutyViolationModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

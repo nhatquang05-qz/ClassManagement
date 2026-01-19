@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { FaSave } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaSave, FaPlus, FaMinus, FaTimes } from 'react-icons/fa';
 import '../../assets/styles/DutyTracking.css';
 
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (studentId: string | null, note: string) => void;
+
+    onSave: (studentIds: string[] | null, note: string) => void;
     data: {
         group: number;
         type: string;
@@ -16,44 +17,131 @@ interface Props {
 }
 
 const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, students }) => {
-    const [selectedStudent, setSelectedStudent] = useState<string>('');
+    const [selectedIds, setSelectedIds] = useState<string[]>(['']);
     const [modalNote, setModalNote] = useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedIds(['']);
+            setModalNote('');
+        }
+    }, [isOpen, data]);
 
     if (!isOpen || !data) return null;
 
-    const handleSave = () => {
-        onSave(selectedStudent || null, modalNote);
+    const groupStudents = students.filter((s) => s.group_number === data.group);
 
-        setSelectedStudent('');
+    const handleAddSlot = () => {
+        setSelectedIds([...selectedIds, '']);
+    };
+
+    const handleRemoveSlot = (index: number) => {
+        const newIds = [...selectedIds];
+        newIds.splice(index, 1);
+        setSelectedIds(newIds);
+    };
+
+    const handleChangeSlot = (index: number, value: string) => {
+        const newIds = [...selectedIds];
+        newIds[index] = value;
+
+        if (index === 0 && value === '') {
+            setSelectedIds(['']);
+            return;
+        }
+        setSelectedIds(newIds);
+    };
+
+    const handleSave = () => {
+        const isAllGroup = selectedIds.length === 1 && selectedIds[0] === '';
+
+        if (isAllGroup) {
+            onSave(null, modalNote);
+        } else {
+            const validIds = selectedIds.filter((id) => id !== '');
+            if (validIds.length === 0) {
+                onSave(null, modalNote);
+            } else {
+                onSave(validIds, modalNote);
+            }
+        }
+
+        setSelectedIds(['']);
         setModalNote('');
     };
 
-    const groupStudents = students.filter((s) => s.group_number === data.group);
+    const isFirstRowAllGroup = selectedIds.length > 0 && selectedIds[0] === '';
 
     return (
         <div className="duty-modal-overlay">
             <div className="duty-modal-content">
-                <div className="duty-modal-header">Ghi nhận: {data.typeName}</div>
+                <div className="duty-modal-header">
+                    <span>{data.typeName}</span>
+                    <button className="duty-close-btn" onClick={onClose}>
+                        <FaTimes />
+                    </button>
+                </div>
 
-                <div style={{ marginBottom: '15px', fontSize: '0.9rem', color: '#666' }}>
-                    <strong>Ngày:</strong> {new Date(data.date).toLocaleDateString('vi-VN')} <br />
+                <div className="duty-modal-info">
+                    <strong>Ngày:</strong> {new Date(data.date).toLocaleDateString('vi-VN')}
+                    <span className="duty-divider">|</span>
                     <strong>Tổ:</strong> {data.group}
                 </div>
 
                 <div className="duty-form-group">
-                    <label className="duty-form-label">Người vi phạm (Để trống nếu cả tổ):</label>
-                    <select
-                        className="duty-form-select"
-                        value={selectedStudent}
-                        onChange={(e) => setSelectedStudent(e.target.value)}
-                    >
-                        <option value="">-- Cả tổ {data.group} --</option>
-                        {groupStudents.map((s) => (
-                            <option key={s.id} value={s.id}>
-                                {s.full_name}
-                            </option>
+                    <label className="duty-form-label">Người vi phạm:</label>
+
+                    <div className="duty-student-list">
+                        {selectedIds.map((id, index) => (
+                            <div key={index} className="duty-student-row">
+                                <select
+                                    className="duty-form-select"
+                                    value={id}
+                                    onChange={(e) => handleChangeSlot(index, e.target.value)}
+                                >
+                                    {}
+                                    {index === 0 && (
+                                        <option value="">-- Cả tổ {data.group} --</option>
+                                    )}
+                                    {index > 0 && (
+                                        <option value="" disabled>
+                                            -- Chọn học sinh --
+                                        </option>
+                                    )}
+
+                                    {groupStudents.map((s) => (
+                                        <option
+                                            key={s.id}
+                                            value={s.id}
+                                            disabled={
+                                                selectedIds.includes(s.id.toString()) &&
+                                                id !== s.id.toString()
+                                            }
+                                        >
+                                            {s.full_name}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                {}
+                                {selectedIds.length > 1 && (
+                                    <button
+                                        className="duty-icon-btn remove"
+                                        onClick={() => handleRemoveSlot(index)}
+                                    >
+                                        <FaMinus />
+                                    </button>
+                                )}
+                            </div>
                         ))}
-                    </select>
+                    </div>
+
+                    {}
+                    {!isFirstRowAllGroup && groupStudents.length > selectedIds.length && (
+                        <button className="duty-add-btn" onClick={handleAddSlot}>
+                            <FaPlus /> Thêm người
+                        </button>
+                    )}
                 </div>
 
                 <div className="duty-form-group">
@@ -63,7 +151,7 @@ const DutyViolationModal: React.FC<Props> = ({ isOpen, onClose, onSave, data, st
                         rows={3}
                         value={modalNote}
                         onChange={(e) => setModalNote(e.target.value)}
-                        placeholder="Nhập ghi chú chi tiết..."
+                        placeholder="Nhập chi tiết..."
                     />
                 </div>
 
