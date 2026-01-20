@@ -191,6 +191,43 @@ const MainLayout: React.FC = () => {
                                         </Link>
                                     )}
                                 </li>
+
+                                {}
+                                {(user?.role === 'group_leader' ||
+                                    user?.role === 'monitor' ||
+                                    user?.role === 'teacher' ||
+                                    user?.role === 'admin' ||
+                                    user?.role === 'student') && (
+                                    <li>
+                                        {isClassLocked ? (
+                                            <div
+                                                className="nav-item"
+                                                style={{ cursor: 'not-allowed', opacity: 0.5 }}
+                                            >
+                                                <span className="icon">
+                                                    <FaClipboardList />
+                                                </span>
+                                                {isSidebarOpen && (
+                                                    <span className="label">Sổ theo dõi</span>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <Link
+                                                to="/tracking"
+                                                className={`nav-item ${isActive('/tracking')}`}
+                                            >
+                                                <span className="icon">
+                                                    <FaClipboardList />
+                                                </span>
+                                                {isSidebarOpen && (
+                                                    <span className="label">Sổ theo dõi</span>
+                                                )}
+                                            </Link>
+                                        )}
+                                    </li>
+                                )}
+                                {}
+
                                 <li>
                                     {isClassLocked ? (
                                         <div
@@ -330,40 +367,6 @@ const MainLayout: React.FC = () => {
                                                 <span className="label">Cá nhân</span>
                                             )}
                                         </Link>
-                                    </li>
-                                )}
-
-                                {(user?.role === 'group_leader' ||
-                                    user?.role === 'monitor' ||
-                                    user?.role === 'teacher' ||
-                                    user?.role === 'admin' ||
-                                    user?.role === 'student') && (
-                                    <li>
-                                        {isClassLocked ? (
-                                            <div
-                                                className="nav-item"
-                                                style={{ cursor: 'not-allowed', opacity: 0.5 }}
-                                            >
-                                                <span className="icon">
-                                                    <FaClipboardList />
-                                                </span>
-                                                {isSidebarOpen && (
-                                                    <span className="label">Sổ theo dõi</span>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <Link
-                                                to="/tracking"
-                                                className={`nav-item ${isActive('/tracking')}`}
-                                            >
-                                                <span className="icon">
-                                                    <FaClipboardList />
-                                                </span>
-                                                {isSidebarOpen && (
-                                                    <span className="label">Sổ theo dõi</span>
-                                                )}
-                                            </Link>
-                                        )}
                                     </li>
                                 )}
 

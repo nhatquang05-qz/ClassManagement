@@ -29,6 +29,35 @@ const DutyHistoryTable: React.FC<Props> = ({ groupedViolations, week, canEdit, o
                 return 'Không giữ vệ sinh';
             case 'NO_LABOR':
                 return 'Không lao động';
+
+            case 'NO_HOMEWORK':
+                return 'Không làm bài tập';
+            case 'NO_PREP':
+                return 'Không chuẩn bị bài';
+            case 'NO_LESSON':
+                return 'Không thuộc bài';
+            case 'SCORE_1_4':
+                return 'Điểm 1-4';
+            case 'SCORE_5_7':
+                return 'Điểm 5-7';
+            case 'SCORE_8_10':
+                return 'Điểm 8-10';
+
+            case 'LATE':
+                return 'Đi trễ';
+            case 'SKIP':
+                return 'Bỏ tiết';
+            case 'DISORDER':
+                return 'Gây mất trật tự';
+            case 'UNIFORM':
+                return 'Không đồng phục';
+            case 'SWEARING':
+                return 'Nói tục - Chửi thề';
+            case 'FIGHTING':
+                return 'Đánh nhau';
+            case 'DISRESPECT':
+                return 'Vô lễ';
+
             default:
                 return code;
         }
@@ -69,15 +98,14 @@ const DutyHistoryTable: React.FC<Props> = ({ groupedViolations, week, canEdit, o
                                     </td>
                                     <td>
                                         <span className="badge-violation negative">
+                                            {}
                                             {getViolationLabel(v.violation_type)}
                                         </span>
                                     </td>
                                     <td>
                                         {v.student_names.length > 0 ? (
                                             <div style={{ fontWeight: 500, lineHeight: '1.4' }}>
-                                                {}
                                                 {v.student_names.join(', ')}
-                                                {}
                                                 {v.student_names.length > 3 && (
                                                     <span
                                                         style={{ color: '#888', fontSize: '0.8em' }}
