@@ -1,240 +1,347 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../utils/api';
 import { useClass } from '../contexts/ClassContext';
+import api from '../utils/api';
 import {
+    FaClipboardList,
+    FaSearch,
     FaClock,
-    FaPlayCircle,
-    FaHistory,
-    FaCheckCircle,
+    FaPlay,
     FaEye,
+    FaCheckCircle,
+    FaHistory,
+    FaStar,
     FaCalendarAlt,
+    FaHourglassHalf,
+    FaExclamationCircle,
 } from 'react-icons/fa';
+import '../assets/styles/ExamList.css';
 
-const StudentExamPage = () => {
+const StudentExamPage: React.FC = () => {
     const { selectedClass } = useClass();
-    const [exams, setExams] = useState<any[]>([]);
     const navigate = useNavigate();
+    const [exams, setExams] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        if (selectedClass?.id) {
-            api.get(`/exams/class/${selectedClass.id}`)
-                .then((res) => setExams(res.data))
-                .catch((err) => console.error(err));
+        if (selectedClass) {
+            fetchExams();
         }
     }, [selectedClass]);
 
-    const handleStartExam = (examId: number) => {
-        navigate(`/take-exam/${examId}`);
+    const fetchExams = async () => {
+        try {
+            setLoading(true);
+            const res = await api.get(`/exams/class/${selectedClass?.id}`);
+            setExams(res.data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleReview = (submissionId: number) => {
+    const handleStartExam = (examId: number) => {
+        if (window.confirm('Bắt đầu làm bài thi? Thời gian sẽ bắt đầu tính ngay lập tức.')) {
+            navigate(`/take-exam/${examId}`);
+        }
+    };
+
+    const handleReviewExam = (submissionId: number) => {
         navigate(`/exam-review/${submissionId}`);
     };
 
+    const filteredExams = exams.filter((e) =>
+        e.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const getExamStatus = (exam: any) => {
+        const now = new Date();
+        const start = new Date(exam.start_time);
+        const end = new Date(exam.end_time);
+
+        if (now < start) return { text: 'Chưa mở', color: '#6c757d', icon: <FaClock /> };
+        if (now > end) return { text: 'Đã đóng', color: '#dc3545', icon: <FaExclamationCircle /> };
+        if (exam.attempt_count > 0)
+            return { text: 'Đã làm', color: '#28a745', icon: <FaCheckCircle /> };
+        return { text: 'Đang diễn ra', color: '#007bff', icon: <FaHourglassHalf /> };
+    };
+
+    if (loading)
+        return (
+            <div style={{ padding: 40, textAlign: 'center', color: '#666' }}>
+                <FaHourglassHalf className="spin" /> Đang tải danh sách đề thi...
+            </div>
+        );
+
     return (
-        <div style={{ padding: 20 }}>
-            <h2>Bài kiểm tra của lớp {selectedClass?.name}</h2>
+        <div className="exam-list-container" style={{ padding: 20 }}>
+            {}
             <div
-                className="exam-grid"
+                className="exam-header"
+                style={{ marginBottom: 20, borderBottom: '2px solid #f0f0f0', paddingBottom: 15 }}
+            >
+                <h2
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        color: '#2c3e50',
+                        margin: 0,
+                    }}
+                >
+                    <FaClipboardList color="#007bff" />
+                    Danh sách Bài kiểm tra
+                </h2>
+                <div style={{ marginTop: 10, position: 'relative' }}>
+                    <FaSearch
+                        style={{
+                            position: 'absolute',
+                            left: 12,
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            color: '#aaa',
+                        }}
+                    />
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm bài thi..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '10px 10px 10px 35px',
+                            borderRadius: 8,
+                            border: '1px solid #ddd',
+                            outline: 'none',
+                        }}
+                    />
+                </div>
+            </div>
+
+            {}
+            <div
                 style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
                     gap: 20,
-                    marginTop: 20,
                 }}
             >
-                {exams.map((exam) => {
-                    const isUnlimited = exam.max_attempts === 999;
-                    const attemptsUsed = exam.attempt_count || 0;
-                    const attemptsRemaining = exam.max_attempts - attemptsUsed;
+                {filteredExams.length === 0 ? (
+                    <div
+                        style={{
+                            gridColumn: '1/-1',
+                            textAlign: 'center',
+                            color: '#999',
+                            padding: 30,
+                            background: '#f9f9f9',
+                            borderRadius: 8,
+                        }}
+                    >
+                        Không có bài kiểm tra nào.
+                    </div>
+                ) : (
+                    filteredExams.map((exam) => {
+                        const status = getExamStatus(exam);
+                        const canTake =
+                            new Date() >= new Date(exam.start_time) &&
+                            new Date() <= new Date(exam.end_time) &&
+                            (exam.max_attempts === 999 || exam.attempt_count < exam.max_attempts);
 
-                    const now = new Date();
-                    const startTime = new Date(exam.start_time);
-                    const endTime = new Date(exam.end_time);
-                    const isOpen = now >= startTime && now <= endTime;
-                    const isEnded = now > endTime;
-                    const isUpcoming = now < startTime;
-
-                    const canDo = (isUnlimited || attemptsRemaining > 0) && isOpen;
-
-                    return (
-                        <div
-                            key={exam.id}
-                            style={{
-                                background: 'white',
-                                padding: 20,
-                                borderRadius: 8,
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                            }}
-                        >
-                            <h3 style={{ marginTop: 0, marginBottom: 10 }}>{exam.title}</h3>
-
+                        return (
                             <div
+                                key={exam.id}
                                 style={{
-                                    color: '#555',
-                                    marginBottom: 15,
-                                    fontSize: '0.9rem',
-                                    flex: 1,
+                                    background: 'white',
+                                    borderRadius: 12,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                    border: '1px solid #eee',
+                                    overflow: 'hidden',
+                                    display: 'flex',
+                                    flexDirection: 'column',
                                 }}
                             >
                                 {}
-                                <p
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        margin: '5px 0',
-                                    }}
-                                >
-                                    <FaCalendarAlt color="#28a745" />
-                                    <span>Mở: {startTime.toLocaleString()}</span>
-                                </p>
-                                <p
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        margin: '5px 0',
-                                    }}
-                                >
-                                    <FaCalendarAlt color="#dc3545" />
-                                    <span>Đóng: {endTime.toLocaleString()}</span>
-                                </p>
-
-                                <div
-                                    style={{ borderTop: '1px dashed #eee', margin: '10px 0' }}
-                                ></div>
-
-                                <p
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        margin: '5px 0',
-                                    }}
-                                >
-                                    <FaClock color="#007bff" />
-                                    <span>
-                                        Thời gian làm: <strong>{exam.duration_minutes} phút</strong>
-                                    </span>
-                                </p>
-                                <p
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 8,
-                                        margin: '5px 0',
-                                    }}
-                                >
-                                    <FaHistory color="#666" />
-                                    <span>
-                                        Số lần làm: {attemptsUsed} /{' '}
-                                        {isUnlimited ? '∞' : exam.max_attempts}
-                                    </span>
-                                </p>
-
-                                {exam.best_score !== null && (
-                                    <p
+                                <div style={{ padding: 20, flex: 1 }}>
+                                    <div
                                         style={{
                                             display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                            margin: '5px 0',
-                                            color: '#28a745',
-                                            fontWeight: 'bold',
+                                            justifyContent: 'space-between',
+                                            marginBottom: 10,
                                         }}
                                     >
-                                        <FaCheckCircle /> Điểm cao nhất: {exam.best_score}
-                                    </p>
-                                )}
-                            </div>
+                                        <span
+                                            style={{
+                                                fontSize: '0.8rem',
+                                                fontWeight: 'bold',
+                                                color: status.color,
+                                                background: `${status.color}15`,
+                                                padding: '4px 10px',
+                                                borderRadius: 20,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 5,
+                                            }}
+                                        >
+                                            {status.icon} {status.text}
+                                        </span>
+                                        {exam.best_score !== null && (
+                                            <span
+                                                style={{
+                                                    fontSize: '0.9rem',
+                                                    fontWeight: 'bold',
+                                                    color: '#ffc107',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 5,
+                                                }}
+                                            >
+                                                <FaStar /> {parseFloat(exam.best_score).toFixed(2)}
+                                            </span>
+                                        )}
+                                    </div>
 
-                            {}
-                            <div
-                                style={{
-                                    marginBottom: 10,
-                                    fontSize: '0.85rem',
-                                    fontWeight: 'bold',
-                                    textAlign: 'center',
-                                }}
-                            >
-                                {isUpcoming && (
-                                    <span style={{ color: '#e67e22' }}>Chưa đến giờ làm bài</span>
-                                )}
-                                {isEnded && (
-                                    <span style={{ color: '#dc3545' }}>Đã hết hạn nộp bài</span>
-                                )}
-                                {isOpen && <span style={{ color: '#28a745' }}>Đang mở</span>}
-                            </div>
-
-                            <div style={{ display: 'flex', gap: 10 }}>
-                                {canDo ? (
-                                    <button
-                                        onClick={() => handleStartExam(exam.id)}
+                                    <h3
                                         style={{
-                                            flex: 1,
-                                            padding: 10,
-                                            background: '#28a745',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: 4,
-                                            cursor: 'pointer',
-                                            fontWeight: 'bold',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: 5,
+                                            margin: '0 0 10px 0',
+                                            color: '#333',
+                                            fontSize: '1.1rem',
                                         }}
                                     >
-                                        <FaPlayCircle /> Làm bài
-                                    </button>
-                                ) : (
-                                    <button
-                                        disabled
+                                        {exam.title}
+                                    </h3>
+
+                                    <div
                                         style={{
-                                            flex: 1,
-                                            padding: 10,
-                                            background: '#ccc',
+                                            fontSize: '0.9rem',
                                             color: '#666',
-                                            border: 'none',
-                                            borderRadius: 4,
-                                            cursor: 'not-allowed',
-                                        }}
-                                    >
-                                        {isUpcoming ? 'Chưa mở' : isEnded ? 'Hết hạn' : 'Hết lượt'}
-                                    </button>
-                                )}
-
-                                {exam.last_submission_id && (
-                                    <button
-                                        onClick={() => handleReview(exam.last_submission_id)}
-                                        style={{
-                                            flex: 1,
-                                            padding: 10,
-                                            background: '#007bff',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: 4,
-                                            cursor: 'pointer',
-                                            fontWeight: 'bold',
                                             display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: 5,
+                                            flexDirection: 'column',
+                                            gap: 8,
                                         }}
                                     >
-                                        <FaEye /> Xem lại
-                                    </button>
-                                )}
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <FaClock color="#17a2b8" />
+                                            <span>
+                                                Thời gian: <b>{exam.duration_minutes} phút</b>
+                                            </span>
+                                        </div>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <FaHistory color="#6c757d" />
+                                            <span>
+                                                Số lần làm: <b>{exam.attempt_count}</b> /{' '}
+                                                {exam.max_attempts === 999
+                                                    ? '∞'
+                                                    : exam.max_attempts}
+                                            </span>
+                                        </div>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <FaCalendarAlt color="#28a745" />
+                                            <span>
+                                                Hạn:{' '}
+                                                {new Date(exam.end_time).toLocaleDateString(
+                                                    'vi-VN'
+                                                )}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {}
+                                <div
+                                    style={{
+                                        padding: 15,
+                                        background: '#f8f9fa',
+                                        borderTop: '1px solid #eee',
+                                        display: 'flex',
+                                        gap: 10,
+                                        justifyContent: 'flex-end',
+                                    }}
+                                >
+                                    {}
+                                    {exam.last_submission_id && (
+                                        <button
+                                            onClick={() =>
+                                                handleReviewExam(exam.last_submission_id)
+                                            }
+                                            style={{
+                                                background: 'white',
+                                                border: '1px solid #ddd',
+                                                color: '#555',
+                                                padding: '8px 15px',
+                                                borderRadius: 6,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                                fontWeight: 500,
+                                            }}
+                                        >
+                                            <FaEye /> Xem lại
+                                        </button>
+                                    )}
+
+                                    {}
+                                    {canTake ? (
+                                        <button
+                                            onClick={() => handleStartExam(exam.id)}
+                                            style={{
+                                                background: '#007bff',
+                                                border: 'none',
+                                                color: 'white',
+                                                padding: '8px 20px',
+                                                borderRadius: 6,
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                                fontWeight: 600,
+                                                boxShadow: '0 2px 5px rgba(0,123,255,0.3)',
+                                            }}
+                                        >
+                                            <FaPlay /> Làm bài
+                                        </button>
+                                    ) : (
+                                        <button
+                                            disabled
+                                            style={{
+                                                background: '#e9ecef',
+                                                border: 'none',
+                                                color: '#aaa',
+                                                padding: '8px 20px',
+                                                borderRadius: 6,
+                                                cursor: 'not-allowed',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6,
+                                            }}
+                                        >
+                                            <FaPlay /> Làm bài
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
-                {exams.length === 0 && (
-                    <p style={{ color: '#666', fontStyle: 'italic' }}>Chưa có bài kiểm tra nào.</p>
+                        );
+                    })
                 )}
             </div>
         </div>

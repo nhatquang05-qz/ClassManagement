@@ -17,6 +17,7 @@ const ExamTakingPage = () => {
     const navigate = useNavigate();
     const [exam, setExam] = useState<ExamData | null>(null);
     const [answers, setAnswers] = useState<any>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const answersRef = useRef(answers);
 
@@ -27,6 +28,32 @@ const ExamTakingPage = () => {
     useEffect(() => {
         answersRef.current = answers;
     }, [answers]);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                alert(
+                    'CẢNH BÁO VI PHẠM!\n\nBạn vừa rời khỏi màn hình làm bài. Hành động này đã được ghi lại.\nNếu tiếp tục vi phạm, bài thi sẽ bị hủy bỏ và nhận 0 điểm.'
+                );
+            }
+        };
+
+        const handleWindowBlur = () => {};
+
+        const handleContextMenu = (e: any) => {
+            e.preventDefault();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', handleWindowBlur);
+        document.addEventListener('contextmenu', handleContextMenu);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('blur', handleWindowBlur);
+            document.removeEventListener('contextmenu', handleContextMenu);
+        };
+    }, []);
 
     useEffect(() => {
         const initExam = async () => {
@@ -54,7 +81,7 @@ const ExamTakingPage = () => {
     }, [id, navigate]);
 
     const handleSubmit = async (force = false) => {
-        const currentAnswers = force ? answersRef.current : answers;
+        if (isSubmitting) return;
 
         if (!force) {
             const unanswered = countUnanswered();
@@ -64,6 +91,10 @@ const ExamTakingPage = () => {
             }
             if (!window.confirm('Bạn có chắc chắn muốn nộp bài?')) return;
         }
+
+        setIsSubmitting(true);
+
+        const currentAnswers = force ? answersRef.current : answers;
 
         try {
             await api.post('/exams/submit', {
@@ -76,7 +107,10 @@ const ExamTakingPage = () => {
 
             navigate(`/exam-review/${submissionId}`);
         } catch (err) {
+            console.error(err);
             alert('Lỗi nộp bài. Vui lòng thử lại.');
+
+            setIsSubmitting(false);
         }
     };
 

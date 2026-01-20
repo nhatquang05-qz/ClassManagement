@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef, useLayoutEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
+import { useAuth } from '../contexts/AuthContext';
 import {
     FaArrowLeft,
     FaCheckCircle,
@@ -20,13 +21,11 @@ const formatScore = (num: any) => {
 const ResultMatching = ({ question, userAnswer }: any) => {
     const pairs = useMemo(() => userAnswer || {}, [JSON.stringify(userAnswer)]);
     const correctPairs = useMemo(() => question.content_data?.pairs || [], [question]);
-
     const containerRef = useRef<HTMLDivElement>(null);
     const [lines, setLines] = useState<any[]>([]);
 
     useLayoutEffect(() => {
         if (!containerRef.current) return;
-
         const newLines: any[] = [];
         const containerRect = containerRef.current.getBoundingClientRect();
 
@@ -39,7 +38,6 @@ const ResultMatching = ({ question, userAnswer }: any) => {
             if (leftEl && rightEl) {
                 const leftRect = leftEl.getBoundingClientRect();
                 const rightRect = rightEl.getBoundingClientRect();
-
                 const isCorrect = correctPairs.some(
                     (p: any) => p.left === leftText && p.right === rightText
                 );
@@ -56,9 +54,7 @@ const ResultMatching = ({ question, userAnswer }: any) => {
         });
 
         setLines((prev) => {
-            if (JSON.stringify(prev) !== JSON.stringify(newLines)) {
-                return newLines;
-            }
+            if (JSON.stringify(prev) !== JSON.stringify(newLines)) return newLines;
             return prev;
         });
     }, [pairs, correctPairs]);
@@ -79,7 +75,6 @@ const ResultMatching = ({ question, userAnswer }: any) => {
                     />
                 ))}
             </svg>
-
             <div className="col-left">
                 {correctPairs.map((p: any, idx: number) => (
                     <div
@@ -93,9 +88,7 @@ const ResultMatching = ({ question, userAnswer }: any) => {
                     </div>
                 ))}
             </div>
-
             <div className="col-space" style={{ width: '60px' }}></div>
-
             <div className="col-right">
                 {correctPairs.map((p: any, idx: number) => (
                     <div
@@ -116,17 +109,14 @@ const ResultMatching = ({ question, userAnswer }: any) => {
 const ResultMultipleChoice = ({ question, userAnswer }: any) => {
     const options = question.content_data?.options || [];
     const correctIds = question.content_data?.correct_ids || [];
-
     return (
         <div className="mc-options">
             {options.map((opt: any) => {
                 const isSelected = String(userAnswer) === String(opt.id);
                 const isCorrect = correctIds.some((id: any) => String(id) === String(opt.id));
-
                 let styleClass = 'mc-label';
                 let borderColor = '1px solid #eee';
                 let bgColor = 'white';
-
                 if (isCorrect) {
                     borderColor = '2px solid #28a745';
                     bgColor = '#d4edda';
@@ -170,23 +160,23 @@ const ResultFillBlank = ({ question, userAnswer }: any) => {
         String(userAnswer || '')
             .trim()
             .toLowerCase() === String(correctAnswer).trim().toLowerCase();
-
     return (
         <div>
             <div style={{ marginBottom: 5 }}>
-                <strong>Trả lời:</strong>
+                <strong>Trả lời của bạn:</strong>
                 <span
                     style={{
                         color: isCorrect ? 'green' : 'red',
                         fontWeight: 'bold',
                         marginLeft: 5,
+                        borderBottom: isCorrect ? 'none' : '1px dashed red',
                     }}
                 >
-                    {userAnswer || '(Bỏ trống)'}
+                    {userAnswer ? String(userAnswer) : '(Bỏ trống)'}
                 </span>
             </div>
             {!isCorrect && (
-                <div style={{ color: '#28a745' }}>
+                <div style={{ color: '#28a745', marginTop: 5 }}>
                     <strong>Đáp án đúng:</strong> {correctAnswer}
                 </div>
             )}
@@ -196,9 +186,7 @@ const ResultFillBlank = ({ question, userAnswer }: any) => {
 
 const ResultOrdering = ({ question, userAnswer }: any) => {
     const correctItems = question.content_data?.items || [];
-
     const itemsToShow = userAnswer && Array.isArray(userAnswer) ? userAnswer : [];
-
     return (
         <div className="ordering-container">
             {itemsToShow.length > 0 ? (
@@ -228,8 +216,6 @@ const ResultOrdering = ({ question, userAnswer }: any) => {
                     Bạn chưa sắp xếp câu này.
                 </div>
             )}
-
-            {}
             {JSON.stringify(itemsToShow) !== JSON.stringify(correctItems) && (
                 <div
                     style={{
@@ -256,7 +242,6 @@ const ResultOrdering = ({ question, userAnswer }: any) => {
 
 const ResultQuestionRenderer = ({ question }: any) => {
     const { id, type, content, points, user_answer, is_correct, score_obtained } = question;
-
     const parsedUserAnswer = useMemo(() => {
         if (typeof user_answer === 'string') {
             try {
@@ -311,7 +296,6 @@ const ResultQuestionRenderer = ({ question }: any) => {
                     </div>
                 </div>
             </div>
-
             {question.media_url && (
                 <div style={{ marginBottom: 15, textAlign: 'center' }}>
                     {question.media_type === 'audio' ? (
@@ -324,7 +308,6 @@ const ResultQuestionRenderer = ({ question }: any) => {
                     )}
                 </div>
             )}
-
             <div className="result-content">
                 {type === 'multiple_choice' && (
                     <ResultMultipleChoice question={question} userAnswer={parsedUserAnswer} />
@@ -346,6 +329,7 @@ const ResultQuestionRenderer = ({ question }: any) => {
 const ExamResultPage = () => {
     const { submissionId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [data, setData] = useState<any>(null);
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -356,7 +340,6 @@ const ExamResultPage = () => {
             try {
                 const res = await api.get(`/exams/review/${submissionId}`);
                 setData(res.data);
-
                 const examId = res.data.exam.exam_id;
                 const histRes = await api.get(`/exams/${examId}/submissions`);
                 setHistory(histRes.data);
@@ -376,7 +359,15 @@ const ExamResultPage = () => {
     };
 
     const handleBack = () => {
-        navigate(-1);
+        if (user?.role === 'student') {
+            navigate('/student-exams', { replace: true });
+        } else {
+            if (data?.exam?.exam_id) {
+                navigate(`/teacher/exams/${data.exam.exam_id}`);
+            } else {
+                navigate('/teacher/exams');
+            }
+        }
     };
 
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Đang tải kết quả...</div>;
@@ -397,7 +388,7 @@ const ExamResultPage = () => {
                         style={{ background: '#6c757d', padding: '8px 15px' }}
                         onClick={handleBack}
                     >
-                        <FaArrowLeft /> Quay lại
+                        <FaArrowLeft /> Thoát
                     </button>
                     <div>
                         <h3 style={{ margin: 0 }}>{exam.title}</h3>
@@ -432,14 +423,13 @@ const ExamResultPage = () => {
                                 maxWidth: '200px',
                             }}
                         >
-                            {history.map((h: any, idx: number) => (
+                            {history.map((h: any) => (
                                 <option key={h.id} value={h.id}>
                                     Lần {h.attempt_number} - {formatScore(h.score)} điểm
                                 </option>
                             ))}
                         </select>
                     </div>
-
                     <div
                         className="timer-badge"
                         style={{ color: '#28a745', borderColor: '#28a745', background: '#e8f5e9' }}
