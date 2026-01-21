@@ -241,7 +241,7 @@ const ResultOrdering = ({ question, userAnswer }: any) => {
 };
 
 const ResultQuestionRenderer = ({ question }: any) => {
-    const { id, type, content, points, user_answer, is_correct, score_obtained } = question;
+    const { id, type, content, points, user_answer, is_correct, score_obtained, media_url, media_type } = question;
     const parsedUserAnswer = useMemo(() => {
         if (typeof user_answer === 'string') {
             try {
@@ -296,18 +296,39 @@ const ResultQuestionRenderer = ({ question }: any) => {
                     </div>
                 </div>
             </div>
-            {question.media_url && (
-                <div style={{ marginBottom: 15, textAlign: 'center' }}>
-                    {question.media_type === 'audio' ? (
-                        <audio controls src={question.media_url} style={{ width: '100%' }} />
-                    ) : (
+
+            {}
+            {media_url && (
+                <div
+                    style={{
+                        marginBottom: 20,
+                        textAlign: 'center',
+                        background: '#f8f9fa',
+                        padding: 10,
+                        borderRadius: 8,
+                    }}
+                >
+                    {media_type === 'image' && (
                         <img
-                            src={question.media_url}
-                            style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 4 }}
+                            src={media_url}
+                            style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 4 }}
+                            alt="Minh họa"
                         />
+                    )}
+                    {media_type === 'video' && (
+                        <video
+                            src={media_url}
+                            controls
+                            style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 4 }}
+                        />
+                    )}
+                    {media_type === 'audio' && (
+                        <audio src={media_url} controls style={{ width: '100%' }} />
                     )}
                 </div>
             )}
+            {}
+
             <div className="result-content">
                 {type === 'multiple_choice' && (
                     <ResultMultipleChoice question={question} userAnswer={parsedUserAnswer} />

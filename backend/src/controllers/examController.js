@@ -153,6 +153,7 @@ const updateExam = async (req, res) => {
             [id]
         );
 
+        
         if (submissions.length > 0) {
             await connection.execute(
                 `UPDATE exam_sections SET order_index = -1 WHERE exam_id = ? AND order_index >= 0`,
@@ -163,6 +164,7 @@ const updateExam = async (req, res) => {
                 await insertSectionsAndQuestions(connection, id, sections);
             }
         } else {
+            
             const [oldSections] = await connection.execute(
                 'SELECT id FROM exam_sections WHERE exam_id = ?',
                 [id]
@@ -296,6 +298,7 @@ const startExam = async (req, res) => {
     }
 };
 
+
 const submitExam = async (req, res) => {
     let connection;
     let retries = 3;
@@ -316,63 +319,58 @@ const submitExam = async (req, res) => {
             }
             const examId = subs[0].exam_id;
 
+            
+            
             const [questions] = await connection.execute(
-                `SELECT q.id, q.type, q.points, q.content_data FROM questions q JOIN exam_sections s ON q.section_id = s.id WHERE s.exam_id = ?`,
+                `SELECT q.id, q.type, q.points, q.content_data 
+                 FROM questions q 
+                 JOIN exam_sections s ON q.section_id = s.id 
+                 WHERE s.exam_id = ? AND s.order_index >= 0`,
                 [examId]
             );
 
-            let totalScore = 0,
-                earnedScore = 0;
+            let totalScore = 0, earnedScore = 0;
             const details = [];
 
             for (const q of questions) {
                 const points = parseFloat(q.points);
                 totalScore += points;
-
-                const userAns = answers[q.id] || answers[String(q.id)];
-
+                
+                
+                const userAns = answers[q.id] !== undefined ? answers[q.id] : 
+                               (answers[String(q.id)] !== undefined ? answers[String(q.id)] : undefined);
+                
                 let correctData = q.content_data;
                 if (typeof correctData === 'string') {
-                    try {
-                        correctData = JSON.parse(correctData);
-                    } catch (e) {}
+                    try { correctData = JSON.parse(correctData); } catch (e) {}
                 }
 
                 let isCorrect = false;
                 if (userAns !== undefined && userAns !== null && userAns !== '') {
                     if (q.type === 'multiple_choice') {
-                        if (correctData.correct_ids?.some((id) => String(id) === String(userAns)))
-                            isCorrect = true;
+                        if (correctData.correct_ids?.some((id) => String(id) === String(userAns))) isCorrect = true;
                     } else if (q.type === 'fill_in_blank') {
-                        if (
-                            String(userAns).trim().toLowerCase() ===
-                            String(correctData.correct_answer).trim().toLowerCase()
-                        )
-                            isCorrect = true;
+                        if (String(userAns).trim().toLowerCase() === String(correctData.correct_answer).trim().toLowerCase()) isCorrect = true;
                     } else if (q.type === 'matching' && typeof userAns === 'object') {
                         const correctPairs = correctData.pairs || [];
                         let matchCount = 0;
-                        correctPairs.forEach((p) => {
-                            if (userAns[p.left] === p.right) matchCount++;
-                        });
+                        correctPairs.forEach((p) => { if (userAns[p.left] === p.right) matchCount++; });
                         if (matchCount === correctPairs.length && matchCount > 0) isCorrect = true;
                     } else if (q.type === 'ordering' && Array.isArray(userAns)) {
                         const correctItems = correctData.items || [];
                         let orderMatch = true;
                         if (userAns.length === correctItems.length) {
                             for (let k = 0; k < correctItems.length; k++) {
-                                if (userAns[k].text !== correctItems[k].text) {
-                                    orderMatch = false;
-                                    break;
-                                }
+                                if (userAns[k].text !== correctItems[k].text) { orderMatch = false; break; }
                             }
                             if (orderMatch) isCorrect = true;
                         } else orderMatch = false;
                     }
                 }
-
+                
                 if (isCorrect) earnedScore += points;
 
+                
                 let answerToSave = null;
                 if (userAns !== undefined && userAns !== null) {
                     answerToSave = JSON.stringify(userAns);
@@ -389,9 +387,9 @@ const submitExam = async (req, res) => {
 
             earnedScore = Math.round(earnedScore * 100) / 100;
 
-            await connection.execute('DELETE FROM student_answers WHERE submission_id = ?', [
-                submissionId,
-            ]);
+            
+            await connection.execute('DELETE FROM student_answers WHERE submission_id = ?', [submissionId]);
+            
             await connection.execute(
                 `UPDATE exam_submissions SET submitted_at = NOW(), score = ? WHERE id = ?`,
                 [earnedScore, submissionId]
@@ -421,6 +419,7 @@ const submitExam = async (req, res) => {
     }
 };
 
+
 const getSubmissionDetail = async (req, res) => {
     try {
         const { submissionId } = req.params;
@@ -437,41 +436,48 @@ const getSubmissionDetail = async (req, res) => {
         if (!subs.length) return res.status(404).json({ message: 'Not found' });
         const sub = subs[0];
 
+        
+        
+        
         const [rows] = await db.execute(
             `SELECT s.id as s_id, s.title as s_title, s.order_index,
                     q.id as q_id, q.type, q.content, q.points, q.media_url, q.media_type, q.content_data, 
                     sa.answer_data, sa.is_correct, sa.score_obtained
-             FROM exam_sections s 
-             JOIN questions q ON s.id = q.section_id 
-             LEFT JOIN student_answers sa ON sa.question_id = q.id AND sa.submission_id = ?
-             WHERE s.exam_id = ? 
-             ORDER BY s.order_index, q.order_index`,
-            [submissionId, sub.exam_id]
+             FROM student_answers sa
+             JOIN questions q ON sa.question_id = q.id
+             JOIN exam_sections s ON q.section_id = s.id
+             WHERE sa.submission_id = ?
+             ORDER BY s.id, q.order_index`, 
+            [submissionId]
         );
 
         const sectionsMap = new Map();
+        
+        const processedQuestions = new Set();
+
         rows.forEach((row) => {
             if (!sectionsMap.has(row.s_id))
                 sectionsMap.set(row.s_id, { title: row.s_title, questions: [] });
 
-            if (row.q_id) {
+            if (row.q_id && !processedQuestions.has(row.q_id)) {
+                processedQuestions.add(row.q_id);
+
                 let contentData = row.content_data;
                 if (typeof contentData === 'string') {
-                    try {
-                        contentData = JSON.parse(contentData);
-                    } catch (e) {}
+                    try { contentData = JSON.parse(contentData); } catch (e) {}
                 }
 
+                
                 let userAnswer = row.answer_data;
-
                 if (typeof userAnswer === 'string') {
                     try {
                         userAnswer = JSON.parse(userAnswer);
                     } catch (e) {
-                        console.error('Error parsing user answer:', userAnswer);
+                        
                     }
                 }
 
+                
                 if (sub.view_answer_mode === 'never') {
                     if (contentData) {
                         delete contentData.correct_ids;
