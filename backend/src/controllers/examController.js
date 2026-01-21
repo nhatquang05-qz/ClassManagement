@@ -70,6 +70,15 @@ const insertSectionsAndQuestions = async (connection, examId, sections) => {
     }
 };
 
+const shuffleArray = (array) => {
+    const newArr = [...array];
+    for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
+};
+
 const createExam = async (req, res) => {
     const connection = await db.getConnection();
     try {
@@ -84,11 +93,12 @@ const createExam = async (req, res) => {
             sections,
             viewAnswerMode,
             maxAttempts,
+            isShuffled,
         } = req.body;
 
         const [result] = await connection.execute(
-            `INSERT INTO exams (class_id, title, description, start_time, end_time, duration_minutes, view_answer_mode, max_attempts, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO exams (class_id, title, description, start_time, end_time, duration_minutes, view_answer_mode, max_attempts, is_shuffled, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 classId,
                 title,
@@ -98,6 +108,7 @@ const createExam = async (req, res) => {
                 durationMinutes,
                 viewAnswerMode || 'after_close',
                 maxAttempts || 1,
+                isShuffled ? 1 : 0,
                 req.user.id,
             ]
         );
@@ -132,10 +143,11 @@ const updateExam = async (req, res) => {
             sections,
             viewAnswerMode,
             maxAttempts,
+            isShuffled,
         } = req.body;
 
         await connection.execute(
-            `UPDATE exams SET title = ?, description = ?, start_time = ?, end_time = ?, duration_minutes = ?, view_answer_mode = ?, max_attempts = ? WHERE id = ?`,
+            `UPDATE exams SET title = ?, description = ?, start_time = ?, end_time = ?, duration_minutes = ?, view_answer_mode = ?, max_attempts = ?, is_shuffled = ? WHERE id = ?`,
             [
                 title,
                 description,
@@ -144,6 +156,7 @@ const updateExam = async (req, res) => {
                 durationMinutes,
                 viewAnswerMode || 'after_close',
                 maxAttempts || 1,
+                isShuffled ? 1 : 0,
                 id,
             ]
         );
@@ -240,7 +253,27 @@ const getExamById = async (req, res) => {
                 });
             }
         });
-        res.json({ ...exam, sections: Array.from(sectionsMap.values()) });
+
+        const sectionsArray = Array.from(sectionsMap.values());
+        if (req.query.mode === 'taking' && exam.is_shuffled) {
+            sectionsArray.forEach((section) => {
+                if (section.questions && section.questions.length > 0) {
+                    section.questions = shuffleArray(section.questions);
+
+                    section.questions.forEach((q) => {
+                        if (
+                            q.type === 'multiple_choice' &&
+                            q.content_data &&
+                            q.content_data.options
+                        ) {
+                            q.content_data.options = shuffleArray(q.content_data.options);
+                        }
+                    });
+                }
+            });
+        }
+
+        res.json({ ...exam, sections: sectionsArray });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error' });

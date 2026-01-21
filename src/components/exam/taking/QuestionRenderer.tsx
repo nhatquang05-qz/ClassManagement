@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
 import { FaArrowUp, FaArrowDown, FaTimes, FaExchangeAlt } from 'react-icons/fa';
 
+const shuffleArray = (array: any[]) => {
+    const newArr = [...array];
+    for (let i = newArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+    }
+    return newArr;
+};
+
 const formatPoints = (num: number) => {
     return parseFloat(Number(num).toFixed(2));
 };
@@ -11,15 +20,28 @@ const MatchingQuestion = ({ data, value, onChange, questionId }: any) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [lines, setLines] = useState<any[]>([]);
 
+    const [leftItems, setLeftItems] = useState<any[]>([]);
+    const [rightItems, setRightItems] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (data.pairs) {
+            setLeftItems(data.pairs);
+
+            setRightItems(shuffleArray(data.pairs));
+        }
+    }, [data.pairs]);
+
     const calculateLines = useCallback(() => {
         if (!containerRef.current) return;
         const newLines: any[] = [];
         const containerRect = containerRef.current.getBoundingClientRect();
 
         Object.entries(pairs).forEach(([leftText, rightText]) => {
-            const leftEl = containerRef.current?.querySelector(`[data-match-left="${leftText}"]`);
+            const leftEl = containerRef.current?.querySelector(
+                `[data-match-left="${CSS.escape(String(leftText))}"]`
+            );
             const rightEl = containerRef.current?.querySelector(
-                `[data-match-right="${rightText}"]`
+                `[data-match-right="${CSS.escape(String(rightText))}"]`
             );
 
             if (leftEl && rightEl) {
@@ -39,7 +61,7 @@ const MatchingQuestion = ({ data, value, onChange, questionId }: any) => {
             if (JSON.stringify(prev) !== JSON.stringify(newLines)) return newLines;
             return prev;
         });
-    }, [pairs]);
+    }, [pairs, rightItems]);
 
     useLayoutEffect(() => {
         calculateLines();
@@ -55,8 +77,10 @@ const MatchingQuestion = ({ data, value, onChange, questionId }: any) => {
     const handleRightClick = (rightText: string) => {
         if (selectedLeft) {
             const newPairs = { ...pairs };
+
             const oldLeft = Object.keys(newPairs).find((key) => newPairs[key] === rightText);
             if (oldLeft) delete newPairs[oldLeft];
+
             newPairs[selectedLeft] = rightText;
             onChange(newPairs);
             setSelectedLeft(null);
@@ -91,9 +115,9 @@ const MatchingQuestion = ({ data, value, onChange, questionId }: any) => {
                 ))}
             </svg>
             <div className="col-left">
-                {data.pairs?.map((p: any, idx: number) => (
+                {leftItems.map((p: any, idx: number) => (
                     <div
-                        key={idx}
+                        key={`left-${idx}`}
                         data-match-left={p.left}
                         className={`match-item left ${getLeftStatus(p.left)}`}
                         onClick={() => handleLeftClick(p.left)}
@@ -105,9 +129,9 @@ const MatchingQuestion = ({ data, value, onChange, questionId }: any) => {
             </div>
             <div className="col-space" style={{ width: '50px' }}></div>
             <div className="col-right">
-                {data.pairs?.map((p: any, idx: number) => (
+                {rightItems.map((p: any, idx: number) => (
                     <div
-                        key={idx}
+                        key={`right-${idx}`}
                         data-match-right={p.right}
                         className={`match-item right ${getRightStatus(p.right)} ${selectedLeft ? 'waiting-target' : ''}`}
                         onClick={() => handleRightClick(p.right)}
@@ -126,11 +150,13 @@ const OrderingQuestion = ({ data, value, onChange }: any) => {
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
     useEffect(() => {
-        if (value && value.length > 0) setItems(value);
-        else if (data.items) {
-            const defaultItems = [...data.items];
-            setItems(defaultItems);
-            if (!value) onChange(defaultItems);
+        if (value && value.length > 0) {
+            setItems(value);
+        } else if (data.items) {
+            const shuffled = shuffleArray(data.items);
+            setItems(shuffled);
+
+            onChange(shuffled);
         }
     }, [data, value]);
 
@@ -243,7 +269,6 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
                 </span>
             </div>
 
-            {}
             {media_url && (
                 <div
                     style={{
@@ -273,7 +298,6 @@ const QuestionRenderer = ({ question, answer, onAnswer }: any) => {
                     )}
                 </div>
             )}
-            {}
 
             <div className="question-interaction-area">
                 {type === 'multiple_choice' && (
