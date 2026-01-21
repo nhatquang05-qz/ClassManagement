@@ -10,7 +10,7 @@ import {
     FaCheck,
     FaTimes,
     FaEyeSlash,
-    FaUserTie
+    FaUserTie,
 } from 'react-icons/fa';
 import '../assets/styles/ExamTakingPage.css';
 
@@ -20,14 +20,12 @@ const formatScore = (num: any) => {
     return parseFloat(n.toFixed(2));
 };
 
-
 const ResultMatching = ({ question, userAnswer, showDetails }: any) => {
     const pairs = useMemo(() => userAnswer || {}, [JSON.stringify(userAnswer)]);
     const correctPairs = useMemo(() => question.content_data?.pairs || [], [question]);
     const containerRef = useRef<HTMLDivElement>(null);
     const [lines, setLines] = useState<any[]>([]);
 
-    
     const dbIsCorrect = question.is_correct;
 
     useLayoutEffect(() => {
@@ -40,24 +38,17 @@ const ResultMatching = ({ question, userAnswer, showDetails }: any) => {
             const safeRight = String(rightText).replace(/"/g, '\\"');
 
             const leftEl = containerRef.current?.querySelector(`[data-res-left="${safeLeft}"]`);
-            const rightEl = containerRef.current?.querySelector(
-                `[data-res-right="${safeRight}"]`
-            );
+            const rightEl = containerRef.current?.querySelector(`[data-res-right="${safeRight}"]`);
 
             if (leftEl && rightEl) {
                 const leftRect = leftEl.getBoundingClientRect();
                 const rightRect = rightEl.getBoundingClientRect();
-                
-                
-                
-                
+
                 let isLineCorrect = false;
                 if (showDetails) {
-                    
                     if (dbIsCorrect) {
                         isLineCorrect = true;
                     } else {
-                        
                         isLineCorrect = correctPairs.some(
                             (p: any) => p.left === leftText && p.right === rightText
                         );
@@ -69,7 +60,7 @@ const ResultMatching = ({ question, userAnswer, showDetails }: any) => {
                     y1: leftRect.top + leftRect.height / 2 - containerRect.top,
                     x2: rightRect.left - containerRect.left,
                     y2: rightRect.top + rightRect.height / 2 - containerRect.top,
-                    color: !showDetails ? '#6c757d' : (isLineCorrect ? '#28a745' : '#dc3545'),
+                    color: !showDetails ? '#6c757d' : isLineCorrect ? '#28a745' : '#dc3545',
                     key: `${leftText}-${rightText}`,
                 });
             }
@@ -128,39 +119,33 @@ const ResultMatching = ({ question, userAnswer, showDetails }: any) => {
     );
 };
 
-
 const ResultMultipleChoice = ({ question, userAnswer, showDetails }: any) => {
     const options = question.content_data?.options || [];
     const correctIds = question.content_data?.correct_ids || [];
-    
-    const questionIsCorrect = question.is_correct; 
+
+    const questionIsCorrect = question.is_correct;
 
     return (
         <div className="mc-options">
             {options.map((opt: any) => {
-                
                 const isSelected = String(userAnswer || '').trim() === String(opt.id).trim();
-                const isConfiguredCorrect = correctIds.some((id: any) => String(id).trim() === String(opt.id).trim());
-                
+                const isConfiguredCorrect = correctIds.some(
+                    (id: any) => String(id).trim() === String(opt.id).trim()
+                );
+
                 let styleClass = 'mc-label';
                 let borderColor = '1px solid #eee';
                 let bgColor = 'white';
 
                 if (showDetails) {
                     if (isConfiguredCorrect) {
-                        
                         borderColor = '2px solid #28a745';
                         bgColor = '#d4edda';
                     } else if (isSelected) {
-                        
-                        
-                        
-                        
                         if (questionIsCorrect) {
                             borderColor = '2px solid #28a745';
                             bgColor = '#d4edda';
                         } else {
-                            
                             borderColor = '2px solid #dc3545';
                             bgColor = '#f8d7da';
                         }
@@ -188,15 +173,12 @@ const ResultMultipleChoice = ({ question, userAnswer, showDetails }: any) => {
                             style={{ marginRight: '10px' }}
                         />
                         {opt.text}
-                        
-                        {}
+
                         {showDetails && (
                             <>
-                                {}
                                 {(isConfiguredCorrect || (isSelected && questionIsCorrect)) && (
                                     <FaCheckCircle color="green" style={{ marginLeft: 'auto' }} />
                                 )}
-                                {}
                                 {isSelected && !questionIsCorrect && !isConfiguredCorrect && (
                                     <FaTimesCircle color="red" style={{ marginLeft: 'auto' }} />
                                 )}
@@ -209,26 +191,24 @@ const ResultMultipleChoice = ({ question, userAnswer, showDetails }: any) => {
     );
 };
 
-
 const ResultFillBlank = ({ question, userAnswer, showDetails }: any) => {
     const correctAnswer = question.content_data?.correct_answer || '';
-    
-    
-    const isCorrect = question.is_correct; 
-    
-    
-    
-    
+    const isCorrect = question.is_correct;
+
     return (
         <div>
             <div style={{ marginBottom: 5 }}>
                 <strong>Trả lời của bạn:</strong>
                 <span
                     style={{
-                        color: !showDetails ? '#333' : (isCorrect ? 'green' : 'red'),
+                        color: !showDetails ? '#333' : isCorrect ? 'green' : 'red',
                         fontWeight: 'bold',
                         marginLeft: 5,
-                        borderBottom: !showDetails ? '1px solid #ccc' : (isCorrect ? 'none' : '1px dashed red'),
+                        borderBottom: !showDetails
+                            ? '1px solid #ccc'
+                            : isCorrect
+                              ? 'none'
+                              : '1px dashed red',
                     }}
                 >
                     {userAnswer ? String(userAnswer) : '(Bỏ trống)'}
@@ -243,7 +223,6 @@ const ResultFillBlank = ({ question, userAnswer, showDetails }: any) => {
     );
 };
 
-
 const ResultOrdering = ({ question, userAnswer, showDetails }: any) => {
     const correctItems = question.content_data?.items || [];
     const itemsToShow = userAnswer && Array.isArray(userAnswer) ? userAnswer : [];
@@ -253,10 +232,7 @@ const ResultOrdering = ({ question, userAnswer, showDetails }: any) => {
         <div className="ordering-container">
             {itemsToShow.length > 0 ? (
                 itemsToShow.map((item: any, index: number) => {
-                    
                     let isCorrectPos = correctItems[index]?.text === item.text;
-                    
-                    
                     if (dbIsCorrect) isCorrectPos = true;
 
                     return (
@@ -264,11 +240,15 @@ const ResultOrdering = ({ question, userAnswer, showDetails }: any) => {
                             key={index}
                             className="order-item"
                             style={{
-                                border: showDetails 
-                                    ? (isCorrectPos ? '1px solid #28a745' : '1px solid #dc3545')
-                                    : '1px solid #ced4da', 
+                                border: showDetails
+                                    ? isCorrectPos
+                                        ? '1px solid #28a745'
+                                        : '1px solid #dc3545'
+                                    : '1px solid #ced4da',
                                 background: showDetails
-                                    ? (isCorrectPos ? '#e8f5e9' : '#ffebee')
+                                    ? isCorrectPos
+                                        ? '#e8f5e9'
+                                        : '#ffebee'
                                     : '#f8f9fa',
                             }}
                         >
@@ -277,7 +257,12 @@ const ResultOrdering = ({ question, userAnswer, showDetails }: any) => {
                                 {item.text}
                             </div>
                             <div style={{ marginLeft: 'auto' }}>
-                                {showDetails && (isCorrectPos ? <FaCheck color="green" /> : <FaTimes color="red" />)}
+                                {showDetails &&
+                                    (isCorrectPos ? (
+                                        <FaCheck color="green" />
+                                    ) : (
+                                        <FaTimes color="red" />
+                                    ))}
                             </div>
                         </div>
                     );
@@ -311,10 +296,19 @@ const ResultOrdering = ({ question, userAnswer, showDetails }: any) => {
     );
 };
 
-
 const ResultQuestionRenderer = ({ question, showDetails }: any) => {
-    const { id, type, content, points, user_answer, is_correct, score_obtained, media_url, media_type } = question;
-    
+    const {
+        id,
+        type,
+        content,
+        points,
+        user_answer,
+        is_correct,
+        score_obtained,
+        media_url,
+        media_type,
+    } = question;
+
     const parsedUserAnswer = useMemo(() => {
         if (typeof user_answer === 'string') {
             try {
@@ -335,8 +329,10 @@ const ResultQuestionRenderer = ({ question, showDetails }: any) => {
                 marginBottom: 20,
                 borderRadius: 8,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                borderLeft: showDetails 
-                    ? (is_correct ? '5px solid #28a745' : '5px solid #dc3545')
+                borderLeft: showDetails
+                    ? is_correct
+                        ? '5px solid #28a745'
+                        : '5px solid #dc3545'
                     : '5px solid #6c757d',
             }}
         >
@@ -381,31 +377,68 @@ const ResultQuestionRenderer = ({ question, showDetails }: any) => {
             </div>
 
             {media_url && (
-                <div style={{ marginBottom: 20, textAlign: 'center', background: '#f8f9fa', padding: 10, borderRadius: 8 }}>
-                    {media_type === 'image' && <img src={media_url} style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 4 }} alt="Minh họa" />}
-                    {media_type === 'video' && <video src={media_url} controls style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 4 }} />}
-                    {media_type === 'audio' && <audio src={media_url} controls style={{ width: '100%' }} />}
+                <div
+                    style={{
+                        marginBottom: 20,
+                        textAlign: 'center',
+                        background: '#f8f9fa',
+                        padding: 10,
+                        borderRadius: 8,
+                    }}
+                >
+                    {media_type === 'image' && (
+                        <img
+                            src={media_url}
+                            style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 4 }}
+                            alt="Minh họa"
+                        />
+                    )}
+                    {media_type === 'video' && (
+                        <video
+                            src={media_url}
+                            controls
+                            style={{ maxWidth: '100%', maxHeight: 400, borderRadius: 4 }}
+                        />
+                    )}
+                    {media_type === 'audio' && (
+                        <audio src={media_url} controls style={{ width: '100%' }} />
+                    )}
                 </div>
             )}
 
             <div className="result-content">
                 {type === 'multiple_choice' && (
-                    <ResultMultipleChoice question={question} userAnswer={parsedUserAnswer} showDetails={showDetails} />
+                    <ResultMultipleChoice
+                        question={question}
+                        userAnswer={parsedUserAnswer}
+                        showDetails={showDetails}
+                    />
                 )}
                 {(type === 'fill_in_blank' || type === 'fill_blank') && (
-                    <ResultFillBlank question={question} userAnswer={parsedUserAnswer} showDetails={showDetails} />
+                    <ResultFillBlank
+                        question={question}
+                        userAnswer={parsedUserAnswer}
+                        showDetails={showDetails}
+                    />
                 )}
                 {type === 'matching' && (
-                    <ResultMatching question={question} userAnswer={parsedUserAnswer} showDetails={showDetails} />
+                    <ResultMatching
+                        question={question}
+                        userAnswer={parsedUserAnswer}
+                        showDetails={showDetails}
+                    />
                 )}
                 {(type === 'ordering' || type === 'reorder') && (
-                    <ResultOrdering question={question} userAnswer={parsedUserAnswer} showDetails={showDetails} />
+                    <ResultOrdering
+                        question={question}
+                        userAnswer={parsedUserAnswer}
+                        showDetails={showDetails}
+                    />
                 )}
             </div>
         </div>
     );
 };
-
 
 const ExamResultPage = () => {
     const { submissionId } = useParams();
@@ -435,13 +468,13 @@ const ExamResultPage = () => {
 
     const handleAttemptChange = (newSubId: string) => {
         if (newSubId !== submissionId) {
-            navigate(`/exam-result/${newSubId}`);
+            navigate(`/exam-review/${newSubId}`);
         }
     };
 
     const handleBack = () => {
-        if (user?.role === 'admin') {
-             if (data?.exam?.exam_id) {
+        if (user?.role === 'admin' || user?.role === 'teacher') {
+            if (data?.exam?.exam_id) {
                 navigate(`/teacher/exams/${data.exam.exam_id}`);
             } else {
                 navigate('/teacher/exams');
@@ -452,12 +485,12 @@ const ExamResultPage = () => {
     };
 
     if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>Đang tải kết quả...</div>;
-    if (!data) return <div style={{ padding: 40, textAlign: 'center' }}>Không tìm thấy dữ liệu.</div>;
+    if (!data)
+        return <div style={{ padding: 40, textAlign: 'center' }}>Không tìm thấy dữ liệu.</div>;
 
     const { exam, sections } = data;
 
-    
-    const isTeacher = user?.role === 'admin'; 
+    const isTeacher = user?.role === 'admin' || user?.role === 'teacher';
     let showDetails = true;
     const mode = exam.view_answer_mode;
 
@@ -492,7 +525,13 @@ const ExamResultPage = () => {
                     <div>
                         <h3 style={{ margin: 0 }}>
                             {exam.title}
-                            {isTeacher && <span style={{fontSize: '0.8rem', color: '#007bff', marginLeft: 8}}>(Quyền Giáo viên)</span>}
+                            {isTeacher && (
+                                <span
+                                    style={{ fontSize: '0.8rem', color: '#007bff', marginLeft: 8 }}
+                                >
+                                    (Quyền Giáo viên)
+                                </span>
+                            )}
                         </h3>
                         <span style={{ fontSize: '0.9rem', color: '#666' }}>
                             Học sinh: {exam.student_name}
@@ -527,7 +566,8 @@ const ExamResultPage = () => {
                         >
                             {history.map((h: any) => (
                                 <option key={h.id} value={h.id}>
-                                    Lần {h.attempt_number} {showDetails ? `- ${formatScore(h.score)} điểm` : ''}
+                                    Lần {h.attempt_number}{' '}
+                                    {showDetails ? `- ${formatScore(h.score)} điểm` : ''}
                                 </option>
                             ))}
                         </select>
@@ -536,21 +576,32 @@ const ExamResultPage = () => {
                     {showDetails ? (
                         <div
                             className="timer-badge"
-                            style={{ color: '#28a745', borderColor: '#28a745', background: '#e8f5e9' }}
+                            style={{
+                                color: '#28a745',
+                                borderColor: '#28a745',
+                                background: '#e8f5e9',
+                            }}
                         >
                             Điểm: {formatScore(exam.score)}
                         </div>
                     ) : (
                         <div
                             className="timer-badge"
-                            style={{ color: '#6c757d', borderColor: '#6c757d', background: '#f8f9fa' }}
+                            style={{
+                                color: '#6c757d',
+                                borderColor: '#6c757d',
+                                background: '#f8f9fa',
+                            }}
                         >
                             <FaEyeSlash style={{ marginRight: 5 }} /> Chưa công bố điểm
                         </div>
                     )}
-                    
+
                     {isTeacher && (
-                        <div title="Bạn đang xem với quyền Admin/Giáo viên" style={{color: '#007bff', fontSize: '1.2rem'}}>
+                        <div
+                            title="Bạn đang xem với quyền Admin/Giáo viên"
+                            style={{ color: '#007bff', fontSize: '1.2rem' }}
+                        >
                             <FaUserTie />
                         </div>
                     )}

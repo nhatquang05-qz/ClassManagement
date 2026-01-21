@@ -203,7 +203,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                     />
                 </div>
 
-                {}
+                {/* Grid layout cho các input nhỏ */}
                 <div className="form-row">
                     <div className="form-group">
                         <label>Bắt đầu:</label>
@@ -250,13 +250,14 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                 borderRadius: '6px',
                             }}
                         >
-                            <option value="immediately">Ngay sau khi nộp</option>
+                            {/* Đã sửa value "ly" thành "" để khớp với Database ENUM */}
+                            <option value="">Ngay sau khi nộp</option>
                             <option value="after_close">Sau khi đóng đề (Hết hạn)</option>
                             <option value="never">Không bao giờ</option>
                         </select>
                     </div>
                 </div>
-                {}
+                {/* End grid layout */}
             </div>
 
             <div className="sections-container">
@@ -433,7 +434,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                         </div>
                                     )}
 
-                                    {}
+                                    {/* Điền từ hoặc điền khuyết */}
                                     {(q.type === 'fill_in_blank' || q.type === 'fill_blank') && (
                                         <div style={{ marginTop: 10 }}>
                                             <label>Đáp án đúng:</label>

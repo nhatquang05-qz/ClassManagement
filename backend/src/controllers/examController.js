@@ -74,12 +74,32 @@ const createExam = async (req, res) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        const { classId, title, description, startTime, endTime, durationMinutes, sections, viewAnswerMode, maxAttempts } = req.body;
+        const {
+            classId,
+            title,
+            description,
+            startTime,
+            endTime,
+            durationMinutes,
+            sections,
+            viewAnswerMode,
+            maxAttempts,
+        } = req.body;
 
         const [result] = await connection.execute(
             `INSERT INTO exams (class_id, title, description, start_time, end_time, duration_minutes, view_answer_mode, max_attempts, created_by)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [classId, title, description, startTime, endTime, durationMinutes, viewAnswerMode || 'after_close', maxAttempts || 1, req.user.id]
+            [
+                classId,
+                title,
+                description,
+                startTime,
+                endTime,
+                durationMinutes,
+                viewAnswerMode || 'after_close',
+                maxAttempts || 1,
+                req.user.id,
+            ]
         );
         const examId = result.insertId;
 
@@ -103,30 +123,56 @@ const updateExam = async (req, res) => {
     try {
         await connection.beginTransaction();
         const { id } = req.params;
-        const { title, description, startTime, endTime, durationMinutes, sections, viewAnswerMode, maxAttempts } = req.body;
+        const {
+            title,
+            description,
+            startTime,
+            endTime,
+            durationMinutes,
+            sections,
+            viewAnswerMode,
+            maxAttempts,
+        } = req.body;
 
         await connection.execute(
             `UPDATE exams SET title = ?, description = ?, start_time = ?, end_time = ?, duration_minutes = ?, view_answer_mode = ?, max_attempts = ? WHERE id = ?`,
-            [title, description, startTime, endTime, durationMinutes, viewAnswerMode || 'after_close', maxAttempts || 1, id]
+            [
+                title,
+                description,
+                startTime,
+                endTime,
+                durationMinutes,
+                viewAnswerMode || 'after_close',
+                maxAttempts || 1,
+                id,
+            ]
         );
 
         const [submissions] = await connection.execute(
-            'SELECT id FROM exam_submissions WHERE exam_id = ? LIMIT 1', [id]
+            'SELECT id FROM exam_submissions WHERE exam_id = ? LIMIT 1',
+            [id]
         );
 
         if (submissions.length > 0) {
             await connection.execute(
-                `UPDATE exam_sections SET order_index = -1 WHERE exam_id = ? AND order_index >= 0`, [id]
+                `UPDATE exam_sections SET order_index = -1 WHERE exam_id = ? AND order_index >= 0`,
+                [id]
             );
             if (sections && sections.length > 0) {
                 await insertSectionsAndQuestions(connection, id, sections);
             }
         } else {
-            const [oldSections] = await connection.execute('SELECT id FROM exam_sections WHERE exam_id = ?', [id]);
+            const [oldSections] = await connection.execute(
+                'SELECT id FROM exam_sections WHERE exam_id = ?',
+                [id]
+            );
             const oldSectionIds = oldSections.map((s) => s.id);
             if (oldSectionIds.length > 0) {
                 const placeholders = oldSectionIds.map(() => '?').join(',');
-                await connection.execute(`DELETE FROM questions WHERE section_id IN (${placeholders})`, oldSectionIds);
+                await connection.execute(
+                    `DELETE FROM questions WHERE section_id IN (${placeholders})`,
+                    oldSectionIds
+                );
                 await connection.execute(`DELETE FROM exam_sections WHERE exam_id = ?`, [id]);
             }
             if (sections && sections.length > 0) {
@@ -158,28 +204,39 @@ const getExamById = async (req, res) => {
             FROM exam_sections s
             LEFT JOIN questions q ON s.id = q.section_id
             WHERE s.exam_id = ? AND s.order_index >= 0 
-            ORDER BY s.order_index, q.order_index`, [id]
+            ORDER BY s.order_index, q.order_index`,
+            [id]
         );
 
         const sectionsMap = new Map();
         rows.forEach((row) => {
             if (!sectionsMap.has(row.s_id)) {
                 sectionsMap.set(row.s_id, {
-                    id: row.s_id, title: row.s_title, description: row.s_desc, questions: [],
+                    id: row.s_id,
+                    title: row.s_title,
+                    description: row.s_desc,
+                    questions: [],
                 });
             }
             if (row.q_id) {
                 let cData = row.content_data;
                 if (typeof cData === 'string') {
-                    try { cData = JSON.parse(cData); } catch (e) {}
+                    try {
+                        cData = JSON.parse(cData);
+                    } catch (e) {}
                 }
                 if (req.query.mode === 'taking' && cData) {
                     delete cData.correct_ids;
                     delete cData.correct_answer;
                 }
                 sectionsMap.get(row.s_id).questions.push({
-                    id: row.q_id, type: row.type, content: row.content, points: row.points,
-                    media_url: row.media_url, media_type: row.media_type, content_data: cData,
+                    id: row.q_id,
+                    type: row.type,
+                    content: row.content,
+                    points: row.points,
+                    media_url: row.media_url,
+                    media_type: row.media_type,
+                    content_data: cData,
                 });
             }
         });
@@ -203,13 +260,23 @@ const startExam = async (req, res) => {
             return res.status(400).json({ message: 'Ngoài thời gian làm bài' });
         }
 
-        const [attempts] = await db.execute('SELECT COUNT(*) as count FROM exam_submissions WHERE exam_id = ? AND student_id = ?', [examId, studentId]);
+        const [attempts] = await db.execute(
+            'SELECT COUNT(*) as count FROM exam_submissions WHERE exam_id = ? AND student_id = ?',
+            [examId, studentId]
+        );
         if (exam.max_attempts !== 999 && attempts[0].count >= exam.max_attempts) {
             return res.status(400).json({ message: 'Hết lượt làm bài' });
         }
 
-        const [result] = await db.execute(`INSERT INTO exam_submissions (exam_id, student_id, started_at) VALUES (?, ?, NOW())`, [examId, studentId]);
-        res.json({ submissionId: result.insertId, startedAt: new Date(), durationMinutes: exam.duration_minutes });
+        const [result] = await db.execute(
+            `INSERT INTO exam_submissions (exam_id, student_id, started_at) VALUES (?, ?, NOW())`,
+            [examId, studentId]
+        );
+        res.json({
+            submissionId: result.insertId,
+            startedAt: new Date(),
+            durationMinutes: exam.duration_minutes,
+        });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error starting exam' });
@@ -225,15 +292,15 @@ const submitExam = async (req, res) => {
             await connection.beginTransaction();
             const { submissionId, answers } = req.body;
 
-            const [subs] = await connection.execute('SELECT * FROM exam_submissions WHERE id = ?', [submissionId]);
+            const [subs] = await connection.execute('SELECT * FROM exam_submissions WHERE id = ?', [
+                submissionId,
+            ]);
             if (!subs.length) {
                 await connection.rollback();
                 return res.status(404).json({ message: 'Not found' });
             }
             const examId = subs[0].exam_id;
 
-            
-            
             const [questions] = await connection.execute(
                 `SELECT DISTINCT q.id, q.type, q.points, q.content_data 
                  FROM questions q 
@@ -242,59 +309,82 @@ const submitExam = async (req, res) => {
                 [examId]
             );
 
-            let totalScore = 0, earnedScore = 0;
+            let totalScore = 0,
+                earnedScore = 0;
             const details = [];
 
             for (const q of questions) {
                 const points = parseFloat(q.points);
                 totalScore += points;
-                
-                
-                const userAns = answers[q.id] !== undefined ? answers[q.id] : 
-                               (answers[String(q.id)] !== undefined ? answers[String(q.id)] : undefined);
-                
+
+                const userAns =
+                    answers[q.id] !== undefined
+                        ? answers[q.id]
+                        : answers[String(q.id)] !== undefined
+                          ? answers[String(q.id)]
+                          : undefined;
+
                 let correctData = q.content_data;
                 if (typeof correctData === 'string') {
-                    try { correctData = JSON.parse(correctData); } catch (e) {}
+                    try {
+                        correctData = JSON.parse(correctData);
+                    } catch (e) {}
                 }
 
                 let isCorrect = false;
                 if (userAns !== undefined && userAns !== null && userAns !== '') {
                     if (q.type === 'multiple_choice') {
-                        if (correctData.correct_ids?.some((id) => String(id) === String(userAns))) isCorrect = true;
+                        if (correctData.correct_ids?.some((id) => String(id) === String(userAns)))
+                            isCorrect = true;
                     } else if (q.type === 'fill_in_blank') {
-                        if (String(userAns).trim().toLowerCase() === String(correctData.correct_answer).trim().toLowerCase()) isCorrect = true;
+                        if (
+                            String(userAns).trim().toLowerCase() ===
+                            String(correctData.correct_answer).trim().toLowerCase()
+                        )
+                            isCorrect = true;
                     } else if (q.type === 'matching' && typeof userAns === 'object') {
                         const correctPairs = correctData.pairs || [];
                         let matchCount = 0;
-                        correctPairs.forEach((p) => { if (userAns[p.left] === p.right) matchCount++; });
+                        correctPairs.forEach((p) => {
+                            if (userAns[p.left] === p.right) matchCount++;
+                        });
                         if (matchCount === correctPairs.length && matchCount > 0) isCorrect = true;
                     } else if (q.type === 'ordering' && Array.isArray(userAns)) {
                         const correctItems = correctData.items || [];
                         let orderMatch = true;
                         if (userAns.length === correctItems.length) {
                             for (let k = 0; k < correctItems.length; k++) {
-                                if (userAns[k].text !== correctItems[k].text) { orderMatch = false; break; }
+                                if (userAns[k].text !== correctItems[k].text) {
+                                    orderMatch = false;
+                                    break;
+                                }
                             }
                             if (orderMatch) isCorrect = true;
                         } else orderMatch = false;
                     }
                 }
-                
+
                 if (isCorrect) earnedScore += points;
 
-                
                 let answerToSave = null;
                 if (userAns !== undefined && userAns !== null) {
                     answerToSave = JSON.stringify(userAns);
                 }
 
-                details.push([submissionId, q.id, answerToSave, isCorrect ? 1 : 0, isCorrect ? points : 0]);
+                details.push([
+                    submissionId,
+                    q.id,
+                    answerToSave,
+                    isCorrect ? 1 : 0,
+                    isCorrect ? points : 0,
+                ]);
             }
 
             earnedScore = Math.round(earnedScore * 100) / 100;
 
-            await connection.execute('DELETE FROM student_answers WHERE submission_id = ?', [submissionId]);
+            await connection.execute('DELETE FROM student_answers WHERE submission_id = ?', [
+                submissionId,
+            ]);
             await connection.execute(
                 `UPDATE exam_submissions SET submitted_at = NOW(), score = ? WHERE id = ?`,
                 [earnedScore, submissionId]
@@ -311,7 +401,7 @@ const submitExam = async (req, res) => {
             return res.json({ message: 'Success', score: earnedScore });
         } catch (error) {
             if (connection) await connection.rollback();
-            if (error.errno === 1213) { 
+            if (error.errno === 1213) {
                 retries--;
                 await new Promise((r) => setTimeout(r, 200));
             } else {
@@ -324,13 +414,12 @@ const submitExam = async (req, res) => {
     }
 };
 
-
 const getSubmissionDetail = async (req, res) => {
     try {
         const { submissionId } = req.params;
 
         const [subs] = await db.execute(
-            `SELECT es.*, e.title, e.view_answer_mode, u.full_name as student_name
+            `SELECT es.*, e.title, e.view_answer_mode, e.end_time, u.full_name as student_name
              FROM exam_submissions es 
              JOIN exams e ON es.exam_id = e.id 
              JOIN users u ON es.student_id = u.id
@@ -341,9 +430,6 @@ const getSubmissionDetail = async (req, res) => {
         if (!subs.length) return res.status(404).json({ message: 'Not found' });
         const sub = subs[0];
 
-        
-        
-        
         const [rows] = await db.execute(
             `SELECT s.id as s_id, s.title as s_title, s.order_index,
                     q.id as q_id, q.type, q.content, q.points, q.media_url, q.media_type, q.content_data, 
@@ -357,27 +443,43 @@ const getSubmissionDetail = async (req, res) => {
         );
 
         const sectionsMap = new Map();
-        const processedQuestions = new Set(); 
+        const processedQuestions = new Set();
+
+        const now = new Date();
+        const endTime = sub.end_time ? new Date(sub.end_time) : null;
 
         rows.forEach((row) => {
             if (!sectionsMap.has(row.s_id))
                 sectionsMap.set(row.s_id, { title: row.s_title, questions: [] });
 
-            
             if (row.q_id && !processedQuestions.has(row.q_id)) {
                 processedQuestions.add(row.q_id);
 
                 let contentData = row.content_data;
                 if (typeof contentData === 'string') {
-                    try { contentData = JSON.parse(contentData); } catch (e) {}
+                    try {
+                        contentData = JSON.parse(contentData);
+                    } catch (e) {}
                 }
 
                 let userAnswer = row.answer_data;
                 if (typeof userAnswer === 'string') {
-                    try { userAnswer = JSON.parse(userAnswer); } catch (e) {}
+                    try {
+                        userAnswer = JSON.parse(userAnswer);
+                    } catch (e) {}
                 }
 
+                let shouldHideAnswer = false;
+
                 if (sub.view_answer_mode === 'never') {
+                    shouldHideAnswer = true;
+                } else if (sub.view_answer_mode === 'after_close') {
+                    if (endTime && now < endTime) {
+                        shouldHideAnswer = true;
+                    }
+                }
+
+                if (shouldHideAnswer) {
                     if (contentData) {
                         delete contentData.correct_ids;
                         delete contentData.correct_answer;
@@ -482,14 +584,14 @@ const uploadExamMedia = async (req, res) => {
 
 const exportExamResults = async (req, res) => {
     try {
-        const { id } = req.params; 
-        const { filter } = req.query; 
+        const { id } = req.params;
+        const { filter } = req.query;
 
         const infoQuery = `SELECT e.title, c.name AS class_name FROM exams e JOIN classes c ON e.class_id = c.id WHERE e.id = ?`;
         const [infoRows] = await db.execute(infoQuery, [id]);
-        
+
         if (infoRows.length === 0) return res.status(404).json({ message: 'Exam not found' });
-        
+
         const examTitle = infoRows[0].title || 'Exam';
         const className = infoRows[0].class_name || 'Class';
 
@@ -500,13 +602,13 @@ const exportExamResults = async (req, res) => {
             WHERE es.exam_id = ? AND es.submitted_at IS NOT NULL
             ORDER BY u.full_name ASC, es.submitted_at DESC
         `;
-        
+
         const [submissions] = await db.execute(query, [id]);
         let dataToExport = submissions;
 
         if (filter === 'highest') {
             const map = new Map();
-            submissions.forEach(sub => {
+            submissions.forEach((sub) => {
                 const currentBest = map.get(sub.student_id);
                 if (!currentBest || parseFloat(sub.score) > parseFloat(currentBest.score)) {
                     map.set(sub.student_id, sub);
@@ -526,24 +628,32 @@ const exportExamResults = async (req, res) => {
             { header: 'Thời gian nộp', key: 'submitted_at', width: 20 },
         ];
         worksheet.getRow(1).font = { bold: true };
-        
-        dataToExport.forEach(sub => {
+
+        dataToExport.forEach((sub) => {
             worksheet.addRow({
                 student_id: sub.student_id,
                 username: sub.username || '',
                 full_name: sub.full_name,
                 score: sub.score,
-                submitted_at: sub.submitted_at ? new Date(sub.submitted_at).toLocaleString('vi-VN') : '',
+                submitted_at: sub.submitted_at
+                    ? new Date(sub.submitted_at).toLocaleString('vi-VN')
+                    : '',
             });
         });
 
-        const safeTitle = examTitle.replace(/[^a-zA-Z0-9\u00C0-\u1EF9 ]/g, "").replace(/\s+/g, "_");
-        const safeClass = className.replace(/[^a-zA-Z0-9\u00C0-\u1EF9 ]/g, "").replace(/\s+/g, "_");
+        const safeTitle = examTitle.replace(/[^a-zA-Z0-9\u00C0-\u1EF9 ]/g, '').replace(/\s+/g, '_');
+        const safeClass = className.replace(/[^a-zA-Z0-9\u00C0-\u1EF9 ]/g, '').replace(/\s+/g, '_');
         const fileName = `Ketqua_${safeTitle}_${safeClass}_${filter}.xlsx`;
 
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
         res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
-        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`
+        );
 
         await workbook.xlsx.write(res);
         res.end();
@@ -554,5 +664,15 @@ const exportExamResults = async (req, res) => {
 };
 
 module.exports = {
-    createExam, getExamsByClass, startExam, submitExam, getSubmissionDetail, getExamById, updateExam, deleteExam, getExamSubmissions, uploadExamMedia, exportExamResults,
+    createExam,
+    getExamsByClass,
+    startExam,
+    submitExam,
+    getSubmissionDetail,
+    getExamById,
+    updateExam,
+    deleteExam,
+    getExamSubmissions,
+    uploadExamMedia,
+    exportExamResults,
 };
