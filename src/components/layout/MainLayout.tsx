@@ -17,7 +17,6 @@ import {
     FaChevronLeft,
     FaChevronRight,
     FaExchangeAlt,
-    FaLock,
     FaBullhorn,
     FaBook,
     FaEdit,
@@ -151,19 +150,23 @@ const MainLayout: React.FC = () => {
                                         {isSidebarOpen && <span className="label">Trang chủ</span>}
                                     </Link>
                                 </li>
-                                <li>
-                                    <Link
-                                        to="/ranking"
-                                        className={`nav-item ${isActive('/ranking')}`}
-                                    >
-                                        <span className="icon">
-                                            <FaTrophy />
-                                        </span>
-                                        {isSidebarOpen && (
-                                            <span className="label">Bảng xếp hạng</span>
-                                        )}
-                                    </Link>
-                                </li>
+                                
+                                {user?.role === 'admin' && (
+                                    <li>
+                                        <Link
+                                            to="/ranking"
+                                            className={`nav-item ${isActive('/ranking')}`}
+                                        >
+                                            <span className="icon">
+                                                <FaTrophy />
+                                            </span>
+                                            {isSidebarOpen && (
+                                                <span className="label">Bảng xếp hạng</span>
+                                            )}
+                                        </Link>
+                                    </li>
+                                )}
+
                                 <li>
                                     {isClassLocked ? (
                                         <div
@@ -192,7 +195,6 @@ const MainLayout: React.FC = () => {
                                     )}
                                 </li>
 
-                                {}
                                 {(user?.role === 'group_leader' ||
                                     user?.role === 'monitor' ||
                                     user?.role === 'teacher' ||
@@ -226,7 +228,6 @@ const MainLayout: React.FC = () => {
                                         )}
                                     </li>
                                 )}
-                                {}
 
                                 <li>
                                     {isClassLocked ? (
@@ -323,7 +324,6 @@ const MainLayout: React.FC = () => {
 
                         {(user?.role === 'teacher' || user?.role === 'admin') && (
                             <li>
-                                {}
                                 <Link
                                     to="/teacher/exams"
                                     className={`nav-item ${isActive('/teacher/exams')}`}
