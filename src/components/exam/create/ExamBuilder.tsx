@@ -26,7 +26,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
     const [isShuffled, setIsShuffled] = useState(false);
 
     const [sections, setSections] = useState<any[]>([
-        { title: 'Phần 1', description: '', questions: [] },
+        { title: 'Phần 1', description: '', sectionScore: 0, questions: [] },
     ]);
 
     const [showErrors, setShowErrors] = useState(false);
@@ -38,12 +38,18 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
             setStartTime(initialData.start_time ? initialData.start_time.slice(0, 16) : '');
             setEndTime(initialData.end_time ? initialData.end_time.slice(0, 16) : '');
             setDurationMinutes(initialData.duration_minutes);
-
             setMaxAttempts(initialData.max_attempts || 1);
             setViewAnswerMode(initialData.view_answer_mode || 'immediate');
             setIsShuffled(!!initialData.is_shuffled);
 
-            setSections(initialData.sections || []);
+            const loadedSections = (initialData.sections || []).map((sec: any) => {
+                const totalPoints = sec.questions.reduce(
+                    (sum: number, q: any) => sum + Number(q.points),
+                    0
+                );
+                return { ...sec, sectionScore: totalPoints };
+            });
+            setSections(loadedSections);
         }
     }, [initialData]);
 
@@ -70,22 +76,16 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const data = await handleUploadMedia(file);
-
             if (data) {
                 setSections((prev) => {
                     const newSections = [...prev];
                     const newQuestions = [...newSections[secIndex].questions];
-
                     newQuestions[qIndex] = {
                         ...newQuestions[qIndex],
                         media_url: data.url,
                         media_type: data.media_type,
                     };
-
-                    newSections[secIndex] = {
-                        ...newSections[secIndex],
-                        questions: newQuestions,
-                    };
+                    newSections[secIndex] = { ...newSections[secIndex], questions: newQuestions };
                     return newSections;
                 });
             }
@@ -95,21 +95,57 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
     const removeMedia = (secIndex: number, qIndex: number) => {
         setSections((prev) => {
             const newSections = [...prev];
-            const newQuestions = [...newSections[secIndex].questions];
-            newQuestions[qIndex] = {
-                ...newQuestions[qIndex],
+            newSections[secIndex].questions[qIndex] = {
+                ...newSections[secIndex].questions[qIndex],
                 media_url: null,
                 media_type: null,
             };
-            newSections[secIndex].questions = newQuestions;
             return newSections;
         });
+    };
+
+    const redistributePoints = (currentSections: any[], secIndex: number) => {
+        const sec = currentSections[secIndex];
+        const qCount = sec.questions.length;
+        const totalScore = parseFloat(sec.sectionScore) || 0;
+
+        if (qCount > 0 && totalScore > 0) {
+            const pointPerQ = totalScore / qCount;
+
+            const roundedPoint = Math.round(pointPerQ * 100) / 100;
+
+            sec.questions.forEach((q: any) => {
+                q.points = roundedPoint;
+            });
+
+            const currentSum = roundedPoint * qCount;
+            const diff = totalScore - currentSum;
+            if (diff !== 0) {
+                sec.questions[qCount - 1].points = Number((roundedPoint + diff).toFixed(2));
+            }
+        } else if (totalScore === 0) {
+            sec.questions.forEach((q: any) => (q.points = 0));
+        }
+        return currentSections;
+    };
+
+    const handleSectionScoreChange = (index: number, val: string) => {
+        const newSections = [...sections];
+        newSections[index].sectionScore = val;
+
+        const updatedSections = redistributePoints(newSections, index);
+        setSections(updatedSections);
     };
 
     const addSection = () => {
         setSections([
             ...sections,
-            { title: `Phần ${sections.length + 1}`, description: '', questions: [] },
+            {
+                title: `Phần ${sections.length + 1}`,
+                description: '',
+                sectionScore: 0,
+                questions: [],
+            },
         ]);
     };
 
@@ -118,7 +154,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
         newSections[secIndex].questions.push({
             type: 'multiple_choice',
             content: '',
-            points: 1,
+            points: 0,
             media_url: '',
             media_type: '',
             content_data: {
@@ -131,14 +167,15 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                 correct_ids: [],
             },
         });
-        setSections(newSections);
+
+        const updatedSections = redistributePoints(newSections, secIndex);
+        setSections(updatedSections);
     };
 
     const handleTypeChange = (secIndex: number, qIndex: number, newType: string) => {
         const newSections = [...sections];
         const q = newSections[secIndex].questions[qIndex];
         q.type = newType;
-
         if (newType === 'multiple_choice') {
             q.content_data = {
                 options: [
@@ -150,15 +187,10 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
         } else if (newType === 'fill_in_blank') {
             q.content_data = { correct_answer: '' };
         } else if (newType === 'matching') {
-            q.content_data = {
-                pairs: [{ id: generateId(), left: '', right: '' }],
-            };
+            q.content_data = { pairs: [{ id: generateId(), left: '', right: '' }] };
         } else if (newType === 'ordering') {
-            q.content_data = {
-                items: [{ id: generateId(), text: '', order: 1 }],
-            };
+            q.content_data = { items: [{ id: generateId(), text: '', order: 1 }] };
         }
-
         setSections(newSections);
     };
 
@@ -174,7 +206,6 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
         const currentCorrect = q.content_data.correct_ids || [];
         const strOptId = String(optId);
         const exists = currentCorrect.some((id: any) => String(id) === strOptId);
-
         if (exists) {
             q.content_data.correct_ids = currentCorrect.filter(
                 (id: any) => String(id) !== strOptId
@@ -187,8 +218,10 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
 
     const addOption = (secIndex: number, qIndex: number) => {
         const newSections = [...sections];
-        const options = newSections[secIndex].questions[qIndex].content_data.options;
-        options.push({ id: generateId(), text: '' });
+        newSections[secIndex].questions[qIndex].content_data.options.push({
+            id: generateId(),
+            text: '',
+        });
         setSections(newSections);
     };
 
@@ -234,8 +267,11 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
 
     const addOrderItem = (secIndex: number, qIndex: number) => {
         const newSections = [...sections];
-        const items = newSections[secIndex].questions[qIndex].content_data.items;
-        items.push({ id: generateId(), text: '', order: items.length + 1 });
+        newSections[secIndex].questions[qIndex].content_data.items.push({
+            id: generateId(),
+            text: '',
+            order: newSections[secIndex].questions[qIndex].content_data.items.length + 1,
+        });
         setSections(newSections);
     };
     const updateOrderItem = (secIndex: number, qIndex: number, itemIndex: number, val: string) => {
@@ -256,29 +292,31 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
         if (new Date(startTime) >= new Date(endTime))
             return 'Thời gian kết thúc phải sau thời gian bắt đầu.';
 
+        let totalExamScore = 0;
+
         for (let i = 0; i < sections.length; i++) {
             const sec = sections[i];
             if (!sec.title.trim()) return `Phần thi thứ ${i + 1} chưa có tên.`;
             if (sec.questions.length === 0) return `Phần thi "${sec.title}" chưa có câu hỏi nào.`;
 
+            const secScore = parseFloat(sec.sectionScore);
+            if (isNaN(secScore) || secScore < 0)
+                return `Điểm của phần "${sec.title}" không hợp lệ.`;
+            totalExamScore += secScore;
+
             for (let j = 0; j < sec.questions.length; j++) {
                 const q = sec.questions[j];
                 const qNum = `Câu ${j + 1} (Phần ${i + 1})`;
-
                 if (!q.content.trim()) return `${qNum}: Nội dung câu hỏi đang để trống.`;
-                if (q.points <= 0) return `${qNum}: Điểm số phải lớn hơn 0.`;
 
                 if (q.type === 'multiple_choice') {
                     const opts = q.content_data.options || [];
                     if (opts.length < 2) return `${qNum}: Cần ít nhất 2 lựa chọn.`;
-
                     if (opts.some((o: any) => !o.text.trim()))
                         return `${qNum}: Có lựa chọn đang để trống nội dung.`;
-
                     const uniqueTexts = new Set(opts.map((o: any) => o.text.trim()));
                     if (uniqueTexts.size !== opts.length)
                         return `${qNum}: Các đáp án trắc nghiệm không được trùng nhau.`;
-
                     if (!q.content_data.correct_ids || q.content_data.correct_ids.length === 0)
                         return `${qNum}: Chưa chọn đáp án đúng.`;
                 } else if (q.type === 'fill_in_blank' || q.type === 'fill_blank') {
@@ -297,12 +335,16 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                 }
             }
         }
+
+        if (Math.abs(totalExamScore - 10) > 0.01) {
+            return `Tổng điểm các phần thi phải bằng 10. Hiện tại là: ${totalExamScore}`;
+        }
+
         return null;
     };
 
     const handleSubmit = async () => {
         setShowErrors(true);
-
         const errorMsg = validateExam();
         if (errorMsg) {
             alert(errorMsg);
@@ -333,7 +375,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
             onBack();
         } catch (error) {
             console.error(error);
-            alert('Lỗi lưu đề thi (Vui lòng kiểm tra lại kết nối hoặc dữ liệu)');
+            alert('Lỗi lưu đề thi.');
         }
     };
 
@@ -361,6 +403,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
             </div>
 
             <div className="builder-meta">
+                {}
                 <div className="form-group">
                     <label>Tiêu đề bài thi:</label>
                     <input
@@ -381,7 +424,6 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                         placeholder="Nhập mô tả đề thi..."
                     />
                 </div>
-
                 <div className="form-row">
                     <div className="form-group">
                         <label>Bắt đầu:</label>
@@ -431,11 +473,10 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                             }}
                         >
                             <option value="immediate">Ngay sau khi nộp</option>
-                            <option value="after_close">Sau khi đóng đề (Hết hạn)</option>
+                            <option value="after_close">Sau khi đóng đề</option>
                             <option value="never">Không bao giờ</option>
                         </select>
                     </div>
-
                     <div
                         className="form-group"
                         style={{ display: 'flex', alignItems: 'center', marginTop: 30 }}
@@ -460,7 +501,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
             <div className="sections-container">
                 {sections.map((sec, sIdx) => (
                     <div key={sIdx} className="section-card">
-                        <div className="section-header">
+                        <div className="section-header" style={{ alignItems: 'center', gap: 15 }}>
                             <div style={{ flex: 1 }}>
                                 <input
                                     className="sec-title-input"
@@ -479,6 +520,43 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                 {showErrors && !sec.title.trim() && (
                                     <ErrorText text="Tên phần thi trống" />
                                 )}
+                            </div>
+
+                            {}
+                            <div
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    background: '#f0f7ff',
+                                    padding: '5px 10px',
+                                    borderRadius: 6,
+                                    border: '1px solid #cce5ff',
+                                }}
+                            >
+                                <label
+                                    style={{
+                                        margin: 0,
+                                        fontSize: '0.9rem',
+                                        fontWeight: 600,
+                                        color: '#004085',
+                                    }}
+                                >
+                                    Điểm phần:
+                                </label>
+                                <input
+                                    type="number"
+                                    value={sec.sectionScore}
+                                    onChange={(e) => handleSectionScoreChange(sIdx, e.target.value)}
+                                    style={{
+                                        width: 60,
+                                        padding: 5,
+                                        border: '1px solid #b8daff',
+                                        borderRadius: 4,
+                                        fontWeight: 'bold',
+                                    }}
+                                    placeholder="0"
+                                />
                             </div>
 
                             <button
@@ -511,23 +589,35 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                         <option value="ordering">Sắp xếp đoạn văn</option>
                                     </select>
 
-                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-                                        <input
-                                            type="number"
-                                            className="points-input"
-                                            value={q.points}
-                                            onChange={(e) =>
-                                                updateQuestion(sIdx, qIdx, 'points', e.target.value)
-                                            }
-                                        />
-                                        <span>điểm</span>
+                                    <div
+                                        style={{
+                                            marginLeft: 'auto',
+                                            display: 'flex',
+                                            gap: 10,
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        {}
+                                        <span
+                                            style={{
+                                                fontSize: '0.9rem',
+                                                color: '#666',
+                                                background: '#eee',
+                                                padding: '2px 8px',
+                                                borderRadius: 4,
+                                            }}
+                                        >
+                                            {q.points} điểm
+                                        </span>
                                     </div>
                                     <button
                                         className="btn-icon danger"
                                         onClick={() => {
                                             const ns = [...sections];
                                             ns[sIdx].questions.splice(qIdx, 1);
-                                            setSections(ns);
+
+                                            const updatedSections = redistributePoints(ns, sIdx);
+                                            setSections(updatedSections);
                                         }}
                                     >
                                         <FaTrash />
@@ -629,9 +719,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                                                 o.text.trim() !== '' &&
                                                                 o.text.trim() === opt.text.trim()
                                                         ).length > 1;
-
                                                     const isEmpty = !opt.text.trim();
-
                                                     return (
                                                         <div
                                                             key={oIdx}
@@ -703,9 +791,8 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                                                     </button>
                                                                 )}
                                                             </div>
-                                                            {}
                                                             {isDuplicated && (
-                                                                <ErrorText text="Đáp án này bị trùng với đáp án khác!" />
+                                                                <ErrorText text="Đáp án bị trùng!" />
                                                             )}
                                                             {isEmpty && showErrors && (
                                                                 <ErrorText text="Nội dung đáp án trống" />
@@ -731,7 +818,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                             {showErrors &&
                                                 (!q.content_data.correct_ids ||
                                                     q.content_data.correct_ids.length === 0) && (
-                                                    <ErrorText text="Chưa chọn đáp án đúng nào!" />
+                                                    <ErrorText text="Chưa chọn đáp án đúng!" />
                                                 )}
                                         </div>
                                     )}
@@ -739,7 +826,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                     {}
                                     {(q.type === 'fill_in_blank' || q.type === 'fill_blank') && (
                                         <div style={{ marginTop: 10 }}>
-                                            <label>Đáp án đúng (chính xác):</label>
+                                            <label>Đáp án đúng:</label>
                                             <input
                                                 value={q.content_data?.correct_answer || ''}
                                                 onChange={(e) => {
@@ -783,7 +870,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                                     fontWeight: 'bold',
                                                 }}
                                             >
-                                                Các cặp nối (Trái - Phải):
+                                                Các cặp nối:
                                             </label>
                                             {q.content_data.pairs.map((pair: any, pIdx: number) => (
                                                 <div key={pIdx}>
@@ -882,7 +969,7 @@ const ExamBuilder: React.FC<Props> = ({ classId, onBack, examId, initialData }) 
                                                     fontWeight: 'bold',
                                                 }}
                                             >
-                                                Các đoạn văn/câu cần sắp xếp (Theo đúng thứ tự):
+                                                Các đoạn văn/câu cần sắp xếp:
                                             </label>
                                             {q.content_data.items.map((item: any, iIdx: number) => (
                                                 <div key={iIdx}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FaClock, FaSave, FaThLarge, FaTimes, FaList } from 'react-icons/fa';
+import { FaClock, FaSave, FaThLarge, FaTimes, FaList, FaExpand, FaCompress } from 'react-icons/fa';
 import api from '../utils/api';
 import QuestionRenderer from '../components/exam/taking/QuestionRenderer';
 import '../assets/styles/ExamTakingPage.css';
@@ -11,6 +11,8 @@ const ExamTakingPage: React.FC = () => {
     const [exam, setExam] = useState<any>(null);
     const [answers, setAnswers] = useState<any>({});
     const [timeLeft, setTimeLeft] = useState<number>(0);
+
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     const submissionIdRef = useRef<number | null>(null);
 
@@ -27,6 +29,16 @@ const ExamTakingPage: React.FC = () => {
     useEffect(() => {
         answersRef.current = answers;
     }, [answers]);
+
+    useEffect(() => {
+        const handleFullScreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullScreenChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullScreenChange);
+        };
+    }, []);
 
     useEffect(() => {
         if (hasFetched.current) return;
@@ -113,6 +125,18 @@ const ExamTakingPage: React.FC = () => {
         }
     };
 
+    const toggleFullScreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    };
+
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden) {
@@ -195,6 +219,26 @@ const ExamTakingPage: React.FC = () => {
         <div className="exam-taking-page">
             <div className="exam-header">
                 <h3>{exam.title}</h3>
+
+                {}
+                <button
+                    type="button"
+                    onClick={toggleFullScreen}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#555',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '1.2rem',
+                        padding: '5px 10px',
+                    }}
+                    title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+                >
+                    {isFullscreen ? <FaCompress /> : <FaExpand />}
+                </button>
+
                 <div className={`timer-badge ${timeLeft < 300 ? 'warning' : ''}`}>
                     <FaClock /> {formatTime(timeLeft)}
                 </div>
