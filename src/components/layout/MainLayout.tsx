@@ -150,7 +150,7 @@ const MainLayout: React.FC = () => {
                                         {isSidebarOpen && <span className="label">Trang chủ</span>}
                                     </Link>
                                 </li>
-                                
+
                                 {user?.role === 'admin' && (
                                     <li>
                                         <Link
