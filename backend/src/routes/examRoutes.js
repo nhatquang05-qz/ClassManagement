@@ -4,6 +4,7 @@ const examController = require('../controllers/examController');
 const authMiddleware = require('../middleware/authMiddleware');
 const uploadMiddleware = require('../middleware/uploadMiddleware');
 
+router.get('/:id/export', authMiddleware, examController.exportExamResults);
 router.post('/', authMiddleware, examController.createExam);
 router.put('/:id', authMiddleware, examController.updateExam);
 router.delete('/:id', authMiddleware, examController.deleteExam);

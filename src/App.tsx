@@ -39,7 +39,16 @@ const App: React.FC = () => {
                 <ClassProvider>
                     <Routes>
                         <Route path="/login" element={<LoginPage />} />
+                        <Route
+                            path="/take-exam/:id"
+                            element={
+                                <ProtectedRoute>
+                                    <ExamTakingPage />
+                                </ProtectedRoute>
+                            }
+                        />
 
+                        {}
                         <Route
                             path="/"
                             element={
@@ -68,7 +77,6 @@ const App: React.FC = () => {
                                 element={<Navigate to="/teacher/exams" replace />}
                             />
                             <Route path="student-exams" element={<StudentExamPage />} />
-                            <Route path="take-exam/:id" element={<ExamTakingPage />} />
                             <Route path="support" element={<SupportPage />} />
                             <Route path="admin/support" element={<AdminSupportPage />} />
                         </Route>

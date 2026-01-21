@@ -8,6 +8,7 @@ import {
     FaClock,
     FaTrophy,
     FaUserGraduate,
+    FaFileExcel,
 } from 'react-icons/fa';
 import api from '../../../utils/api';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -82,6 +83,38 @@ const ExamDetail: React.FC = () => {
         navigate('/teacher/exams');
     };
 
+    const handleExport = async (filter: 'all' | 'highest') => {
+        try {
+            const response = await api.get(`/exams/${examId}/export`, {
+                params: { filter },
+                responseType: 'blob',
+            });
+
+            let fileName = `KetQua_${examId}_${filter}.xlsx`;
+            const contentDisposition = response.headers['content-disposition'];
+            if (contentDisposition) {
+                const fileNameMatch = contentDisposition.match(
+                    /filename\*?=['"]?(?:UTF-8'')?([^'";]+)['"]?/i
+                );
+                if (fileNameMatch && fileNameMatch[1]) {
+                    fileName = decodeURIComponent(fileNameMatch[1]);
+                }
+            }
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export error:', error);
+            alert('Lỗi khi xuất file Excel. Vui lòng thử lại.');
+        }
+    };
+
     if (loading)
         return (
             <div style={{ padding: 40, textAlign: 'center', color: '#666' }}>
@@ -100,6 +133,46 @@ const ExamDetail: React.FC = () => {
                     <div className="ed-title-group">
                         <h2>{exam?.title}</h2>
                         <div className="ed-subtitle">Chi tiết lượt nộp bài</div>
+
+                        {}
+                        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                            <button
+                                onClick={() => handleExport('all')}
+                                style={{
+                                    background: '#2ecc71',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '6px 12px',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontSize: '0.9rem',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <FaFileExcel /> Xuất tất cả
+                            </button>
+                            <button
+                                onClick={() => handleExport('highest')}
+                                style={{
+                                    background: '#27ae60',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '6px 12px',
+                                    borderRadius: 4,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    fontSize: '0.9rem',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                <FaFileExcel /> Xuất điểm cao nhất
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>

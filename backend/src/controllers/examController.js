@@ -1,6 +1,7 @@
 const db = require('../config/dbConfig');
 const cloudinary = require('../config/cloudinaryConfig');
 const streamifier = require('streamifier');
+const ExcelJS = require('exceljs');
 
 const uploadFromBuffer = (file) => {
     return new Promise((resolve, reject) => {
@@ -257,87 +258,6 @@ const getExamById = async (req, res) => {
     }
 };
 
-const getSubmissionDetail = async (req, res) => {
-    try {
-        const { submissionId } = req.params;
-
-        const [subs] = await db.execute(
-            `SELECT es.*, e.title, e.view_answer_mode, u.full_name as student_name
-             FROM exam_submissions es 
-             JOIN exams e ON es.exam_id = e.id 
-             JOIN users u ON es.student_id = u.id
-             WHERE es.id = ?`,
-            [submissionId]
-        );
-
-        if (!subs.length) return res.status(404).json({ message: 'Not found' });
-        const sub = subs[0];
-
-        const [rows] = await db.execute(
-            `SELECT s.id as s_id, s.title as s_title, s.order_index,
-                    q.id as q_id, q.type, q.content, q.points, q.media_url, q.media_type, q.content_data, 
-                    sa.answer_data, sa.is_correct, sa.score_obtained
-             FROM exam_sections s 
-             JOIN questions q ON s.id = q.section_id 
-             LEFT JOIN student_answers sa ON sa.question_id = q.id AND sa.submission_id = ?
-             WHERE s.exam_id = ? 
-             ORDER BY s.order_index, q.order_index`,
-            [submissionId, sub.exam_id]
-        );
-
-        const sectionsMap = new Map();
-        rows.forEach((row) => {
-            if (!sectionsMap.has(row.s_id))
-                sectionsMap.set(row.s_id, { title: row.s_title, questions: [] });
-
-            if (row.q_id) {
-                let contentData = row.content_data;
-                if (typeof contentData === 'string') {
-                    try {
-                        contentData = JSON.parse(contentData);
-                    } catch (e) {}
-                }
-
-                let userAnswer = row.answer_data;
-                if (typeof userAnswer === 'string') {
-                    try {
-                        userAnswer = JSON.parse(userAnswer);
-                    } catch (e) {}
-                }
-
-                if (sub.view_answer_mode === 'never') {
-                    if (contentData) {
-                        delete contentData.correct_ids;
-                        delete contentData.correct_answer;
-                    }
-                }
-
-                sectionsMap.get(row.s_id).questions.push({
-                    id: row.q_id,
-                    type: row.type,
-                    content: row.content,
-                    points: row.points,
-                    media_url: row.media_url,
-                    media_type: row.media_type,
-                    content_data: contentData,
-                    user_answer: userAnswer,
-                    is_correct: row.is_correct,
-                    score_obtained: row.score_obtained,
-                });
-            }
-        });
-
-        const finalSections = Array.from(sectionsMap.values()).filter(
-            (sec) => sec.questions.length > 0
-        );
-
-        res.json({ exam: sub, sections: finalSections });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error' });
-    }
-};
-
 const startExam = async (req, res) => {
     try {
         const { examId } = req.body;
@@ -408,7 +328,9 @@ const submitExam = async (req, res) => {
             for (const q of questions) {
                 const points = parseFloat(q.points);
                 totalScore += points;
+
                 const userAns = answers[q.id] || answers[String(q.id)];
+
                 let correctData = q.content_data;
                 if (typeof correctData === 'string') {
                     try {
@@ -448,11 +370,18 @@ const submitExam = async (req, res) => {
                         } else orderMatch = false;
                     }
                 }
+
                 if (isCorrect) earnedScore += points;
+
+                let answerToSave = null;
+                if (userAns !== undefined && userAns !== null) {
+                    answerToSave = JSON.stringify(userAns);
+                }
+
                 details.push([
                     submissionId,
                     q.id,
-                    JSON.stringify(userAns === undefined ? null : userAns),
+                    answerToSave,
                     isCorrect ? 1 : 0,
                     isCorrect ? points : 0,
                 ]);
@@ -489,6 +418,90 @@ const submitExam = async (req, res) => {
         } finally {
             if (connection) connection.release();
         }
+    }
+};
+
+const getSubmissionDetail = async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+
+        const [subs] = await db.execute(
+            `SELECT es.*, e.title, e.view_answer_mode, u.full_name as student_name
+             FROM exam_submissions es 
+             JOIN exams e ON es.exam_id = e.id 
+             JOIN users u ON es.student_id = u.id
+             WHERE es.id = ?`,
+            [submissionId]
+        );
+
+        if (!subs.length) return res.status(404).json({ message: 'Not found' });
+        const sub = subs[0];
+
+        const [rows] = await db.execute(
+            `SELECT s.id as s_id, s.title as s_title, s.order_index,
+                    q.id as q_id, q.type, q.content, q.points, q.media_url, q.media_type, q.content_data, 
+                    sa.answer_data, sa.is_correct, sa.score_obtained
+             FROM exam_sections s 
+             JOIN questions q ON s.id = q.section_id 
+             LEFT JOIN student_answers sa ON sa.question_id = q.id AND sa.submission_id = ?
+             WHERE s.exam_id = ? 
+             ORDER BY s.order_index, q.order_index`,
+            [submissionId, sub.exam_id]
+        );
+
+        const sectionsMap = new Map();
+        rows.forEach((row) => {
+            if (!sectionsMap.has(row.s_id))
+                sectionsMap.set(row.s_id, { title: row.s_title, questions: [] });
+
+            if (row.q_id) {
+                let contentData = row.content_data;
+                if (typeof contentData === 'string') {
+                    try {
+                        contentData = JSON.parse(contentData);
+                    } catch (e) {}
+                }
+
+                let userAnswer = row.answer_data;
+
+                if (typeof userAnswer === 'string') {
+                    try {
+                        userAnswer = JSON.parse(userAnswer);
+                    } catch (e) {
+                        console.error('Error parsing user answer:', userAnswer);
+                    }
+                }
+
+                if (sub.view_answer_mode === 'never') {
+                    if (contentData) {
+                        delete contentData.correct_ids;
+                        delete contentData.correct_answer;
+                    }
+                }
+
+                sectionsMap.get(row.s_id).questions.push({
+                    id: row.q_id,
+                    type: row.type,
+                    content: row.content,
+                    points: row.points,
+                    media_url: row.media_url,
+                    media_type: row.media_type,
+                    content_data: contentData,
+                    user_answer: userAnswer,
+                    is_correct: row.is_correct,
+                    score_obtained: row.score_obtained,
+                });
+            }
+        });
+
+        const finalSections = Array.from(sectionsMap.values()).filter(
+            (sec) => sec.questions.length > 0
+        );
+
+        res.json({ exam: sub, sections: finalSections });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error' });
     }
 };
 
@@ -564,6 +577,94 @@ const uploadExamMedia = async (req, res) => {
     }
 };
 
+const exportExamResults = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { filter } = req.query;
+
+        const infoQuery = `
+            SELECT e.title, c.name AS class_name 
+            FROM exams e
+            JOIN classes c ON e.class_id = c.id
+            WHERE e.id = ?
+        `;
+        const [infoRows] = await db.execute(infoQuery, [id]);
+
+        if (infoRows.length === 0) return res.status(404).json({ message: 'Exam not found' });
+
+        const examTitle = infoRows[0].title || 'Exam';
+        const className = infoRows[0].class_name || 'Class';
+
+        let query = `
+            SELECT es.*, u.full_name, u.username
+            FROM exam_submissions es
+            JOIN users u ON es.student_id = u.id
+            WHERE es.exam_id = ? AND es.submitted_at IS NOT NULL
+            ORDER BY u.full_name ASC, es.submitted_at DESC
+        `;
+
+        const [submissions] = await db.execute(query, [id]);
+
+        let dataToExport = submissions;
+
+        if (filter === 'highest') {
+            const map = new Map();
+            submissions.forEach((sub) => {
+                const currentBest = map.get(sub.student_id);
+                if (!currentBest || parseFloat(sub.score) > parseFloat(currentBest.score)) {
+                    map.set(sub.student_id, sub);
+                }
+            });
+            dataToExport = Array.from(map.values());
+        }
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('KetQuaThi');
+
+        worksheet.columns = [
+            { header: 'ID', key: 'student_id', width: 10 },
+            { header: 'Tên đăng nhập', key: 'username', width: 20 },
+            { header: 'Họ và Tên', key: 'full_name', width: 30 },
+            { header: 'Điểm số', key: 'score', width: 10 },
+            { header: 'Thời gian nộp', key: 'submitted_at', width: 20 },
+        ];
+
+        worksheet.getRow(1).font = { bold: true };
+
+        dataToExport.forEach((sub) => {
+            worksheet.addRow({
+                student_id: sub.student_id,
+                username: sub.username || '',
+                full_name: sub.full_name,
+                score: sub.score,
+                submitted_at: sub.submitted_at
+                    ? new Date(sub.submitted_at).toLocaleString('vi-VN')
+                    : '',
+            });
+        });
+
+        const safeTitle = examTitle.replace(/[^a-zA-Z0-9\u00C0-\u1EF9 ]/g, '').replace(/\s+/g, '_');
+        const safeClass = className.replace(/[^a-zA-Z0-9\u00C0-\u1EF9 ]/g, '').replace(/\s+/g, '_');
+        const fileName = `Ketqua_${safeTitle}_${safeClass}_${filter}.xlsx`;
+
+        res.setHeader(
+            'Content-Type',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`
+        );
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Lỗi xuất file Excel: ' + error.message });
+    }
+};
+
 module.exports = {
     createExam,
     getExamsByClass,
@@ -575,4 +676,5 @@ module.exports = {
     deleteExam,
     getExamSubmissions,
     uploadExamMedia,
+    exportExamResults,
 };
