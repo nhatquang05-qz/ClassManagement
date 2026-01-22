@@ -2,18 +2,17 @@ const Groq = require('groq-sdk');
 require('dotenv').config();
 
 const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
+    apiKey: process.env.GROQ_API_KEY,
 });
 
 const generateClassReport = async (reportData, startDate, endDate) => {
     try {
-        
-        const summary = reportData.map(item => ({
+        const summary = reportData.map((item) => ({
             student: item.student_name,
             group: item.group_number,
             violation: item.violation_name,
-            points: item.points * item.quantity, 
-            quantity: item.quantity
+            points: item.points * item.quantity,
+            quantity: item.quantity,
         }));
 
         const prompt = `
@@ -33,22 +32,22 @@ const generateClassReport = async (reportData, startDate, endDate) => {
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 {
-                    role: "user",
-                    content: prompt
-                }
+                    role: 'user',
+                    content: prompt,
+                },
             ],
-            model: 'openai/gpt-oss-120b', 
+            model: 'openai/gpt-oss-120b',
             temperature: 0.7,
             max_tokens: 1024,
         });
 
-        return chatCompletion.choices[0]?.message?.content || "Không thể tạo nhận xét lúc này.";
+        return chatCompletion.choices[0]?.message?.content || 'Không thể tạo nhận xét lúc này.';
     } catch (error) {
-        console.error("Error in aiReportService:", error);
-        throw new Error("Lỗi khi gọi Groq AI");
+        console.error('Error in aiReportService:', error);
+        throw new Error('Lỗi khi gọi Groq AI');
     }
 };
 
 module.exports = {
-    generateClassReport
+    generateClassReport,
 };

@@ -3,7 +3,7 @@ import '../assets/styles/ReportPage.css';
 import { useAuth } from '../contexts/AuthContext';
 import { useClass } from '../contexts/ClassContext';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaSearch } from 'react-icons/fa';
+import { FaArrowLeft, FaSearch, FaRobot } from 'react-icons/fa';
 
 import { getWeekNumberFromStart, getWeekDatesFromStart, WeekSchedule } from '../utils/dateUtils';
 
@@ -70,6 +70,9 @@ const ReportPage = () => {
     const [availableGroups, setAvailableGroups] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
 
+    const [aiReview, setAiReview] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+
     useEffect(() => {
         const fetchClassInfo = async () => {
             const selectedClassId = selectedClass?.id || localStorage.getItem('selectedClassId');
@@ -135,6 +138,7 @@ const ReportPage = () => {
     const handleWeekChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = parseInt(e.target.value);
         setSelectedWeek(val);
+        setAiReview('');
     };
 
     useEffect(() => {
@@ -184,6 +188,7 @@ const ReportPage = () => {
         if (!startDate || !endDate) return;
 
         setLoading(true);
+        setAiReview('');
         try {
             const res = await api.get('/reports/detailed', {
                 params: {
@@ -201,6 +206,31 @@ const ReportPage = () => {
             console.error('Lỗi tải báo cáo:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerateAIReview = async () => {
+        if (reportData.length === 0) {
+            alert('Chưa có dữ liệu để AI nhận xét.');
+            return;
+        }
+
+        setAiLoading(true);
+        try {
+            const res = await api.post('/ai-report/review', {
+                reportData,
+                startDate: new Date(startDate).toLocaleDateString('vi-VN'),
+                endDate: new Date(endDate).toLocaleDateString('vi-VN'),
+            });
+
+            if (res.data && res.data.review) {
+                setAiReview(res.data.review);
+            }
+        } catch (error) {
+            console.error('Lỗi khi lấy nhận xét AI:', error);
+            alert('Có lỗi xảy ra khi kết nối với AI.');
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -237,10 +267,8 @@ const ReportPage = () => {
 
                 if (totalPoints > 0) {
                     stats[groupKey].bonus += totalPoints;
-                    
                 } else {
                     stats[groupKey].penaltyRaw += totalPoints;
-                    
                     if (totalPoints < 0) {
                         stats[groupKey].violationCount += item.quantity;
                     }
@@ -263,7 +291,6 @@ const ReportPage = () => {
     const chartDataByCategory = useMemo(() => {
         const counts: Record<string, number> = {};
         reportData.forEach((item) => {
-            
             if (item.points < 0) {
                 counts[item.violation_name] = (counts[item.violation_name] || 0) + item.quantity;
             }
@@ -273,7 +300,6 @@ const ReportPage = () => {
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560'];
 
-    
     const totalViolations = reportData.reduce((acc, curr) => {
         return curr.points < 0 ? acc + curr.quantity : acc;
     }, 0);
@@ -283,7 +309,6 @@ const ReportPage = () => {
         return p < 0 ? acc + p : acc;
     }, 0);
 
-    
     const uniqueStudents = new Set(
         reportData.filter((r) => r.points < 0).map((r) => r.student_name)
     ).size;
@@ -316,7 +341,6 @@ const ReportPage = () => {
             <div className="filter-section">
                 <div className="filter-group">
                     <label>Chọn tuần:</label>
-                    {}
                     {!classStartDate && (
                         <span style={{ color: 'red', fontSize: '12px', display: 'block' }}>
                             (Lớp chưa cấu hình ngày bắt đầu)
@@ -457,114 +481,215 @@ const ReportPage = () => {
             </div>
 
             {reportData.length > 0 && (
-                <div
-                    className="charts-container"
-                    style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: '20px',
-                        marginTop: '40px',
-                        justifyContent: 'center',
-                    }}
-                >
+                <>
                     <div
+                        className="charts-container"
                         style={{
-                            flex: '1 1 45%',
-                            background: '#fff',
-                            padding: '20px',
-                            borderRadius: '8px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: '20px',
+                            marginTop: '40px',
+                            justifyContent: 'center',
                         }}
                     >
-                        <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '18px' }}>
-                            So sánh Điểm Cộng vs Điểm Trừ
-                        </h3>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={chartGroupStats}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip cursor={{ fill: 'transparent' }} />
-                                <Legend verticalAlign="top" height={36} />
-                                <Bar dataKey="bonus" name="Điểm Cộng" fill="#00C49F" barSize={30} />
-                                <Bar
-                                    dataKey="penalty"
-                                    name="Điểm Trừ"
-                                    fill="#FF4560"
-                                    barSize={30}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {}
+                        <div
+                            style={{
+                                flex: '1 1 45%',
+                                background: '#fff',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            }}
+                        >
+                            <h3
+                                style={{
+                                    textAlign: 'center',
+                                    marginBottom: '20px',
+                                    fontSize: '18px',
+                                }}
+                            >
+                                So sánh Điểm Cộng vs Điểm Trừ
+                            </h3>
+                            <ResponsiveContainer width="100%" height={350}>
+                                <BarChart data={chartGroupStats}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis />
+                                    <Tooltip cursor={{ fill: 'transparent' }} />
+                                    <Legend verticalAlign="top" height={36} />
+                                    <Bar
+                                        dataKey="bonus"
+                                        name="Điểm Cộng"
+                                        fill="#00C49F"
+                                        barSize={30}
+                                    />
+                                    <Bar
+                                        dataKey="penalty"
+                                        name="Điểm Trừ"
+                                        fill="#FF4560"
+                                        barSize={30}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div
+                            style={{
+                                flex: '1 1 45%',
+                                background: '#fff',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            }}
+                        >
+                            <h3
+                                style={{
+                                    textAlign: 'center',
+                                    marginBottom: '20px',
+                                    fontSize: '18px',
+                                }}
+                            >
+                                Số Lần Vi Phạm Theo Tổ
+                            </h3>
+                            <ResponsiveContainer width="100%" height={350}>
+                                <BarChart data={chartGroupStats}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" />
+                                    <YAxis allowDecimals={false} />
+                                    <Tooltip cursor={{ fill: 'transparent' }} />
+                                    <Legend verticalAlign="top" height={36} />
+                                    <Bar
+                                        dataKey="violationCount"
+                                        name="Số lần vi phạm"
+                                        fill="#FFBB28"
+                                        barSize={50}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div
+                            style={{
+                                flex: '1 1 45%',
+                                background: '#fff',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            }}
+                        >
+                            <h3
+                                style={{
+                                    textAlign: 'center',
+                                    marginBottom: '20px',
+                                    fontSize: '18px',
+                                }}
+                            >
+                                Tỉ lệ các loại lỗi (Chỉ tính lỗi trừ điểm)
+                            </h3>
+                            <ResponsiveContainer width="100%" height={350}>
+                                <PieChart>
+                                    <Pie
+                                        data={chartDataByCategory}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ percent }: { percent?: number }) =>
+                                            `${((percent || 0) * 100).toFixed(0)}%`
+                                        }
+                                        outerRadius={100}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {chartDataByCategory.map((entry, index) => (
+                                            <Cell
+                                                key={`cell-${index}`}
+                                                fill={COLORS[index % COLORS.length]}
+                                            />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
 
+                    {}
                     <div
+                        className="ai-review-section"
                         style={{
-                            flex: '1 1 45%',
-                            background: '#fff',
+                            marginTop: '40px',
+                            background: '#f0f8ff',
                             padding: '20px',
                             borderRadius: '8px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            border: '1px solid #cceeff',
                         }}
                     >
-                        <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '18px' }}>
-                            Số Lần Vi Phạm Theo Tổ
-                        </h3>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={chartGroupStats}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis allowDecimals={false} />
-                                <Tooltip cursor={{ fill: 'transparent' }} />
-                                <Legend verticalAlign="top" height={36} />
-                                <Bar
-                                    dataKey="violationCount"
-                                    name="Số lần vi phạm"
-                                    fill="#FFBB28"
-                                    barSize={50}
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
+                        <div
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '15px',
+                            }}
+                        >
+                            <h3
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    margin: 0,
+                                    color: '#0056b3',
+                                }}
+                            >
+                                <FaRobot size={24} /> Nhận xét tự động từ AI (Beta)
+                            </h3>
+                            <button
+                                onClick={handleGenerateAIReview}
+                                disabled={aiLoading}
+                                style={{
+                                    padding: '10px 20px',
+                                    background: aiLoading
+                                        ? '#ccc'
+                                        : 'linear-gradient(45deg, #6a11cb 0%, #2575fc 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '5px',
+                                    cursor: aiLoading ? 'not-allowed' : 'pointer',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                }}
+                            >
+                                {aiLoading ? 'Đang phân tích...' : 'Tạo nhận xét ngay'}
+                            </button>
+                        </div>
 
-                    <div
-                        style={{
-                            flex: '1 1 45%',
-                            background: '#fff',
-                            padding: '20px',
-                            borderRadius: '8px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        }}
-                    >
-                        <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '18px' }}>
-                            Tỉ lệ các loại lỗi (Chỉ tính lỗi trừ điểm)
-                        </h3>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <PieChart>
-                                <Pie
-                                    data={chartDataByCategory}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    label={({ percent }: { percent?: number }) =>
-                                        `${((percent || 0) * 100).toFixed(0)}%`
-                                    }
-                                    outerRadius={100}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                >
-                                    {chartDataByCategory.map((entry, index) => (
-                                        <Cell
-                                            key={`cell-${index}`}
-                                            fill={COLORS[index % COLORS.length]}
-                                        />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {aiReview && (
+                            <div
+                                className="review-content"
+                                style={{
+                                    background: 'white',
+                                    padding: '20px',
+                                    borderRadius: '5px',
+                                    lineHeight: '1.6',
+                                    fontSize: '16px',
+                                    boxShadow: 'inset 0 0 5px rgba(0,0,0,0.05)',
+                                }}
+                            >
+                                <p style={{ whiteSpace: 'pre-line' }}>{aiReview}</p>
+                            </div>
+                        )}
+                        {!aiReview && !aiLoading && (
+                            <p style={{ fontStyle: 'italic', color: '#666', textAlign: 'center' }}>
+                                Nhấn nút trên để AI phân tích dữ liệu vi phạm và đưa ra nhận xét
+                                tổng quan cho tuần này.
+                            </p>
+                        )}
                     </div>
-                </div>
+                </>
             )}
         </div>
     );
