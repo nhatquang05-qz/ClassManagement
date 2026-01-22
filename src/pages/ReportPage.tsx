@@ -235,12 +235,13 @@ const ReportPage = () => {
             if (stats[groupKey]) {
                 const totalPoints = item.points * item.quantity;
 
-                stats[groupKey].violationCount += item.quantity;
-
                 if (totalPoints > 0) {
                     stats[groupKey].bonus += totalPoints;
                 } else {
                     stats[groupKey].penaltyRaw += totalPoints;
+                    if (totalPoints < 0) {
+                        stats[groupKey].violationCount += item.quantity;
+                    }
                 }
             }
         });
@@ -304,7 +305,7 @@ const ReportPage = () => {
             <div className="filter-section">
                 <div className="filter-group">
                     <label>Chọn tuần:</label>
-                    {}
+                    
                     {!classStartDate && (
                         <span style={{ color: 'red', fontSize: '12px', display: 'block' }}>
                             (Lớp chưa cấu hình ngày bắt đầu)
@@ -399,7 +400,7 @@ const ReportPage = () => {
                             <th>Tổ</th>
                             <th>Học sinh</th>
                             <th>Lỗi vi phạm</th>
-                            <th>Điểm trừ</th>
+                            <th>Điểm</th>
                             <th>SL</th>
                             <th>Ghi chú</th>
                         </tr>
