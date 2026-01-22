@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useClass } from '../contexts/ClassContext';
+import api from '../utils/api';
 import {
     FaClipboardList,
     FaTrophy,
@@ -12,6 +13,7 @@ import {
     FaArrowRight,
     FaBookOpen,
     FaQuestionCircle,
+    FaCircle,
 } from 'react-icons/fa';
 import '../assets/styles/Dashboard.css';
 
@@ -21,6 +23,50 @@ const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
 
     const isTeacher = user?.role === 'teacher' || user?.role === 'admin';
+
+    const [classMembers, setClassMembers] = useState<any[]>([]);
+
+    
+    const isUserOnline = (lastActiveAt: string | null) => {
+        if (!lastActiveAt) return false;
+        
+        
+        const lastActiveDate = new Date(lastActiveAt);
+        const now = new Date();
+
+        
+        const diff = now.getTime() - lastActiveDate.getTime();
+        
+        
+        
+        return diff < 5 * 60 * 1000 && diff > -5 * 60 * 1000; 
+    };
+
+    useEffect(() => {
+        const fetchMembers = async () => {
+            if (selectedClass?.id) {
+                try {
+                    const res = await api.get('/users', {
+                        params: { class_id: selectedClass.id },
+                    });
+                    if (Array.isArray(res.data)) {
+                        setClassMembers(res.data);
+                    }
+                } catch (error) {
+                    console.error('Lỗi tải thành viên:', error);
+                }
+            }
+        };
+
+        
+        fetchMembers();
+        
+        
+        
+        const interval = setInterval(fetchMembers, 10000);
+        
+        return () => clearInterval(interval);
+    }, [selectedClass?.id]);
 
     const guides = [
         {
@@ -160,7 +206,6 @@ const DashboardPage: React.FC = () => {
                         );
                     })}
 
-                    {}
                     <div className="guide-card support-card" onClick={() => navigate('/support')}>
                         <div className="guide-card-header">
                             <FaQuestionCircle className="guide-icon color-gray" />
@@ -176,6 +221,142 @@ const DashboardPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {}
+            {selectedClass && (
+                <div
+                    className="active-members-section"
+                    style={{
+                        marginTop: '40px',
+                        background: '#fff',
+                        padding: '25px',
+                        borderRadius: '16px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                    }}
+                >
+                    <div
+                        className="section-header"
+                        style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                            borderBottom: '1px solid #eee',
+                            paddingBottom: '10px',
+                        }}
+                    >
+                        <h2 style={{ fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <FaCircle style={{ color: '#2ecc71', fontSize: '12px' }} />
+                            Trạng thái thành viên ({classMembers.length})
+                        </h2>
+                    </div>
+
+                    <div
+                        className="members-grid"
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                            gap: '15px',
+                        }}
+                    >
+                        {classMembers.length > 0 ? (
+                            classMembers
+                                
+                                .sort((a, b) => {
+                                    const onlineA = isUserOnline(a.last_active_at) || a.id === user?.id;
+                                    const onlineB = isUserOnline(b.last_active_at) || b.id === user?.id;
+                                    return Number(onlineB) - Number(onlineA);
+                                })
+                                .map((member) => {
+                                    const online = isUserOnline(member.last_active_at);
+                                    
+                                    const isMe = user?.id === member.id;
+                                    const showOnline = online || isMe; 
+
+                                    return (
+                                        <div
+                                            key={member.id}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '12px',
+                                                padding: '10px',
+                                                borderRadius: '10px',
+                                                background: '#f8f9fa',
+                                                border: showOnline ? '1px solid #2ecc71' : '1px solid #eee',
+                                                transition: 'all 0.2s ease',
+                                                opacity: showOnline ? 1 : 0.6 
+                                            }}
+                                        >
+                                            <div style={{ position: 'relative' }}>
+                                                <div
+                                                    style={{
+                                                        width: '40px',
+                                                        height: '40px',
+                                                        borderRadius: '50%',
+                                                        background: `linear-gradient(135deg, ${
+                                                            ['#FF9A9E', '#FECFEF', '#A18CD1', '#FBC2EB', '#84FAB0'][
+                                                                member.id % 5
+                                                            ]
+                                                        } 0%, #fff 100%)`,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontWeight: 'bold',
+                                                        color: '#555',
+                                                        fontSize: '16px',
+                                                    }}
+                                                >
+                                                    {member.full_name?.charAt(0).toUpperCase()}
+                                                </div>
+                                                {}
+                                                <span
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: 0,
+                                                        right: 0,
+                                                        width: '12px',
+                                                        height: '12px',
+                                                        borderRadius: '50%',
+                                                        background: showOnline ? '#2ecc71' : '#ccc',
+                                                        border: '2px solid #fff'
+                                                    }}
+                                                ></span>
+                                            </div>
+                                            <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                <div
+                                                    style={{
+                                                        fontSize: '14px',
+                                                        fontWeight: '600',
+                                                        color: '#333',
+                                                        whiteSpace: 'nowrap',
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                    }}
+                                                >
+                                                    {member.full_name} {isMe && "(Bạn)"}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: '11px',
+                                                        color: showOnline ? '#2ecc71' : '#999',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '5px',
+                                                    }}
+                                                >
+                                                    {showOnline ? 'Đang truy cập' : 'Ngoại tuyến'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                        ) : (
+                            <p style={{ color: '#888', fontStyle: 'italic' }}>Chưa có thành viên nào.</p>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
