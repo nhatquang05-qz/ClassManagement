@@ -66,7 +66,7 @@ const getUsers = async (req, res) => {
         const { class_id, group_number } = req.query;
 
         let query = `
-      SELECT u.id, u.full_name, u.username, u.group_number, u.monitoring_group, u.role_id, u.is_locked, u.class_id,
+      SELECT u.id, u.full_name, u.username, u.group_number, u.monitoring_group, u.role_id, u.is_locked, u.class_id, u.last_active_at,
              r.display_name as role_name
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id

@@ -26,20 +26,27 @@ const DashboardPage: React.FC = () => {
 
     const [classMembers, setClassMembers] = useState<any[]>([]);
 
-    
     const isUserOnline = (lastActiveAt: string | null) => {
         if (!lastActiveAt) return false;
-        
-        
-        const lastActiveDate = new Date(lastActiveAt);
-        const now = new Date();
 
-        
-        const diff = now.getTime() - lastActiveDate.getTime();
-        
-        
-        
-        return diff < 5 * 60 * 1000 && diff > -5 * 60 * 1000; 
+        let dateString = lastActiveAt;
+
+        if (dateString.includes(' ')) {
+            dateString = dateString.replace(' ', 'T');
+        }
+
+        if (!dateString.endsWith('Z') && !dateString.includes('+')) {
+            dateString += 'Z';
+        }
+
+        const lastActive = new Date(dateString).getTime();
+        const now = new Date().getTime();
+
+        const fiveMinutes = 5 * 60 * 1000;
+
+        const diff = now - lastActive;
+
+        return diff < fiveMinutes && diff > -fiveMinutes;
     };
 
     useEffect(() => {
@@ -47,7 +54,10 @@ const DashboardPage: React.FC = () => {
             if (selectedClass?.id) {
                 try {
                     const res = await api.get('/users', {
-                        params: { class_id: selectedClass.id },
+                        params: {
+                            class_id: selectedClass.id,
+                            _t: new Date().getTime(),
+                        },
                     });
                     if (Array.isArray(res.data)) {
                         setClassMembers(res.data);
@@ -58,13 +68,10 @@ const DashboardPage: React.FC = () => {
             }
         };
 
-        
         fetchMembers();
-        
-        
-        
+
         const interval = setInterval(fetchMembers, 10000);
-        
+
         return () => clearInterval(interval);
     }, [selectedClass?.id]);
 
@@ -245,7 +252,15 @@ const DashboardPage: React.FC = () => {
                             paddingBottom: '10px',
                         }}
                     >
-                        <h2 style={{ fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h2
+                            style={{
+                                fontSize: '18px',
+                                margin: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                            }}
+                        >
                             <FaCircle style={{ color: '#2ecc71', fontSize: '12px' }} />
                             Trạng thái thành viên ({classMembers.length})
                         </h2>
@@ -261,17 +276,19 @@ const DashboardPage: React.FC = () => {
                     >
                         {classMembers.length > 0 ? (
                             classMembers
-                                
+
                                 .sort((a, b) => {
-                                    const onlineA = isUserOnline(a.last_active_at) || a.id === user?.id;
-                                    const onlineB = isUserOnline(b.last_active_at) || b.id === user?.id;
+                                    const onlineA =
+                                        isUserOnline(a.last_active_at) || a.id === user?.id;
+                                    const onlineB =
+                                        isUserOnline(b.last_active_at) || b.id === user?.id;
                                     return Number(onlineB) - Number(onlineA);
                                 })
                                 .map((member) => {
                                     const online = isUserOnline(member.last_active_at);
-                                    
+
                                     const isMe = user?.id === member.id;
-                                    const showOnline = online || isMe; 
+                                    const showOnline = online || isMe;
 
                                     return (
                                         <div
@@ -283,9 +300,11 @@ const DashboardPage: React.FC = () => {
                                                 padding: '10px',
                                                 borderRadius: '10px',
                                                 background: '#f8f9fa',
-                                                border: showOnline ? '1px solid #2ecc71' : '1px solid #eee',
+                                                border: showOnline
+                                                    ? '1px solid #2ecc71'
+                                                    : '1px solid #eee',
                                                 transition: 'all 0.2s ease',
-                                                opacity: showOnline ? 1 : 0.6 
+                                                opacity: showOnline ? 1 : 0.6,
                                             }}
                                         >
                                             <div style={{ position: 'relative' }}>
@@ -295,9 +314,13 @@ const DashboardPage: React.FC = () => {
                                                         height: '40px',
                                                         borderRadius: '50%',
                                                         background: `linear-gradient(135deg, ${
-                                                            ['#FF9A9E', '#FECFEF', '#A18CD1', '#FBC2EB', '#84FAB0'][
-                                                                member.id % 5
-                                                            ]
+                                                            [
+                                                                '#FF9A9E',
+                                                                '#FECFEF',
+                                                                '#A18CD1',
+                                                                '#FBC2EB',
+                                                                '#84FAB0',
+                                                            ][member.id % 5]
                                                         } 0%, #fff 100%)`,
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -319,7 +342,7 @@ const DashboardPage: React.FC = () => {
                                                         height: '12px',
                                                         borderRadius: '50%',
                                                         background: showOnline ? '#2ecc71' : '#ccc',
-                                                        border: '2px solid #fff'
+                                                        border: '2px solid #fff',
                                                     }}
                                                 ></span>
                                             </div>
@@ -334,7 +357,7 @@ const DashboardPage: React.FC = () => {
                                                         textOverflow: 'ellipsis',
                                                     }}
                                                 >
-                                                    {member.full_name} {isMe && "(Bạn)"}
+                                                    {member.full_name} {isMe && '(Bạn)'}
                                                 </div>
                                                 <div
                                                     style={{
@@ -352,7 +375,9 @@ const DashboardPage: React.FC = () => {
                                     );
                                 })
                         ) : (
-                            <p style={{ color: '#888', fontStyle: 'italic' }}>Chưa có thành viên nào.</p>
+                            <p style={{ color: '#888', fontStyle: 'italic' }}>
+                                Chưa có thành viên nào.
+                            </p>
                         )}
                     </div>
                 </div>

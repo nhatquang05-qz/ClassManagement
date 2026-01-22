@@ -1,33 +1,30 @@
 const Groq = require('groq-sdk');
 require('dotenv').config();
 
-
 const getGroqClient = () => {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-        console.error("⚠️ CẢNH BÁO: Chưa cấu hình GROQ_API_KEY trên server.");
+        console.error('⚠️ CẢNH BÁO: Chưa cấu hình GROQ_API_KEY trên server.');
         return null;
     }
     return new Groq({ apiKey });
 };
 
 const generateClassReport = async (reportData, startDate, endDate) => {
-    
     const groq = getGroqClient();
-    
+
     if (!groq) {
-        return "Chức năng AI đang tạm khóa do chưa cấu hình API Key. Vui lòng kiểm tra cài đặt Environment trên Render.";
+        return 'Chức năng AI đang tạm khóa do chưa cấu hình API Key. Vui lòng kiểm tra cài đặt Environment trên Render.';
     }
 
     try {
-        
-        const summary = reportData.map(item => ({
+        const summary = reportData.map((item) => ({
             hoc_sinh: item.student_name,
             to: item.group_number,
-            noi_dung: item.violation_name, 
-            loai_diem: item.points > 0 ? "TÍCH CỰC (Cộng điểm)" : "VI PHẠM (Trừ điểm)",
+            noi_dung: item.violation_name,
+            loai_diem: item.points > 0 ? 'TÍCH CỰC (Cộng điểm)' : 'VI PHẠM (Trừ điểm)',
             tong_diem: item.points * item.quantity,
-            so_luong: item.quantity
+            so_luong: item.quantity,
         }));
 
         const prompt = `
@@ -62,22 +59,22 @@ const generateClassReport = async (reportData, startDate, endDate) => {
         const chatCompletion = await groq.chat.completions.create({
             messages: [
                 {
-                    role: "user",
-                    content: prompt
-                }
+                    role: 'user',
+                    content: prompt,
+                },
             ],
-            model: 'openai/gpt-oss-120b', 
-            temperature: 0.6, 
+            model: 'openai/gpt-oss-120b',
+            temperature: 0.6,
             max_tokens: 1500,
         });
 
-        return chatCompletion.choices[0]?.message?.content || "Không có phản hồi từ AI.";
+        return chatCompletion.choices[0]?.message?.content || 'Không có phản hồi từ AI.';
     } catch (error) {
-        console.error("Lỗi AI Service:", error);
-        return "Hệ thống đang bận, vui lòng thử lại sau.";
+        console.error('Lỗi AI Service:', error);
+        return 'Hệ thống đang bận, vui lòng thử lại sau.';
     }
 };
 
 module.exports = {
-    generateClassReport
+    generateClassReport,
 };
