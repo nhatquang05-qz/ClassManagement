@@ -26,27 +26,51 @@ const DashboardPage: React.FC = () => {
 
     const [classMembers, setClassMembers] = useState<any[]>([]);
 
+    const parseDate = (dateString: string | null) => {
+        if (!dateString) return null;
+        let safeDate = dateString;
+
+        if (safeDate.includes(' ') && !safeDate.includes('T')) {
+            safeDate = safeDate.replace(' ', 'T');
+        }
+
+        if (!safeDate.endsWith('Z') && !safeDate.includes('+')) {
+            safeDate += 'Z';
+        }
+        return new Date(safeDate);
+    };
+
     const isUserOnline = (lastActiveAt: string | null) => {
-        if (!lastActiveAt) return false;
+        const date = parseDate(lastActiveAt);
+        if (!date) return false;
 
-        let dateString = lastActiveAt;
-
-        if (dateString.includes(' ')) {
-            dateString = dateString.replace(' ', 'T');
-        }
-
-        if (!dateString.endsWith('Z') && !dateString.includes('+')) {
-            dateString += 'Z';
-        }
-
-        const lastActive = new Date(dateString).getTime();
-        const now = new Date().getTime();
-
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
         const fiveMinutes = 5 * 60 * 1000;
 
-        const diff = now - lastActive;
-
         return diff < fiveMinutes && diff > -fiveMinutes;
+    };
+
+    const formatLastActive = (lastActiveAt: string | null) => {
+        const date = parseDate(lastActiveAt);
+        if (!date) return 'Chưa từng truy cập';
+
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+        const seconds = Math.floor(diff / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        const months = Math.floor(days / 30);
+
+        if (minutes < 5) return 'Đang truy cập';
+        if (minutes < 60) return `Truy cập ${minutes} phút trước`;
+        if (hours < 24) return `Truy cập ${hours} giờ trước`;
+        if (days < 7) return `Truy cập ${days} ngày trước`;
+        if (days < 30) return `Truy cập ${Math.floor(days / 7)} tuần trước`;
+        if (months < 12) return `Truy cập ${months} tháng trước`;
+
+        return `Truy cập ${date.toLocaleDateString('vi-VN')}`;
     };
 
     useEffect(() => {
@@ -108,7 +132,6 @@ const DashboardPage: React.FC = () => {
 
     return (
         <div className="dashboard-container">
-            {}
             <div className="welcome-banner">
                 <div className="welcome-text">
                     <h1>Xin chào, {user?.full_name}! 👋</h1>
@@ -125,7 +148,6 @@ const DashboardPage: React.FC = () => {
                 </div>
             </div>
 
-            {}
             <div className="stats-grid">
                 <div className="stat-card">
                     <div className="stat-icon bg-blue-light">
@@ -179,7 +201,6 @@ const DashboardPage: React.FC = () => {
                 )}
             </div>
 
-            {}
             <div className="guide-section">
                 <div className="section-header">
                     <h2>
@@ -229,7 +250,6 @@ const DashboardPage: React.FC = () => {
                 </div>
             </div>
 
-            {}
             {selectedClass && (
                 <div
                     className="active-members-section"
@@ -278,17 +298,22 @@ const DashboardPage: React.FC = () => {
                             classMembers
 
                                 .sort((a, b) => {
-                                    const onlineA =
-                                        isUserOnline(a.last_active_at) || a.id === user?.id;
-                                    const onlineB =
-                                        isUserOnline(b.last_active_at) || b.id === user?.id;
-                                    return Number(onlineB) - Number(onlineA);
+                                    const timeA = parseDate(a.last_active_at)?.getTime() || 0;
+                                    const timeB = parseDate(b.last_active_at)?.getTime() || 0;
+
+                                    if (a.id === user?.id) return -1;
+                                    if (b.id === user?.id) return 1;
+
+                                    return timeB - timeA;
                                 })
                                 .map((member) => {
                                     const online = isUserOnline(member.last_active_at);
-
                                     const isMe = user?.id === member.id;
                                     const showOnline = online || isMe;
+
+                                    const statusText = isMe
+                                        ? 'Đang truy cập'
+                                        : formatLastActive(member.last_active_at);
 
                                     return (
                                         <div
@@ -304,7 +329,7 @@ const DashboardPage: React.FC = () => {
                                                     ? '1px solid #2ecc71'
                                                     : '1px solid #eee',
                                                 transition: 'all 0.2s ease',
-                                                opacity: showOnline ? 1 : 0.6,
+                                                opacity: showOnline ? 1 : 0.7,
                                             }}
                                         >
                                             <div style={{ position: 'relative' }}>
@@ -362,13 +387,15 @@ const DashboardPage: React.FC = () => {
                                                 <div
                                                     style={{
                                                         fontSize: '11px',
-                                                        color: showOnline ? '#2ecc71' : '#999',
+
+                                                        color: showOnline ? '#2ecc71' : '#888',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         gap: '5px',
+                                                        fontStyle: showOnline ? 'normal' : 'italic',
                                                     }}
                                                 >
-                                                    {showOnline ? 'Đang truy cập' : 'Ngoại tuyến'}
+                                                    {statusText}
                                                 </div>
                                             </div>
                                         </div>
