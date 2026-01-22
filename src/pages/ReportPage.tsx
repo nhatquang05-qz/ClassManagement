@@ -237,8 +237,10 @@ const ReportPage = () => {
 
                 if (totalPoints > 0) {
                     stats[groupKey].bonus += totalPoints;
+                    
                 } else {
                     stats[groupKey].penaltyRaw += totalPoints;
+                    
                     if (totalPoints < 0) {
                         stats[groupKey].violationCount += item.quantity;
                     }
@@ -261,21 +263,30 @@ const ReportPage = () => {
     const chartDataByCategory = useMemo(() => {
         const counts: Record<string, number> = {};
         reportData.forEach((item) => {
-            counts[item.violation_name] = (counts[item.violation_name] || 0) + item.quantity;
+            
+            if (item.points < 0) {
+                counts[item.violation_name] = (counts[item.violation_name] || 0) + item.quantity;
+            }
         });
         return Object.keys(counts).map((key) => ({ name: key, value: counts[key] }));
     }, [reportData]);
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF4560'];
 
-    const totalViolations = reportData.reduce((acc, curr) => acc + curr.quantity, 0);
+    
+    const totalViolations = reportData.reduce((acc, curr) => {
+        return curr.points < 0 ? acc + curr.quantity : acc;
+    }, 0);
 
     const totalPointsLost = reportData.reduce((acc, curr) => {
         const p = curr.points * curr.quantity;
         return p < 0 ? acc + p : acc;
     }, 0);
 
-    const uniqueStudents = new Set(reportData.map((r) => r.student_name)).size;
+    
+    const uniqueStudents = new Set(
+        reportData.filter((r) => r.points < 0).map((r) => r.student_name)
+    ).size;
 
     return (
         <div className="report-page-container">
@@ -305,7 +316,7 @@ const ReportPage = () => {
             <div className="filter-section">
                 <div className="filter-group">
                     <label>Chọn tuần:</label>
-                    
+                    {}
                     {!classStartDate && (
                         <span style={{ color: 'red', fontSize: '12px', display: 'block' }}>
                             (Lớp chưa cấu hình ngày bắt đầu)
@@ -419,7 +430,17 @@ const ReportPage = () => {
                                             {row.violation_name}
                                         </span>
                                     </td>
-                                    <td className="text-danger">{row.points * row.quantity}</td>
+                                    <td
+                                        className={
+                                            row.points * row.quantity > 0
+                                                ? 'text-success'
+                                                : 'text-danger'
+                                        }
+                                        style={{ fontWeight: 'bold' }}
+                                    >
+                                        {row.points * row.quantity > 0 ? '+' : ''}
+                                        {row.points * row.quantity}
+                                    </td>
                                     <td style={{ textAlign: 'center' }}>{row.quantity}</td>
                                     <td className="note-cell">{row.note || '-'}</td>
                                 </tr>
@@ -515,7 +536,7 @@ const ReportPage = () => {
                         }}
                     >
                         <h3 style={{ textAlign: 'center', marginBottom: '20px', fontSize: '18px' }}>
-                            Tỉ lệ các loại lỗi
+                            Tỉ lệ các loại lỗi (Chỉ tính lỗi trừ điểm)
                         </h3>
                         <ResponsiveContainer width="100%" height={350}>
                             <PieChart>
