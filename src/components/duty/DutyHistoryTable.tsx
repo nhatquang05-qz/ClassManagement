@@ -74,8 +74,8 @@ const DutyHistoryTable: React.FC<Props> = ({ groupedViolations, week, canEdit, o
                         <tr>
                             <th style={{ width: '100px' }}>Ngày</th>
                             <th style={{ width: '60px', textAlign: 'center' }}>Tổ</th>
-                            <th>Lỗi vi phạm</th>
-                            <th>Người vi phạm</th>
+                            <th>Nội dung</th>
+                            <th>Học sinh</th>
                             <th>Ghi chú</th>
                             <th style={{ width: '50px' }}></th>
                         </tr>
